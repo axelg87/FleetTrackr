@@ -1,4 +1,4 @@
-# Fleet Manager Android App 
+# Fleet Manager Android App  
 
 ## Project Overview
 A modern Android application built with Jetpack Compose for fleet managers to track daily income and expenses for multiple drivers. Features offline-first architecture with Firebase cloud sync.
