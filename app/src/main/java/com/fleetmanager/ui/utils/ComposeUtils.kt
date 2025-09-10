@@ -44,7 +44,7 @@ fun <T> Flow<T>.collectAsStateWithLifecycle(
  * Creates a stable lambda that won't cause recompositions.
  */
 @Composable
-fun <T> rememberStableLambda(key: Any? = null, lambda: () -> T): () -> T {
+fun <T> rememberStableLambda0(lambda: () -> T, key: Any? = null): () -> T {
     return remember(key) { lambda }
 }
 
@@ -52,7 +52,7 @@ fun <T> rememberStableLambda(key: Any? = null, lambda: () -> T): () -> T {
  * Creates a stable lambda with one parameter that won't cause recompositions.
  */
 @Composable
-fun <P, T> rememberStableLambda(key: Any? = null, lambda: (P) -> T): (P) -> T {
+fun <P, T> rememberStableLambda1(lambda: (P) -> T, key: Any? = null): (P) -> T {
     return remember(key) { lambda }
 }
 
