@@ -54,7 +54,7 @@ fun StatCard(
     } else modifier
 
     Card(
-        modifier = cardModifier.width(160.dp)
+        modifier = cardModifier
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -80,24 +80,64 @@ fun StatCard(
     }
 }
 
-// Stats Grid Component
+// Stats Grid Component - 2x2 grid layout
 @Composable
 fun StatsGrid(
     stats: List<StatItem>,
     modifier: Modifier = Modifier
 ) {
-    LazyRow(
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(horizontal = 0.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(stats) { stat ->
-            StatCard(
-                icon = stat.icon,
-                value = stat.value,
-                label = stat.label,
-                onClick = stat.onClick
-            )
+        // First row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            stats.getOrNull(0)?.let { stat ->
+                StatCard(
+                    icon = stat.icon,
+                    value = stat.value,
+                    label = stat.label,
+                    onClick = stat.onClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            stats.getOrNull(1)?.let { stat ->
+                StatCard(
+                    icon = stat.icon,
+                    value = stat.value,
+                    label = stat.label,
+                    onClick = stat.onClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        
+        // Second row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            stats.getOrNull(2)?.let { stat ->
+                StatCard(
+                    icon = stat.icon,
+                    value = stat.value,
+                    label = stat.label,
+                    onClick = stat.onClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            stats.getOrNull(3)?.let { stat ->
+                StatCard(
+                    icon = stat.icon,
+                    value = stat.value,
+                    label = stat.label,
+                    onClick = stat.onClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
