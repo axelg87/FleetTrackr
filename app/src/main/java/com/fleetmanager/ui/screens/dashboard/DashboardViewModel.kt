@@ -5,6 +5,8 @@ import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Schedule
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fleetmanager.data.repository.FleetRepository
@@ -13,6 +15,8 @@ import com.fleetmanager.ui.components.StatItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class RecentEntry(
@@ -67,32 +71,62 @@ class DashboardViewModel @Inject constructor(
                 ) { entries, drivers ->
                     val driverMap = drivers.associateBy { it.id }
                     
-                    // Calculate quick stats
-                    val totalEarnings = entries.sumOf { it.totalEarnings }
-                    val totalEntries = entries.size
+                    // Calculate time-based stats
+                    val now = Date()
+                    val calendar = Calendar.getInstance()
+                    
+                    // This month
+                    calendar.time = now
+                    calendar.set(Calendar.DAY_OF_MONTH, 1)
+                    calendar.set(Calendar.HOUR_OF_DAY, 0)
+                    calendar.set(Calendar.MINUTE, 0)
+                    calendar.set(Calendar.SECOND, 0)
+                    calendar.set(Calendar.MILLISECOND, 0)
+                    val startOfMonth = calendar.time
+                    val thisMonthEntries = entries.filter { it.date >= startOfMonth }
+                    val thisMonthEarnings = thisMonthEntries.sumOf { it.totalEarnings }
+                    
+                    // This week (Monday to Sunday)
+                    calendar.time = now
+                    val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+                    val daysFromMonday = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - Calendar.MONDAY
+                    calendar.add(Calendar.DAY_OF_YEAR, -daysFromMonday)
+                    calendar.set(Calendar.HOUR_OF_DAY, 0)
+                    calendar.set(Calendar.MINUTE, 0)
+                    calendar.set(Calendar.SECOND, 0)
+                    calendar.set(Calendar.MILLISECOND, 0)
+                    val startOfWeek = calendar.time
+                    val thisWeekEntries = entries.filter { it.date >= startOfWeek }
+                    val thisWeekEarnings = thisWeekEntries.sumOf { it.totalEarnings }
+                    
+                    // Last 24 hours
+                    val last24Hours = Date(now.time - TimeUnit.HOURS.toMillis(24))
+                    val last24hEntries = entries.filter { it.date >= last24Hours }
+                    val last24hEarnings = last24hEntries.sumOf { it.totalEarnings }
+                    
+                    // Active drivers (from all entries)
                     val activeDrivers = entries.distinctBy { it.driverName }.size
-                    val avgEarningsPerEntry = if (totalEntries > 0) totalEarnings / totalEntries else 0.0
 
                     val quickStats = listOf(
                         StatItem(
-                            icon = Icons.Default.AttachMoney,
-                            value = "$${String.format("%.0f", totalEarnings)}",
-                            label = "Total Earnings"
+                            icon = Icons.Default.CalendarToday,
+                            value = "$${String.format("%.0f", thisMonthEarnings)}",
+                            label = "This Month"
                         ),
                         StatItem(
-                            icon = Icons.Default.Assignment,
-                            value = totalEntries.toString(),
-                            label = "Total Entries"
+                            icon = Icons.Default.TrendingUp,
+                            value = "$${String.format("%.0f", thisWeekEarnings)}",
+                            label = "This Week"
+                        ),
+                        StatItem(
+                            icon = Icons.Default.Schedule,
+                            value = "$${String.format("%.0f", last24hEarnings)}",
+                            label = "Last 24h"
                         ),
                         StatItem(
                             icon = Icons.Default.People,
                             value = activeDrivers.toString(),
                             label = "Active Drivers"
-                        ),
-                        StatItem(
-                            icon = Icons.Default.TrendingUp,
-                            value = "$${String.format("%.0f", avgEarningsPerEntry)}",
-                            label = "Avg per Entry"
                         )
                     )
 
