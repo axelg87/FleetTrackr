@@ -353,6 +353,7 @@ fun AddEntryScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerDialog(
     onDateSelected: (Long?) -> Unit,
