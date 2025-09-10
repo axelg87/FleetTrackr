@@ -24,8 +24,10 @@ data class AddEntryUiState(
     val privateJobsEarnings: String = "",
     val notes: String = "",
     val photoUri: Uri? = null,
+    val photoUris: List<Uri> = emptyList(),
     val driverDropdownExpanded: Boolean = false,
     val vehicleDropdownExpanded: Boolean = false,
+    val showDatePicker: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val errorMessage: String? = null
@@ -116,8 +118,24 @@ class AddEntryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(notes = value)
     }
     
-    fun updatePhotoUri(uri: Uri) {
+    fun updatePhotoUri(uri: Uri?) {
         _uiState.value = _uiState.value.copy(photoUri = uri)
+    }
+    
+    fun addPhotoUris(uris: List<Uri>) {
+        val currentUris = _uiState.value.photoUris.toMutableList()
+        currentUris.addAll(uris)
+        _uiState.value = _uiState.value.copy(photoUris = currentUris)
+    }
+    
+    fun removePhotoUri(uri: Uri) {
+        val currentUris = _uiState.value.photoUris.toMutableList()
+        currentUris.remove(uri)
+        _uiState.value = _uiState.value.copy(photoUris = currentUris)
+    }
+    
+    fun updateDate(date: Date) {
+        _uiState.value = _uiState.value.copy(date = date)
     }
     
     fun toggleDriverDropdown(expanded: Boolean) {
@@ -126,6 +144,10 @@ class AddEntryViewModel @Inject constructor(
     
     fun toggleVehicleDropdown(expanded: Boolean) {
         _uiState.value = _uiState.value.copy(vehicleDropdownExpanded = expanded)
+    }
+    
+    fun toggleDatePicker(show: Boolean) {
+        _uiState.value = _uiState.value.copy(showDatePicker = show)
     }
     
     fun saveEntry() {
@@ -149,7 +171,7 @@ class AddEntryViewModel @Inject constructor(
                     updatedAt = Date()
                 )
                 
-                fleetRepository.saveDailyEntry(entry, currentState.photoUri)
+                fleetRepository.saveDailyEntry(entry, currentState.photoUri, currentState.photoUris)
                 _uiState.value = _uiState.value.copy(isSaving = false, isSaved = true)
                 
             } catch (e: Exception) {

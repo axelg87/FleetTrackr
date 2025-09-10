@@ -11,6 +11,7 @@ import com.fleetmanager.data.remote.StorageService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import android.net.Uri
 import java.util.*
 import javax.inject.Inject
@@ -31,24 +32,40 @@ class FleetRepository @Inject constructor(
     fun getDailyEntriesByDateRange(startDate: Date, endDate: Date): Flow<List<DailyEntry>> = 
         dailyEntryDao.getEntriesByDateRange(startDate, endDate)
     
-    suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri? = null) {
-        val entryToSave = if (photoUri != null) {
-            try {
-                val photoUrl = storageService.uploadPhoto(photoUri, entry.id)
-                entry.copy(photoUrl = photoUrl, isSynced = true)
-            } catch (e: Exception) {
-                // Save locally if upload fails
-                entry.copy(localPhotoPath = photoUri.toString(), isSynced = false)
+    fun getDailyEntryById(id: String): Flow<DailyEntry?> = flow {
+        emit(dailyEntryDao.getEntryById(id))
+    }
+    
+    suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri? = null, photoUris: List<Uri> = emptyList()) {
+        val entryToSave = when {
+            photoUris.isNotEmpty() -> {
+                try {
+                    val photoUrls = photoUris.map { uri ->
+                        storageService.uploadPhoto(uri, "${entry.id}_${System.currentTimeMillis()}")
+                    }
+                    entry.copy(photoUrls = photoUrls, isSynced = true)
+                } catch (e: Exception) {
+                    // Save locally if upload fails
+                    entry.copy(localPhotoPaths = photoUris.map { it.toString() }, isSynced = false)
+                }
             }
-        } else {
-            entry
+            photoUri != null -> {
+                try {
+                    val photoUrl = storageService.uploadPhoto(photoUri, entry.id)
+                    entry.copy(photoUrl = photoUrl, isSynced = true)
+                } catch (e: Exception) {
+                    // Save locally if upload fails
+                    entry.copy(localPhotoPath = photoUri.toString(), isSynced = false)
+                }
+            }
+            else -> entry
         }
         
         // Always save locally first
         dailyEntryDao.insertEntry(entryToSave)
         
         // Try to sync to Firestore
-        if (entryToSave.isSynced || photoUri == null) {
+        if (entryToSave.isSynced || (photoUri == null && photoUris.isEmpty())) {
             try {
                 firestoreService.saveDailyEntry(entryToSave.copy(isSynced = true))
                 dailyEntryDao.markAsSynced(entryToSave.id)

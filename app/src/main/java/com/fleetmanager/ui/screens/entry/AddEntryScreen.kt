@@ -4,11 +4,16 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -39,6 +44,14 @@ fun AddEntryScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         uri?.let { viewModel.updatePhotoUri(it) }
+    }
+    
+    val multiplePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.addPhotoUris(uris)
+        }
     }
     
     LaunchedEffect(uiState.isSaved) {
@@ -76,8 +89,27 @@ fun AddEntryScreen(
                 trailingIcon = {
                     Icon(Icons.Default.DateRange, contentDescription = null)
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.toggleDatePicker(true) }
             )
+            
+            // Date picker dialog
+            if (uiState.showDatePicker) {
+                val datePickerState = rememberDatePickerState(
+                    initialSelectedDateMillis = uiState.date.time
+                )
+                DatePickerDialog(
+                    onDateSelected = { dateMillis ->
+                        dateMillis?.let {
+                            viewModel.updateDate(Date(it))
+                        }
+                        viewModel.toggleDatePicker(false)
+                    },
+                    onDismiss = { viewModel.toggleDatePicker(false) },
+                    datePickerState = datePickerState
+                )
+            }
             
             // Driver dropdown
             ExposedDropdownMenuBox(
@@ -187,31 +219,90 @@ fun AddEntryScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.photo),
+                        text = "Photos",
                         style = MaterialTheme.typography.titleSmall
                     )
                     
+                    // Display single photo if exists (legacy support)
                     if (uiState.photoUri != null) {
-                        AsyncImage(
-                            model = uiState.photoUri,
-                            contentDescription = "Selected photo",
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp)
-                        )
+                        ) {
+                            AsyncImage(
+                                model = uiState.photoUri,
+                                contentDescription = "Selected photo",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            IconButton(
+                                onClick = { viewModel.updatePhotoUri(null) },
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove photo")
+                            }
+                        }
                     }
                     
-                    OutlinedButton(
-                        onClick = {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    // Display multiple photos
+                    if (uiState.photoUris.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(uiState.photoUris) { uri ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = "Selected photo",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                    IconButton(
+                                        onClick = { viewModel.removePhotoUri(uri) },
+                                        modifier = Modifier.align(Alignment.TopEnd)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close, 
+                                            contentDescription = "Remove photo",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Photo selection buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            if (uiState.photoUri != null) "Change Photo" else stringResource(R.string.select_photo)
-                        )
+                        OutlinedButton(
+                            onClick = {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Add Photo")
+                        }
+                        
+                        OutlinedButton(
+                            onClick = {
+                                multiplePhotoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Add Multiple")
+                        }
                     }
                 }
             }
@@ -259,5 +350,30 @@ fun AddEntryScreen(
             // Add some bottom padding
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+fun DatePickerDialog(
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit,
+    datePickerState: DatePickerState
+) {
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onDateSelected(datePickerState.selectedDateMillis)
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }

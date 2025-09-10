@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.screens.entry
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import java.util.*
 @Composable
 fun EntryListScreen(
     onAddEntryClick: () -> Unit,
+    onEntryClick: (String) -> Unit,
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -82,7 +84,10 @@ fun EntryListScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(uiState.entries) { entry ->
-                            EntryCard(entry = entry)
+                            EntryCard(
+                                entry = entry,
+                                onClick = { onEntryClick(entry.id) }
+                            )
                         }
                     }
                 }
@@ -92,11 +97,16 @@ fun EntryListScreen(
 }
 
 @Composable
-fun EntryCard(entry: DailyEntry) {
+fun EntryCard(
+    entry: DailyEntry,
+    onClick: () -> Unit
+) {
     val dateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {

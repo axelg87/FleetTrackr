@@ -17,6 +17,8 @@ data class DailyEntry(
     val notes: String,
     val photoUrl: String? = null,
     val localPhotoPath: String? = null,
+    val photoUrls: List<String> = emptyList(),
+    val localPhotoPaths: List<String> = emptyList(),
     val isSynced: Boolean = false,
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
