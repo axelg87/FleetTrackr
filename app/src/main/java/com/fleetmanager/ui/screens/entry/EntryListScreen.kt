@@ -16,6 +16,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.EntryListViewModel
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.ui.components.*
+import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
+import com.fleetmanager.ui.utils.rememberStableLambda
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -25,7 +27,11 @@ fun EntryListScreen(
     onEntryClick: (String) -> Unit,
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Create stable lambdas to prevent unnecessary recompositions
+    val onAddClick = rememberStableLambda { onAddEntryClick() }
+    val onItemClick = rememberStableLambda<String> { entryId -> onEntryClick(entryId) }
     
     LazyColumn(
         modifier = Modifier
@@ -69,17 +75,20 @@ fun EntryListScreen(
                         icon = Icons.Default.Assignment,
                         title = "No entries yet",
                         description = "Add your first daily entry to get started",
-                        actionText = "Add Entry",
-                        onActionClick = onAddEntryClick
+                    actionText = "Add Entry",
+                    onActionClick = onAddClick
                     )
                 }
             }
             
             else -> {
-                items(uiState.entries) { entry ->
+                items(
+                    items = uiState.entries,
+                    key = { it.id }
+                ) { entry ->
                     EntryCard(
                         entry = entry,
-                        onClick = { onEntryClick(entry.id) }
+                        onClick = { onItemClick(entry.id) }
                     )
                 }
             }

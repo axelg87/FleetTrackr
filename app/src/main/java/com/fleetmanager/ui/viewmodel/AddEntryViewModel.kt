@@ -9,6 +9,7 @@ import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
 import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.usecase.SaveDriverUseCase
 import com.fleetmanager.domain.usecase.SaveVehicleUseCase
+import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -32,13 +33,26 @@ data class AddEntryUiState(
     val showDatePicker: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val uberEarningsError: String? = null,
+    val yangoEarningsError: String? = null,
+    val privateJobsEarningsError: String? = null,
+    val notesError: String? = null
 ) {
     val canSave: Boolean
-        get() = selectedDriver != null && selectedVehicle != null &&
-                (uberEarnings.toDoubleOrNull() ?: 0.0) >= 0 &&
-                (yangoEarnings.toDoubleOrNull() ?: 0.0) >= 0 &&
-                (privateJobsEarnings.toDoubleOrNull() ?: 0.0) >= 0
+        get() = selectedDriver != null && 
+                selectedVehicle != null &&
+                uberEarningsError == null &&
+                yangoEarningsError == null &&
+                privateJobsEarningsError == null &&
+                notesError == null &&
+                (uberEarnings.isNotBlank() || yangoEarnings.isNotBlank() || privateJobsEarnings.isNotBlank())
+    
+    val hasValidationErrors: Boolean
+        get() = uberEarningsError != null || 
+                yangoEarningsError != null || 
+                privateJobsEarningsError != null || 
+                notesError != null
 }
 
 @HiltViewModel
@@ -47,7 +61,8 @@ class AddEntryViewModel @Inject constructor(
     private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
     private val saveDriverUseCase: SaveDriverUseCase,
-    private val saveVehicleUseCase: SaveVehicleUseCase
+    private val saveVehicleUseCase: SaveVehicleUseCase,
+    private val validator: InputValidator
 ) : BaseViewModel<AddEntryUiState>() {
     
     override fun getInitialState() = AddEntryUiState()
@@ -108,19 +123,47 @@ class AddEntryViewModel @Inject constructor(
     }
     
     fun updateUberEarnings(value: String) {
-        updateState { it.copy(uberEarnings = value) }
+        val sanitized = validator.sanitizeNumericInput(value)
+        val error = validator.validateEarnings(sanitized, "Uber earnings").getErrorMessage()
+        updateState { 
+            it.copy(
+                uberEarnings = sanitized,
+                uberEarningsError = error
+            ) 
+        }
     }
     
     fun updateYangoEarnings(value: String) {
-        updateState { it.copy(yangoEarnings = value) }
+        val sanitized = validator.sanitizeNumericInput(value)
+        val error = validator.validateEarnings(sanitized, "Yango earnings").getErrorMessage()
+        updateState { 
+            it.copy(
+                yangoEarnings = sanitized,
+                yangoEarningsError = error
+            ) 
+        }
     }
     
     fun updatePrivateJobsEarnings(value: String) {
-        updateState { it.copy(privateJobsEarnings = value) }
+        val sanitized = validator.sanitizeNumericInput(value)
+        val error = validator.validateEarnings(sanitized, "Private jobs earnings").getErrorMessage()
+        updateState { 
+            it.copy(
+                privateJobsEarnings = sanitized,
+                privateJobsEarningsError = error
+            ) 
+        }
     }
     
     fun updateNotes(value: String) {
-        updateState { it.copy(notes = value) }
+        val sanitized = validator.sanitizeText(value)
+        val error = validator.validateNotes(sanitized).getErrorMessage()
+        updateState { 
+            it.copy(
+                notes = sanitized,
+                notesError = error
+            ) 
+        }
     }
     
     fun updatePhotoUri(uri: Uri?) {
