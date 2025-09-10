@@ -29,6 +29,8 @@ class FleetRepository @Inject constructor(
     // Daily Entries - Offline-first approach
     fun getAllDailyEntries(): Flow<List<DailyEntry>> = dailyEntryDao.getAllEntries()
     
+    fun getAllEntries(): Flow<List<DailyEntry>> = getAllDailyEntries()
+    
     fun getDailyEntriesByDateRange(startDate: Date, endDate: Date): Flow<List<DailyEntry>> = 
         dailyEntryDao.getEntriesByDateRange(startDate, endDate)
     
@@ -109,6 +111,8 @@ class FleetRepository @Inject constructor(
     
     // Drivers
     fun getAllActiveDrivers(): Flow<List<Driver>> = driverDao.getAllActiveDrivers()
+    
+    fun getAllDrivers(): Flow<List<Driver>> = driverDao.getAllDrivers()
     
     suspend fun saveDriver(driver: Driver) {
         driverDao.insertDriver(driver)
