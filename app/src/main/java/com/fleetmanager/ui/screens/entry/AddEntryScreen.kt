@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.fleetmanager.ui.viewmodel.AddEntryViewModel
 import coil.compose.AsyncImage
 import com.fleetmanager.R
 import java.text.SimpleDateFormat

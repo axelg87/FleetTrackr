@@ -8,13 +8,13 @@ import android.content.Context
 import com.fleetmanager.data.local.dao.DailyEntryDao
 import com.fleetmanager.data.local.dao.DriverDao
 import com.fleetmanager.data.local.dao.VehicleDao
-import com.fleetmanager.data.model.DailyEntry
-import com.fleetmanager.data.model.Driver
-import com.fleetmanager.data.model.Vehicle
+import com.fleetmanager.data.dto.DailyEntryDto
+import com.fleetmanager.data.dto.DriverDto
+import com.fleetmanager.data.dto.VehicleDto
 
 @Database(
-    entities = [DailyEntry::class, Driver::class, Vehicle::class],
-    version = 1,
+    entities = [DailyEntryDto::class, DriverDto::class, VehicleDto::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

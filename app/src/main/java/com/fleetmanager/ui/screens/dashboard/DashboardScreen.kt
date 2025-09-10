@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.components.*
+import com.fleetmanager.ui.viewmodel.DashboardViewModel
 
 @Composable
 fun DashboardScreen(

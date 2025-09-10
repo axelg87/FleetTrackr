@@ -1,0 +1,203 @@
+package com.fleetmanager.ui.viewmodel
+
+import android.net.Uri
+import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
+import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
+import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
+import com.fleetmanager.domain.usecase.SaveDriverUseCase
+import com.fleetmanager.domain.usecase.SaveVehicleUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import java.util.*
+import javax.inject.Inject
+
+data class AddEntryUiState(
+    val drivers: List<Driver> = emptyList(),
+    val vehicles: List<Vehicle> = emptyList(),
+    val selectedDriver: Driver? = null,
+    val selectedVehicle: Vehicle? = null,
+    val date: Date = Date(),
+    val uberEarnings: String = "",
+    val yangoEarnings: String = "",
+    val privateJobsEarnings: String = "",
+    val notes: String = "",
+    val photoUri: Uri? = null,
+    val photoUris: List<Uri> = emptyList(),
+    val driverDropdownExpanded: Boolean = false,
+    val vehicleDropdownExpanded: Boolean = false,
+    val showDatePicker: Boolean = false,
+    val isSaving: Boolean = false,
+    val isSaved: Boolean = false,
+    val errorMessage: String? = null
+) {
+    val canSave: Boolean
+        get() = selectedDriver != null && selectedVehicle != null &&
+                (uberEarnings.toDoubleOrNull() ?: 0.0) >= 0 &&
+                (yangoEarnings.toDoubleOrNull() ?: 0.0) >= 0 &&
+                (privateJobsEarnings.toDoubleOrNull() ?: 0.0) >= 0
+}
+
+@HiltViewModel
+class AddEntryViewModel @Inject constructor(
+    private val getActiveDriversUseCase: GetActiveDriversUseCase,
+    private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
+    private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
+    private val saveDriverUseCase: SaveDriverUseCase,
+    private val saveVehicleUseCase: SaveVehicleUseCase
+) : BaseViewModel<AddEntryUiState>() {
+    
+    override fun getInitialState() = AddEntryUiState()
+    
+    init {
+        loadInitialData()
+    }
+    
+    private fun loadInitialData() {
+        executeAsync {
+            // Load drivers
+            getActiveDriversUseCase()
+                .catch { }
+                .collect { drivers ->
+                    updateState { it.copy(drivers = drivers) }
+                    
+                    // Auto-add sample drivers if none exist
+                    if (drivers.isEmpty()) {
+                        addSampleData()
+                    }
+                }
+        }
+        
+        executeAsync {
+            // Load vehicles
+            getActiveVehiclesUseCase()
+                .catch { }
+                .collect { vehicles ->
+                    updateState { it.copy(vehicles = vehicles) }
+                }
+        }
+    }
+    
+    private suspend fun addSampleData() {
+        // Add some sample drivers and vehicles for demo
+        val sampleDrivers = listOf(
+            Driver("driver_1", "John Smith"),
+            Driver("driver_2", "Maria Garcia"),
+            Driver("driver_3", "Ahmed Hassan")
+        )
+        
+        val sampleVehicles = listOf(
+            Vehicle("vehicle_1", "Toyota", "Camry", 2020, "ABC-123"),
+            Vehicle("vehicle_2", "Honda", "Accord", 2019, "XYZ-789"),
+            Vehicle("vehicle_3", "Hyundai", "Elantra", 2021, "DEF-456")
+        )
+        
+        sampleDrivers.forEach { saveDriverUseCase(it) }
+        sampleVehicles.forEach { saveVehicleUseCase(it) }
+    }
+    
+    fun selectDriver(driver: Driver) {
+        updateState { it.copy(selectedDriver = driver) }
+    }
+    
+    fun selectVehicle(vehicle: Vehicle) {
+        updateState { it.copy(selectedVehicle = vehicle) }
+    }
+    
+    fun updateUberEarnings(value: String) {
+        updateState { it.copy(uberEarnings = value) }
+    }
+    
+    fun updateYangoEarnings(value: String) {
+        updateState { it.copy(yangoEarnings = value) }
+    }
+    
+    fun updatePrivateJobsEarnings(value: String) {
+        updateState { it.copy(privateJobsEarnings = value) }
+    }
+    
+    fun updateNotes(value: String) {
+        updateState { it.copy(notes = value) }
+    }
+    
+    fun updatePhotoUri(uri: Uri?) {
+        updateState { it.copy(photoUri = uri) }
+    }
+    
+    fun addPhotoUris(uris: List<Uri>) {
+        updateState { currentState ->
+            val currentUris = currentState.photoUris.toMutableList()
+            currentUris.addAll(uris)
+            currentState.copy(photoUris = currentUris)
+        }
+    }
+    
+    fun removePhotoUri(uri: Uri) {
+        updateState { currentState ->
+            val currentUris = currentState.photoUris.toMutableList()
+            currentUris.remove(uri)
+            currentState.copy(photoUris = currentUris)
+        }
+    }
+    
+    fun updateDate(date: Date) {
+        updateState { it.copy(date = date) }
+    }
+    
+    fun toggleDriverDropdown(expanded: Boolean) {
+        updateState { it.copy(driverDropdownExpanded = expanded) }
+    }
+    
+    fun toggleVehicleDropdown(expanded: Boolean) {
+        updateState { it.copy(vehicleDropdownExpanded = expanded) }
+    }
+    
+    fun toggleDatePicker(show: Boolean) {
+        updateState { it.copy(showDatePicker = show) }
+    }
+    
+    fun saveEntry() {
+        val currentState = uiState.value
+        if (!currentState.canSave) return
+        
+        executeAsync(
+            onLoading = { isLoading ->
+                updateState { it.copy(isSaving = isLoading, errorMessage = null) }
+            },
+            onError = { error ->
+                updateState { it.copy(isSaving = false, errorMessage = error) }
+            }
+        ) {
+            val entry = DailyEntry(
+                id = UUID.randomUUID().toString(),
+                date = currentState.date,
+                driverName = currentState.selectedDriver!!.name,
+                vehicle = currentState.selectedVehicle!!.displayName,
+                uberEarnings = currentState.uberEarnings.toDoubleOrNull() ?: 0.0,
+                yangoEarnings = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0,
+                privateJobsEarnings = currentState.privateJobsEarnings.toDoubleOrNull() ?: 0.0,
+                notes = currentState.notes,
+                createdAt = Date(),
+                updatedAt = Date()
+            )
+            
+            val result = saveDailyEntryUseCase(entry, currentState.photoUri, currentState.photoUris)
+            result.fold(
+                onSuccess = {
+                    updateState { it.copy(isSaving = false, isSaved = true) }
+                },
+                onFailure = { error ->
+                    updateState { 
+                        it.copy(
+                            isSaving = false, 
+                            errorMessage = error.message ?: "Failed to save entry"
+                        ) 
+                    }
+                }
+            )
+        }
+    }
+}

@@ -1,10 +1,14 @@
-package com.fleetmanager.data.model
+package com.fleetmanager.data.dto
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * Data Transfer Object for Driver.
+ * Used for Room database operations.
+ */
 @Entity(tableName = "drivers")
-data class Driver(
+data class DriverDto(
     @PrimaryKey
     val id: String,
     val name: String,

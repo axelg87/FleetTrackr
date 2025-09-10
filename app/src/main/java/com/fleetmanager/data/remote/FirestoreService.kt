@@ -4,9 +4,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.snapshots
 import com.google.firebase.firestore.ktx.toObject
 import com.fleetmanager.auth.AuthService
-import com.fleetmanager.data.model.DailyEntry
-import com.fleetmanager.data.model.Driver
-import com.fleetmanager.data.model.Vehicle
+import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.domain.model.Vehicle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await

@@ -17,9 +17,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.fleetmanager.ui.viewmodel.EntryDetailViewModel
 import coil.compose.AsyncImage
 import com.fleetmanager.R
-import com.fleetmanager.data.model.DailyEntry
+import com.fleetmanager.domain.model.DailyEntry
 import java.text.SimpleDateFormat
 import java.util.*
 

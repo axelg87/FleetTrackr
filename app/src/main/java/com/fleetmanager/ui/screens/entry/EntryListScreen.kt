@@ -13,7 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.fleetmanager.data.model.DailyEntry
+import com.fleetmanager.ui.viewmodel.EntryListViewModel
+import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.ui.components.*
 import java.text.SimpleDateFormat
 import java.util.*

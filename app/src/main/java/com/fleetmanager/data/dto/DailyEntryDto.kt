@@ -1,11 +1,15 @@
-package com.fleetmanager.data.model
+package com.fleetmanager.data.dto
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.Date
 
+/**
+ * Data Transfer Object for DailyEntry.
+ * Used for Room database operations.
+ */
 @Entity(tableName = "daily_entries")
-data class DailyEntry(
+data class DailyEntryDto(
     @PrimaryKey
     val id: String,
     val date: Date,
@@ -22,7 +26,4 @@ data class DailyEntry(
     val isSynced: Boolean = false,
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
-) {
-    val totalEarnings: Double
-        get() = uberEarnings + yangoEarnings + privateJobsEarnings
-}
+)
