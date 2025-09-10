@@ -20,16 +20,32 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-          cache: 'gradle'
+          cache: gradle # Cache automatique du répertoire ~/.gradle
+
+      - name: Cache Android SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android
+            ${{ env.ANDROID_SDK_ROOT }}
+          key: android-sdk-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            android-sdk-${{ runner.os }}-
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Compute dynamic version
+        id: versioning
+        run: |
+          echo "VERSION_CODE=$((1000 + ${{ github.run_number }}))" >> $GITHUB_ENV
+          echo "VERSION_NAME=0.${{ github.run_number }}" >> $GITHUB_ENV
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
       - name: Build APK with Gradle
-        run: ./gradlew :app:assembleDebug --build-cache --parallel --daemon --no-configuration-cache
+        run: ./gradlew :app:assembleDebug -PVERSION_CODE=$VERSION_CODE -PVERSION_NAME=$VERSION_NAME --build-cache --parallel --daemon --no-configuration-cache
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
