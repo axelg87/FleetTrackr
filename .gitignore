@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+
+# Android Studio
+.idea/
+*.iml
+local.properties
+
+# OS/Editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Keystores (never commit real keys)
+*.jks
+*.keystore
+
