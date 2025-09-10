@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
-import com.fleetmanager.ui.utils.rememberStableLambda
+import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.DashboardViewModel
 
 @Composable
@@ -25,8 +25,8 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
-    val onAddClick: () -> Unit = rememberStableLambda { onAddEntryClick() }
-    val onSyncClick: () -> Unit = rememberStableLambda { viewModel.syncNow() }
+    val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
+    val onSyncClick: () -> Unit = rememberStableLambda0({ viewModel.syncNow() })
 
     LazyColumn(
         modifier = Modifier

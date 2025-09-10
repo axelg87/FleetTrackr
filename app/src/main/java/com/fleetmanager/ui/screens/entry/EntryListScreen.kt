@@ -17,7 +17,8 @@ import com.fleetmanager.ui.viewmodel.EntryListViewModel
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
-import com.fleetmanager.ui.utils.rememberStableLambda
+import com.fleetmanager.ui.utils.rememberStableLambda0
+import com.fleetmanager.ui.utils.rememberStableLambda1
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,8 +31,8 @@ fun EntryListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
-    val onAddClick: () -> Unit = rememberStableLambda { onAddEntryClick() }
-    val onItemClick: (String) -> Unit = rememberStableLambda { entryId: String -> onEntryClick(entryId) }
+    val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
+    val onItemClick: (String) -> Unit = rememberStableLambda1({ entryId: String -> onEntryClick(entryId) })
     
     LazyColumn(
         modifier = Modifier
