@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import android.content.Context
 import com.google.android.gms.auth.api.signin.GoogleSignIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +24,7 @@ sealed class AuthResult {
 @Singleton
 class AuthService @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     
     val currentUser: Flow<FirebaseUser?> = 
