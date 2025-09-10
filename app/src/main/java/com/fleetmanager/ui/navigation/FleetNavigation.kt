@@ -45,115 +45,23 @@ val bottomNavItems = listOf(
     BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings)
 )
 
-@Composable
-fun FleetNavigation(
-    navController: NavHostController,
-    startDestination: String
-) {
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
-        composable(Screen.SignIn.route) {
-            SignInScreen(
-                onSignInSuccess = {
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.SignIn.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-        
-        composable(Screen.Dashboard.route) {
-            DashboardScreen(
-                onAddEntryClick = {
-                    navController.navigate(Screen.AddEntry.route)
-                }
-            )
-        }
-        
-        composable(Screen.History.route) {
-            EntryListScreen(
-                onAddEntryClick = {
-                    navController.navigate(Screen.AddEntry.route)
-                },
-                onEntryClick = { entryId ->
-                    navController.navigate(Screen.EntryDetail.createRoute(entryId))
-                }
-            )
-        }
-        
-        composable(Screen.Settings.route) {
-            SettingsScreen()
-        }
-        
-        composable(Screen.AddEntry.route) {
-            AddEntryScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-        
-        composable(
-            route = Screen.EntryDetail.route,
-            arguments = listOf(navArgument("entryId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val entryId = backStackEntry.arguments?.getString("entryId") ?: ""
-            EntryDetailScreen(
-                entryId = entryId,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-    }
-}
 
 @Composable
 fun MainScreenWithBottomNav(
     navController: NavHostController
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    
-    // Check if we should show bottom navigation
-    val showBottomNav = currentDestination?.route in bottomNavItems.map { it.screen.route }
+    val currentRoute = navBackStackEntry?.destination?.route
     
     Scaffold(
         bottomBar = {
-            if (showBottomNav) {
-                NavigationBar {
-                    bottomNavItems.forEach { item ->
-                        NavigationBarItem(
-                            icon = { 
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.title
-                                )
-                            },
-                            label = { Text(item.title) },
-                            selected = currentDestination?.hierarchy?.any { 
-                                it.route == item.screen.route 
-                            } == true,
-                            onClick = {
-                                navController.navigate(item.screen.route) {
-                                    // Pop up to the start destination of the graph to
-                                    // avoid building up a large stack of destinations
-                                    // on the back stack as users select items
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    // Avoid multiple copies of the same destination when
-                                    // reselecting the same item
-                                    launchSingleTop = true
-                                    // Restore state when reselecting a previously selected item
-                                    restoreState = true
-                                }
-                            }
-                        )
+            if (shouldShowBottomNav(currentRoute)) {
+                BottomNavigationBar(
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        navigateToBottomNavDestination(navController, route)
                     }
-                }
+                )
             }
         }
     ) { innerPadding ->
@@ -162,6 +70,45 @@ fun MainScreenWithBottomNav(
             startDestination = Screen.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         )
+    }
+}
+
+@Composable
+private fun BottomNavigationBar(
+    currentRoute: String?,
+    onNavigate: (String) -> Unit
+) {
+    NavigationBar {
+        bottomNavItems.forEach { item ->
+            NavigationBarItem(
+                icon = { 
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.title
+                    )
+                },
+                label = { Text(item.title) },
+                selected = currentRoute == item.screen.route,
+                onClick = { onNavigate(item.screen.route) }
+            )
+        }
+    }
+}
+
+private fun shouldShowBottomNav(currentRoute: String?): Boolean {
+    return currentRoute in bottomNavItems.map { it.screen.route }
+}
+
+private fun navigateToBottomNavDestination(
+    navController: NavHostController,
+    route: String
+) {
+    navController.navigate(route) {
+        popUpTo(navController.graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 
