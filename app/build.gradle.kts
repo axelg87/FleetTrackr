@@ -99,6 +99,9 @@ dependencies {
     // Image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
     
+    // JSON parsing
+    implementation("com.google.code.gson:gson:2.10.1")
+    
     // Camera
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
