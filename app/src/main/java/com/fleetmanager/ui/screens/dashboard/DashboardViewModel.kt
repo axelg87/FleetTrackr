@@ -1,7 +1,10 @@
 package com.fleetmanager.ui.screens.dashboard
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fleetmanager.data.repository.FleetRepository
@@ -67,7 +70,7 @@ class DashboardViewModel @Inject constructor(
                     // Calculate quick stats
                     val totalEarnings = entries.sumOf { it.totalEarnings }
                     val totalEntries = entries.size
-                    val activeDrivers = entries.distinctBy { it.driverId }.size
+                    val activeDrivers = entries.distinctBy { it.driverName }.size
                     val avgEarningsPerEntry = if (totalEntries > 0) totalEarnings / totalEntries else 0.0
 
                     val quickStats = listOf(
@@ -98,13 +101,12 @@ class DashboardViewModel @Inject constructor(
                         .sortedByDescending { it.date }
                         .take(5)
                         .map { entry ->
-                            val driver = driverMap[entry.driverId]
                             RecentEntry(
                                 id = entry.id,
-                                driverName = driver?.name ?: "Unknown Driver",
-                                date = entry.date,
+                                driverName = entry.driverName,
+                                date = entry.date.toString(),
                                 totalEarnings = entry.totalEarnings,
-                                totalRides = entry.uberRides + entry.yangoRides + entry.privateRides
+                                totalRides = 0 // We don't have ride counts in the current model
                             )
                         }
 

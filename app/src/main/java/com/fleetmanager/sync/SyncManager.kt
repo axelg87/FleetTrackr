@@ -51,4 +51,12 @@ class SyncManager @Inject constructor(
             oneTimeWork
         )
     }
+    
+    suspend fun syncNow() {
+        triggerManualSync()
+    }
+    
+    fun stopPeriodicSync() {
+        workManager.cancelUniqueWork(PERIODIC_SYNC_WORK_NAME)
+    }
 }
