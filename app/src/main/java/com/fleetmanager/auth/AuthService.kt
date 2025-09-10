@@ -31,7 +31,7 @@ class AuthService @Inject constructor(
     
     val isSignedIn: Flow<Boolean> = currentUser.map { it != null }
     
-    private val googleSignInClient: GoogleSignInClient by lazy {
+    private val googleClientInternal: GoogleSignInClient by lazy {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken("123456789-abcdef123456789.apps.googleusercontent.com") // Replace with your actual web client ID
             .requestEmail()
@@ -49,11 +49,11 @@ class AuthService @Inject constructor(
         }
     }
     
-    fun getGoogleSignInClient(): GoogleSignInClient = googleSignInClient
+    fun getGoogleSignInClient(): GoogleSignInClient = googleClientInternal
     
     fun signOut() {
         firebaseAuth.signOut()
-        googleSignInClient.signOut()
+        googleClientInternal.signOut()
     }
     
     fun getCurrentUserId(): String? = firebaseAuth.currentUser?.uid
