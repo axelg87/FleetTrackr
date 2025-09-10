@@ -34,7 +34,7 @@ class AuthService @Inject constructor(
     
     private val googleClientInternal: GoogleSignInClient by lazy {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("123456789-abcdef123456789.apps.googleusercontent.com") // Replace with your actual web client ID
+            .requestIdToken("905385497658-bhkg6pbfl2l38aq6p5ve0rcggisl0r55.apps.googleusercontent.com")
             .requestEmail()
             .build()
         GoogleSignIn.getClient(context, gso)

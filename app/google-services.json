@@ -51,6 +51,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "905385497658-fleetmanager-android-client.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fleetmanager",
+            "certificate_hash": "141c26bf25773298e5aafcf441c7285562"
+          }
+        },
+        {
           "client_id": "905385497658-bhkg6pbfl2l38aq6p5ve0rcggisl0r55.apps.googleusercontent.com",
           "client_type": 3
         }
