@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/white" />
+    <foreground android:drawable="@android:drawable/sym_def_app_icon" />
+    <!-- Minimal adaptive icon to satisfy resource linking; replace with real assets later. -->
+    <!-- Consider adding legacy launcher icons in mipmap-*/ic_launcher.png for older APIs. -->
+</adaptive-icon>
+
