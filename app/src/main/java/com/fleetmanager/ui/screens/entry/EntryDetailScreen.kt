@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.EntryDetailViewModel
+import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.fleetmanager.R
 import com.fleetmanager.domain.model.DailyEntry
@@ -31,7 +32,7 @@ fun EntryDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: EntryDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(entryId) {
         viewModel.loadEntry(entryId)
@@ -193,12 +194,7 @@ fun EntryDetailContent(
         }
         
         // Photos Card
-        val allPhotos = mutableListOf<String>().apply {
-            entry.photoUrl?.let { add(it) }
-            entry.localPhotoPath?.let { add(it) }
-            addAll(entry.photoUrls)
-            addAll(entry.localPhotoPaths)
-        }
+        val allPhotos = entry.photoUrls
         
         if (allPhotos.isNotEmpty()) {
             Card(
