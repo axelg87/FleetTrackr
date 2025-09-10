@@ -29,25 +29,39 @@ fun EntryListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.entries)) }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "History",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
             )
-        },
-        floatingActionButton = {
+            
             FloatingActionButton(
                 onClick = onAddEntryClick,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.size(56.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_entry))
+                Icon(
+                    Icons.Default.Add, 
+                    contentDescription = "Add entry",
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
-    ) { paddingValues ->
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
         ) {
             when {
                 uiState.isLoading -> {
@@ -80,7 +94,7 @@ fun EntryListScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(0.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(uiState.entries) { entry ->
