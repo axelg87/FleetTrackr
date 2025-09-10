@@ -20,6 +20,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.R
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import android.util.Log
 
 @Composable
 fun SignInScreen(
@@ -32,16 +35,26 @@ fun SignInScreen(
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        Log.d("SignInScreen", "Activity result received with code: ${result.resultCode}")
         if (result.resultCode == Activity.RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
+                Log.d("SignInScreen", "Account retrieved: ${account?.email}")
                 account?.idToken?.let { token ->
+                    Log.d("SignInScreen", "ID token received, signing in...")
                     viewModel.signInWithGoogle(token)
+                } ?: run {
+                    Log.e("SignInScreen", "No ID token received from Google account")
+                    viewModel.onError("No ID token received from Google")
                 }
             } catch (e: ApiException) {
+                Log.e("SignInScreen", "ApiException during sign-in", e)
                 viewModel.onError("Google Sign-In failed: ${e.message}")
             }
+        } else {
+            Log.d("SignInScreen", "Sign-in was cancelled or failed with result code: ${result.resultCode}")
+            viewModel.onError("Google Sign-In was cancelled")
         }
     }
     
@@ -114,7 +127,19 @@ fun SignInScreen(
                 
                 Button(
                     onClick = {
+                        Log.d("SignInScreen", "Sign-in button clicked")
+                        
+                        // Check if Google Play Services is available
+                        val googleApiAvailability = GoogleApiAvailability.getInstance()
+                        val resultCode = googleApiAvailability.isGooglePlayServicesAvailable(context)
+                        if (resultCode != ConnectionResult.SUCCESS) {
+                            Log.e("SignInScreen", "Google Play Services not available: $resultCode")
+                            viewModel.onError("Google Play Services is not available")
+                            return@Button
+                        }
+                        
                         val signInIntent = viewModel.getGoogleSignInIntent()
+                        Log.d("SignInScreen", "Launching Google Sign-In intent")
                         googleSignInLauncher.launch(signInIntent)
                     },
                     modifier = Modifier.fillMaxWidth(),

@@ -15,6 +15,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.util.Log
 
 sealed class AuthResult {
     object Success : AuthResult()
@@ -33,6 +34,7 @@ class AuthService @Inject constructor(
     val isSignedIn: Flow<Boolean> = currentUser.map { it != null }
     
     private val googleClientInternal: GoogleSignInClient by lazy {
+        Log.d("AuthService", "Creating Google Sign-In client")
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken("905385497658-bhkg6pbfl2l38aq6p5ve0rcggisl0r55.apps.googleusercontent.com")
             .requestEmail()
@@ -42,10 +44,14 @@ class AuthService @Inject constructor(
     
     suspend fun signInWithGoogle(idToken: String): AuthResult {
         return try {
+            Log.d("AuthService", "Creating Firebase credential with ID token")
             val credential = GoogleAuthProvider.getCredential(idToken, null)
+            Log.d("AuthService", "Signing in with Firebase credential")
             firebaseAuth.signInWithCredential(credential).await()
+            Log.d("AuthService", "Firebase sign-in successful")
             AuthResult.Success
         } catch (e: Exception) {
+            Log.e("AuthService", "Firebase sign-in failed", e)
             AuthResult.Error(e.message ?: "Unknown error occurred")
         }
     }

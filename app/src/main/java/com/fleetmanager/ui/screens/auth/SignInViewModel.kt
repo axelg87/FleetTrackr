@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.util.Log
 
 data class SignInUiState(
     val isLoading: Boolean = false,
@@ -41,20 +42,24 @@ class SignInViewModel @Inject constructor(
     }
     
     fun getGoogleSignInIntent(): Intent {
+        Log.d("SignInViewModel", "Getting Google Sign-In intent")
         return authService.getGoogleSignInClient().signInIntent
     }
     
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {
+            Log.d("SignInViewModel", "Starting Google Sign-In with ID token")
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             
             when (val result = authService.signInWithGoogle(idToken)) {
                 is AuthResult.Success -> {
+                    Log.d("SignInViewModel", "Google Sign-In successful")
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     // Trigger initial sync
                     syncManager.triggerManualSync()
                 }
                 is AuthResult.Error -> {
+                    Log.e("SignInViewModel", "Google Sign-In failed: ${result.message}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = result.message
