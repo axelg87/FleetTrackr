@@ -80,19 +80,30 @@ fun AddEntryScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Date field
-            OutlinedTextField(
-                value = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(uiState.date),
-                onValueChange = { },
-                label = { Text(stringResource(R.string.date)) },
-                readOnly = true,
-                trailingIcon = {
-                    Icon(Icons.Default.DateRange, contentDescription = null)
-                },
+            // Date field - Click anywhere to open date picker
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { viewModel.toggleDatePicker(true) }
-            )
+            ) {
+                OutlinedTextField(
+                    value = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(uiState.date),
+                    onValueChange = { },
+                    label = { Text(stringResource(R.string.date)) },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(Icons.Default.DateRange, contentDescription = "Select date")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+            }
             
             // Date picker dialog
             if (uiState.showDatePicker) {
