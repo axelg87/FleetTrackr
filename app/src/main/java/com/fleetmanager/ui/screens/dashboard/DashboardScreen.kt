@@ -25,8 +25,8 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
-    val onAddClick = rememberStableLambda { onAddEntryClick() }
-    val onSyncClick = rememberStableLambda { viewModel.syncNow() }
+    val onAddClick: () -> Unit = rememberStableLambda { onAddEntryClick() }
+    val onSyncClick: () -> Unit = rememberStableLambda { viewModel.syncNow() }
 
     LazyColumn(
         modifier = Modifier

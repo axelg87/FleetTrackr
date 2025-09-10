@@ -30,8 +30,8 @@ fun EntryListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
-    val onAddClick = rememberStableLambda { onAddEntryClick() }
-    val onItemClick = rememberStableLambda<String> { entryId -> onEntryClick(entryId) }
+    val onAddClick: () -> Unit = rememberStableLambda { onAddEntryClick() }
+    val onItemClick: (String) -> Unit = rememberStableLambda { entryId: String -> onEntryClick(entryId) }
     
     LazyColumn(
         modifier = Modifier
