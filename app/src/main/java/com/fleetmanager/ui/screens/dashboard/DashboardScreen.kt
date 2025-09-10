@@ -13,13 +13,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.components.*
+import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
+import com.fleetmanager.ui.utils.rememberStableLambda
+import com.fleetmanager.ui.viewmodel.DashboardViewModel
 
 @Composable
 fun DashboardScreen(
     onAddEntryClick: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Create stable lambdas to prevent unnecessary recompositions
+    val onAddClick = rememberStableLambda { onAddEntryClick() }
+    val onSyncClick = rememberStableLambda { viewModel.syncNow() }
 
     LazyColumn(
         modifier = Modifier
@@ -47,13 +54,13 @@ fun DashboardScreen(
                     ActionItem(
                         text = "Add Entry",
                         icon = Icons.Default.Add,
-                        onClick = onAddEntryClick,
+                        onClick = onAddClick,
                         isPrimary = true
                     ),
                     ActionItem(
                         text = "Sync",
                         icon = Icons.Default.Refresh,
-                        onClick = { viewModel.syncNow() },
+                        onClick = onSyncClick,
                         isPrimary = false
                     )
                 )
@@ -72,7 +79,7 @@ fun DashboardScreen(
                     title = "No entries yet",
                     description = "Start by adding your first daily entry",
                     actionText = "Add Entry",
-                    onActionClick = onAddEntryClick
+                    onActionClick = onAddClick
                 )
             }
         } else {

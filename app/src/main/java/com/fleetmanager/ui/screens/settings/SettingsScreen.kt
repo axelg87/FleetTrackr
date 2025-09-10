@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.fleetmanager.ui.viewmodel.SettingsViewModel
 import com.fleetmanager.ui.components.*
 
 @Composable

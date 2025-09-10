@@ -1,10 +1,14 @@
-package com.fleetmanager.data.model
+package com.fleetmanager.data.dto
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * Data Transfer Object for Vehicle.
+ * Used for Room database operations.
+ */
 @Entity(tableName = "vehicles")
-data class Vehicle(
+data class VehicleDto(
     @PrimaryKey
     val id: String,
     val make: String,
@@ -12,7 +16,4 @@ data class Vehicle(
     val year: Int,
     val licensePlate: String,
     val isActive: Boolean = true
-) {
-    val displayName: String
-        get() = "$make $model ($year) - $licensePlate"
-}
+)
