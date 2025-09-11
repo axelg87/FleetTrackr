@@ -100,6 +100,7 @@ fun DashboardScreen(
                 )
             }
         }
+    }
         
         // Floating Action Button Menu
         FloatingActionButtonMenu(

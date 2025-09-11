@@ -81,6 +81,7 @@ fun EntryListScreen(
                 }
             }
         }
+    }
         
         // Floating Action Button Menu
         FloatingActionButtonMenu(
