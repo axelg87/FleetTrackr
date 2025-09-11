@@ -94,20 +94,23 @@ fun ReportScreen(
         return
     }
     
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-        // Screen Header with Export Button
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Screen Header
+        item {
+            ScreenHeader(title = "Reports")
+        }
+        
+        // Export Button
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.End
             ) {
-                ScreenHeader(title = "Reports")
                 ElevatedButton(
                     onClick = onExport,
                     enabled = uiState.filteredEntries.isNotEmpty(),
@@ -265,7 +268,7 @@ private fun CollapsibleFiltersSection(
                         selectedType != null || selectedEntryType != EntryTypeFilter.ALL || 
                         startDate != null || endDate != null
                     
-                    if (hasFilters && isExpanded) {
+                    if (hasFilters) {
                         FilledTonalButton(
                             onClick = onClearFilters,
                             shape = RoundedCornerShape(12.dp)
@@ -276,7 +279,7 @@ private fun CollapsibleFiltersSection(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Clear All")
+                            Text("Clear")
                         }
                     }
                     
@@ -885,7 +888,10 @@ private fun ChartsSection(
                     val barData = ChartDataGenerator.generateBarChartByMonth(entries)
                     SimpleBarChart(
                         data = barData,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 240.dp),
+                        maxHeight = 240f
                     )
                 }
             }

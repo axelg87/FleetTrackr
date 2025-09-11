@@ -149,7 +149,9 @@ fun SimpleBarChart(
 ) {
     if (data.bars.isEmpty()) {
         Box(
-            modifier = modifier.height(maxHeight.dp),
+            modifier = modifier
+                .height(maxHeight.dp)
+                .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -162,7 +164,9 @@ fun SimpleBarChart(
     }
     
     Column(
-        modifier = modifier.padding(16.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
     ) {
         if (data.title.isNotEmpty()) {
             Text(
@@ -184,14 +188,21 @@ fun SimpleBarChart(
 }
 
 private fun DrawScope.drawBarChart(data: BarChartData, canvasSize: Size) {
-    val maxValue = data.bars.maxOfOrNull { abs(it.value) }?.toFloat() ?: return
-    val minValue = data.bars.minOfOrNull { it.value }?.toFloat() ?: return
+    if (data.bars.isEmpty()) return
+    
+    val maxValue = data.bars.maxOfOrNull { abs(it.value) }?.toFloat() ?: 0f
+    val minValue = data.bars.minOfOrNull { it.value }?.toFloat() ?: 0f
+    
+    // Handle case where all values are zero
+    if (maxValue == 0f && minValue == 0f) return
     
     val padding = 40f
     val chartWidth = canvasSize.width - (padding * 2)
     val chartHeight = canvasSize.height - (padding * 2)
     
-    val barWidth = chartWidth / data.bars.size * 0.8f
+    if (chartWidth <= 0 || chartHeight <= 0) return
+    
+    val barWidth = minOf(chartWidth / data.bars.size * 0.8f, 60f) // Cap max bar width
     val barSpacing = chartWidth / data.bars.size * 0.2f
     
     // Calculate zero line position
