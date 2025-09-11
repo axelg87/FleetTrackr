@@ -88,10 +88,10 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:34.2.0"))
-    implementation("com.google.firebase:firebase-auth-ktx:22.3.0")
-    implementation("com.google.firebase:firebase-firestore-ktx:24.10.3")
-    implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     
     // Coroutines
