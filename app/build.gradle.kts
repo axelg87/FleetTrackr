@@ -14,8 +14,8 @@ android {
         applicationId = "com.fleetmanager"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = project.findProperty("VERSION_CODE")?.toString()?.toIntOrNull() ?: 1
+        versionName = project.findProperty("VERSION_NAME")?.toString() ?: "0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
