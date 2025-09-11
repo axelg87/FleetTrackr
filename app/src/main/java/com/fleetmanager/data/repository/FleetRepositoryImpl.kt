@@ -1,5 +1,6 @@
 package com.fleetmanager.data.repository
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.fleetmanager.data.local.dao.DailyEntryDao
@@ -17,6 +18,8 @@ import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.repository.FleetRepository
+import com.fleetmanager.ui.utils.ToastHelper
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -31,7 +34,9 @@ class FleetRepositoryImpl @Inject constructor(
     private val vehicleDao: VehicleDao,
     private val expenseDao: ExpenseDao,
     private val firestoreService: FirestoreService,
-    private val storageService: StorageService
+    private val storageService: StorageService,
+    @ApplicationContext private val context: Context,
+    private val toastHelper: ToastHelper
 ) : FleetRepository {
     
     companion object {
@@ -86,7 +91,9 @@ class FleetRepositoryImpl @Inject constructor(
                 dailyEntryDao.markAsSynced(entryToSave.id)
                 Log.d(TAG, "Successfully saved daily entry to Firestore: ${entryToSave.id}")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to save daily entry to Firestore: ${entryToSave.id}", e)
+                val errorMessage = "Failed to save daily entry to Firestore: ${e.message}"
+                Log.e(TAG, errorMessage, e)
+                toastHelper.showError(context, errorMessage)
                 // Will be synced later by WorkManager
             }
         }
@@ -114,6 +121,9 @@ class FleetRepositoryImpl @Inject constructor(
                 firestoreService.saveDailyEntry(syncedEntry)
                 dailyEntryDao.updateEntry(DailyEntryMapper.toDto(syncedEntry))
             } catch (e: Exception) {
+                val errorMessage = "Failed to sync daily entry ${entryDto.id}: ${e.message}"
+                Log.e(TAG, errorMessage, e)
+                toastHelper.showError(context, errorMessage)
                 // Keep as unsynced for next attempt
             }
         }
@@ -144,6 +154,9 @@ class FleetRepositoryImpl @Inject constructor(
         try {
             firestoreService.saveDriver(driver)
         } catch (e: Exception) {
+            val errorMessage = "Failed to save driver to Firestore: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
             // Will be synced later
         }
     }
@@ -166,6 +179,9 @@ class FleetRepositoryImpl @Inject constructor(
         try {
             firestoreService.saveVehicle(vehicle)
         } catch (e: Exception) {
+            val errorMessage = "Failed to save vehicle to Firestore: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
             // Will be synced later
         }
     }
@@ -227,7 +243,9 @@ class FleetRepositoryImpl @Inject constructor(
                 expenseDao.markAsSynced(expenseToSave.id)
                 Log.d(TAG, "Successfully saved expense to Firestore: ${expenseToSave.id}")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to save expense to Firestore: ${expenseToSave.id}", e)
+                val errorMessage = "Failed to save expense to Firestore: ${e.message}"
+                Log.e(TAG, errorMessage, e)
+                toastHelper.showError(context, errorMessage)
                 // Will be synced later by WorkManager
             }
         }
@@ -259,6 +277,9 @@ class FleetRepositoryImpl @Inject constructor(
                 firestoreService.saveExpense(syncedExpense)
                 expenseDao.updateExpense(ExpenseMapper.toDto(syncedExpense))
             } catch (e: Exception) {
+                val errorMessage = "Failed to sync expense ${expenseDto.id}: ${e.message}"
+                Log.e(TAG, errorMessage, e)
+                toastHelper.showError(context, errorMessage)
                 // Keep as unsynced for next attempt
             }
         }
