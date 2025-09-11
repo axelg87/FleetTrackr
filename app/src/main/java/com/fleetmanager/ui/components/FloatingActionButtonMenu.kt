@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,9 +27,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Stable
 data class FabMenuItem(
     val icon: ImageVector,
     val label: String,
@@ -47,6 +50,9 @@ fun FloatingActionButtonMenu(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     
+    // Use rememberUpdatedState to prevent unnecessary recompositions
+    val currentItems by rememberUpdatedState(items)
+    
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 45f else 0f,
         animationSpec = tween(durationMillis = 200),
@@ -62,7 +68,11 @@ fun FloatingActionButtonMenu(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { isExpanded = false }
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            isExpanded = false
+                        }
+                    }
             )
         }
         
@@ -77,21 +87,23 @@ fun FloatingActionButtonMenu(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier.padding(bottom = 72.dp)
             ) {
-                items.forEach { item ->
-                    FabMenuItemRow(
-                        item = item,
-                        onClick = {
-                            item.onClick()
-                            isExpanded = false
-                        }
-                    )
+                currentItems.forEach { item ->
+                    key(item.label) {
+                        FabMenuItemRow(
+                            item = item,
+                            onClick = {
+                                item.onClick()
+                                isExpanded = false
+                            }
+                        )
+                    }
                 }
             }
         }
         
         // Main FAB
         FloatingActionButton(
-            onClick = { isExpanded = !isExpanded },
+            onClick = remember { { isExpanded = !isExpanded } },
             containerColor = fabBackgroundColor,
             contentColor = fabContentColor,
             modifier = Modifier.size(56.dp)
@@ -110,10 +122,11 @@ private fun FabMenuItemRow(
     item: FabMenuItem,
     onClick: () -> Unit
 ) {
+    val currentOnClick by rememberUpdatedState(onClick)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier.clickable { currentOnClick() }
     ) {
         // Label
         Surface(
