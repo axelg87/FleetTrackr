@@ -115,13 +115,13 @@ fun NewEntryScreen(
             
             ExposedDropdownMenuBox(
                 expanded = driverExpanded,
-                onExpandedChange = { driverExpanded = !driverExpanded }
+                onExpandedChange = { expanded: Boolean -> driverExpanded = !driverExpanded }
             ) {
                 OutlinedTextField(
                     value = selectedDriver,
-                    onValueChange = { },
+                    onValueChange = { _: String -> },
                     readOnly = true,
-                    label = { Text("Driver") },
+                    label = { Text(text = "Driver") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = driverExpanded) },
                     modifier = Modifier
                         .menuAnchor()
@@ -132,9 +132,9 @@ fun NewEntryScreen(
                     expanded = driverExpanded,
                     onDismissRequest = { driverExpanded = false }
                 ) {
-                    drivers.forEach { driver ->
+                    drivers.forEach { driver: String ->
                         DropdownMenuItem(
-                            text = { Text(driver) },
+                            text = { Text(text = driver) },
                             onClick = {
                                 selectedDriver = driver
                                 driverExpanded = false
@@ -149,13 +149,13 @@ fun NewEntryScreen(
             
             ExposedDropdownMenuBox(
                 expanded = vehicleExpanded,
-                onExpandedChange = { vehicleExpanded = !vehicleExpanded }
+                onExpandedChange = { expanded: Boolean -> vehicleExpanded = !vehicleExpanded }
             ) {
                 OutlinedTextField(
                     value = selectedVehicle,
-                    onValueChange = { },
+                    onValueChange = { _: String -> },
                     readOnly = true,
-                    label = { Text("Vehicle") },
+                    label = { Text(text = "Vehicle") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = vehicleExpanded) },
                     modifier = Modifier
                         .menuAnchor()
@@ -166,9 +166,9 @@ fun NewEntryScreen(
                     expanded = vehicleExpanded,
                     onDismissRequest = { vehicleExpanded = false }
                 ) {
-                    vehicles.forEach { vehicle ->
+                    vehicles.forEach { vehicle: String ->
                         DropdownMenuItem(
-                            text = { Text(vehicle) },
+                            text = { Text(text = vehicle) },
                             onClick = {
                                 selectedVehicle = vehicle
                                 vehicleExpanded = false
@@ -188,10 +188,10 @@ fun NewEntryScreen(
             // Uber Earnings
             OutlinedTextField(
                 value = uberEarnings,
-                onValueChange = { uberEarnings = it },
-                label = { Text("Uber Earnings") },
+                onValueChange = { value: String -> uberEarnings = value },
+                label = { Text(text = "Uber Earnings") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                leadingIcon = { Text("$") },
+                leadingIcon = { Text(text = "$") },
                 modifier = Modifier.fillMaxWidth(),
                 isError = error != null
             )
@@ -199,10 +199,10 @@ fun NewEntryScreen(
             // Yango Earnings
             OutlinedTextField(
                 value = yangoEarnings,
-                onValueChange = { yangoEarnings = it },
-                label = { Text("Yango Earnings") },
+                onValueChange = { value: String -> yangoEarnings = value },
+                label = { Text(text = "Yango Earnings") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                leadingIcon = { Text("$") },
+                leadingIcon = { Text(text = "$") },
                 modifier = Modifier.fillMaxWidth(),
                 isError = error != null
             )
@@ -210,10 +210,10 @@ fun NewEntryScreen(
             // Private Jobs Earnings
             OutlinedTextField(
                 value = privateJobsEarnings,
-                onValueChange = { privateJobsEarnings = it },
-                label = { Text("Private Jobs Earnings") },
+                onValueChange = { value: String -> privateJobsEarnings = value },
+                label = { Text(text = "Private Jobs Earnings") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                leadingIcon = { Text("$") },
+                leadingIcon = { Text(text = "$") },
                 modifier = Modifier.fillMaxWidth(),
                 isError = error != null
             )
@@ -221,17 +221,17 @@ fun NewEntryScreen(
             // Notes
             OutlinedTextField(
                 value = notes,
-                onValueChange = { notes = it },
-                label = { Text("Notes (Optional)") },
+                onValueChange = { value: String -> notes = value },
+                label = { Text(text = "Notes (Optional)") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp),
                 maxLines = 3,
-                placeholder = { Text("Additional details...") }
+                placeholder = { Text(text = "Additional details...") }
             )
 
             // Error message
-            error?.let { errorMessage ->
+            error?.let { errorMessage: String ->
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
@@ -285,7 +285,7 @@ fun NewEntryScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Save Income Entry")
+                    Text(text = "Save Income Entry")
                 }
             }
         }
