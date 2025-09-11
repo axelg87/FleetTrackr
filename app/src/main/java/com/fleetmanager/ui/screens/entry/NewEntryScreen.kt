@@ -14,25 +14,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.fleetmanager.ui.components.*
-import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
-import com.fleetmanager.ui.viewmodel.AddEntryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewEntryScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: AddEntryViewModel = hiltViewModel()
+    onNavigateBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedDriver by remember { mutableStateOf("") }
+    var selectedVehicle by remember { mutableStateOf("") }
+    var uberEarnings by remember { mutableStateOf("") }
+    var yangoEarnings by remember { mutableStateOf("") }
+    var privateJobsEarnings by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    
     val scrollState = rememberScrollState()
-
-    LaunchedEffect(uiState.isSaved) {
-        if (uiState.isSaved) {
-            onNavigateBack()
-        }
-    }
+    
+    val drivers = listOf(
+        "John Smith",
+        "Maria Garcia",
+        "Ahmed Hassan",
+        "Sarah Johnson",
+        "Mike Wilson"
+    )
+    
+    val vehicles = listOf(
+        "ABC-123 - Toyota Camry",
+        "XYZ-789 - Honda Accord", 
+        "DEF-456 - Hyundai Elantra",
+        "GHI-123 - Nissan Altima",
+        "JKL-789 - Ford Fusion"
+    )
 
     Scaffold(
         topBar = {
@@ -98,31 +111,33 @@ fun NewEntryScreen(
             }
 
             // Driver Selection
+            var driverExpanded by remember { mutableStateOf(false) }
+            
             ExposedDropdownMenuBox(
-                expanded = uiState.driverDropdownExpanded,
-                onExpandedChange = { viewModel.toggleDriverDropdown(it) }
+                expanded = driverExpanded,
+                onExpandedChange = { driverExpanded = !driverExpanded }
             ) {
                 OutlinedTextField(
-                    value = uiState.selectedDriver?.name ?: "",
+                    value = selectedDriver,
                     onValueChange = { },
                     readOnly = true,
                     label = { Text("Driver") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.driverDropdownExpanded) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = driverExpanded) },
                     modifier = Modifier
                         .menuAnchor()
                         .fillMaxWidth(),
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )
                 ExposedDropdownMenu(
-                    expanded = uiState.driverDropdownExpanded,
-                    onDismissRequest = { viewModel.toggleDriverDropdown(false) }
+                    expanded = driverExpanded,
+                    onDismissRequest = { driverExpanded = false }
                 ) {
-                    uiState.drivers.forEach { driver ->
+                    drivers.forEach { driver ->
                         DropdownMenuItem(
-                            text = { Text(driver.name) },
+                            text = { Text(driver) },
                             onClick = {
-                                viewModel.selectDriver(driver)
-                                viewModel.toggleDriverDropdown(false)
+                                selectedDriver = driver
+                                driverExpanded = false
                             }
                         )
                     }
@@ -130,31 +145,33 @@ fun NewEntryScreen(
             }
 
             // Vehicle Selection
+            var vehicleExpanded by remember { mutableStateOf(false) }
+            
             ExposedDropdownMenuBox(
-                expanded = uiState.vehicleDropdownExpanded,
-                onExpandedChange = { viewModel.toggleVehicleDropdown(it) }
+                expanded = vehicleExpanded,
+                onExpandedChange = { vehicleExpanded = !vehicleExpanded }
             ) {
                 OutlinedTextField(
-                    value = uiState.selectedVehicle?.licensePlate ?: "",
+                    value = selectedVehicle,
                     onValueChange = { },
                     readOnly = true,
                     label = { Text("Vehicle") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.vehicleDropdownExpanded) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = vehicleExpanded) },
                     modifier = Modifier
                         .menuAnchor()
                         .fillMaxWidth(),
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )
                 ExposedDropdownMenu(
-                    expanded = uiState.vehicleDropdownExpanded,
-                    onDismissRequest = { viewModel.toggleVehicleDropdown(false) }
+                    expanded = vehicleExpanded,
+                    onDismissRequest = { vehicleExpanded = false }
                 ) {
-                    uiState.vehicles.forEach { vehicle ->
+                    vehicles.forEach { vehicle ->
                         DropdownMenuItem(
-                            text = { Text("${vehicle.licensePlate} - ${vehicle.model}") },
+                            text = { Text(vehicle) },
                             onClick = {
-                                viewModel.selectVehicle(vehicle)
-                                viewModel.toggleVehicleDropdown(false)
+                                selectedVehicle = vehicle
+                                vehicleExpanded = false
                             }
                         )
                     }
@@ -170,54 +187,58 @@ fun NewEntryScreen(
 
             // Uber Earnings
             OutlinedTextField(
-                value = uiState.uberEarnings,
-                onValueChange = viewModel::updateUberEarnings,
+                value = uberEarnings,
+                onValueChange = { uberEarnings = it },
                 label = { Text("Uber Earnings") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 leadingIcon = { Text("$") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = error != null
             )
 
             // Yango Earnings
             OutlinedTextField(
-                value = uiState.yangoEarnings,
-                onValueChange = viewModel::updateYangoEarnings,
+                value = yangoEarnings,
+                onValueChange = { yangoEarnings = it },
                 label = { Text("Yango Earnings") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 leadingIcon = { Text("$") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = error != null
             )
 
             // Private Jobs Earnings
             OutlinedTextField(
-                value = uiState.privateJobsEarnings,
-                onValueChange = viewModel::updatePrivateJobsEarnings,
+                value = privateJobsEarnings,
+                onValueChange = { privateJobsEarnings = it },
                 label = { Text("Private Jobs Earnings") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 leadingIcon = { Text("$") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = error != null
             )
 
             // Notes
             OutlinedTextField(
-                value = uiState.notes,
-                onValueChange = viewModel::updateNotes,
+                value = notes,
+                onValueChange = { notes = it },
                 label = { Text("Notes (Optional)") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp),
-                maxLines = 3
+                maxLines = 3,
+                placeholder = { Text("Additional details...") }
             )
 
             // Error message
-            uiState.errorMessage?.let { error ->
+            error?.let { errorMessage ->
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )
                 ) {
                     Text(
-                        text = error,
+                        text = errorMessage,
                         modifier = Modifier.padding(16.dp),
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -226,11 +247,39 @@ fun NewEntryScreen(
 
             // Save Button
             Button(
-                onClick = viewModel::saveEntry,
+                onClick = {
+                    when {
+                        selectedDriver.isEmpty() -> {
+                            error = "Please select a driver"
+                        }
+                        selectedVehicle.isEmpty() -> {
+                            error = "Please select a vehicle"
+                        }
+                        uberEarnings.isEmpty() && yangoEarnings.isEmpty() && privateJobsEarnings.isEmpty() -> {
+                            error = "Please enter at least one earnings amount"
+                        }
+                        uberEarnings.isNotEmpty() && uberEarnings.toDoubleOrNull() == null -> {
+                            error = "Please enter a valid Uber earnings amount"
+                        }
+                        yangoEarnings.isNotEmpty() && yangoEarnings.toDoubleOrNull() == null -> {
+                            error = "Please enter a valid Yango earnings amount"
+                        }
+                        privateJobsEarnings.isNotEmpty() && privateJobsEarnings.toDoubleOrNull() == null -> {
+                            error = "Please enter a valid Private Jobs earnings amount"
+                        }
+                        else -> {
+                            error = null
+                            isLoading = true
+                            // Here you would typically save the income entry
+                            // For now, just simulate saving and navigate back
+                            onNavigateBack()
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSaving && uiState.selectedDriver != null && uiState.selectedVehicle != null
+                enabled = !isLoading
             ) {
-                if (uiState.isSaving) {
+                if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp
