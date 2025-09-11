@@ -91,7 +91,7 @@ object ChartDataGenerator {
             BarData(
                 label = month,
                 value = netAmount,
-                color = if (netAmount >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                color = if (netAmount >= 0) Color(0xFF388E3C) else Color(0xFFD32F2F)
             )
         }.sortedBy { barData -> barData.label }
         
@@ -120,7 +120,7 @@ object ChartDataGenerator {
             BarData(
                 label = weekLabel,
                 value = netAmount,
-                color = if (netAmount >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                color = if (netAmount >= 0) Color(0xFF388E3C) else Color(0xFFD32F2F)
             )
         }.sortedBy { barData -> barData.label }
         
@@ -134,16 +134,18 @@ object ChartDataGenerator {
     
     private fun getColorForIndex(index: Int): Color {
         val colors = listOf(
-            Color(0xFF2196F3), // Blue
-            Color(0xFF4CAF50), // Green
-            Color(0xFFFF9800), // Orange
-            Color(0xFF9C27B0), // Purple
-            Color(0xFFF44336), // Red
-            Color(0xFF00BCD4), // Cyan
-            Color(0xFF795548), // Brown
-            Color(0xFF607D8B), // Blue Grey
-            Color(0xFFE91E63), // Pink
-            Color(0xFF8BC34A), // Light Green
+            Color(0xFF6750A4), // Material Purple
+            Color(0xFF1976D2), // Material Blue
+            Color(0xFF388E3C), // Material Green
+            Color(0xFFFF8F00), // Material Amber
+            Color(0xFFD32F2F), // Material Red
+            Color(0xFF0097A7), // Material Cyan
+            Color(0xFF7B1FA2), // Material Deep Purple
+            Color(0xFF5D4037), // Material Brown
+            Color(0xFFC2185B), // Material Pink
+            Color(0xFF689F38), // Material Light Green
+            Color(0xFF455A64), // Material Blue Grey
+            Color(0xFFE64A19), // Material Deep Orange
         )
         return colors[index % colors.size]
     }

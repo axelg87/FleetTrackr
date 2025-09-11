@@ -1,18 +1,20 @@
 package com.fleetmanager.ui.screens.report
 
-import android.app.DatePickerDialog
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -88,12 +90,12 @@ fun ReportScreen(
         return
     }
     
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
         // Screen Header with Export Button
         item {
             Row(
@@ -102,16 +104,17 @@ fun ReportScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ScreenHeader(title = "Reports")
-                OutlinedButton(
+                ElevatedButton(
                     onClick = onExport,
-                    enabled = uiState.filteredEntries.isNotEmpty()
+                    enabled = uiState.filteredEntries.isNotEmpty(),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.FileDownload,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text("Export CSV")
                 }
             }
@@ -208,12 +211,20 @@ private fun EnhancedFiltersSection(
     onSortOptionChange: (SortOption) -> Unit,
     onClearFilters: () -> Unit
 ) {
-    Card {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -222,17 +233,17 @@ private fun EnhancedFiltersSection(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.FilterList,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Filters & Sorting",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -242,14 +253,17 @@ private fun EnhancedFiltersSection(
                     startDate != null || endDate != null
                 
                 if (hasFilters) {
-                    TextButton(onClick = onClearFilters) {
+                    FilledTonalButton(
+                        onClick = onClearFilters,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Clear,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Clear")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Clear All")
                     }
                 }
             }
@@ -270,7 +284,7 @@ private fun EnhancedFiltersSection(
             // Traditional filters
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 FilterDropdown(
                     label = "Driver",
@@ -291,7 +305,7 @@ private fun EnhancedFiltersSection(
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 FilterDropdown(
                     label = "Type",
@@ -339,7 +353,8 @@ private fun FilterDropdown(
             },
             modifier = Modifier
                 .menuAnchor()
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
         )
         
         ExposedDropdownMenu(
@@ -367,85 +382,116 @@ private fun FilterDropdown(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateRangeFilter(
     startDate: Date?,
     endDate: Date?,
     onDateRangeChange: (Date?, Date?) -> Unit
 ) {
-    val context = LocalContext.current
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
     
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             text = "Date Range",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = {
-                    val calendar = Calendar.getInstance()
-                    startDate?.let { calendar.time = it }
-                    
-                    DatePickerDialog(
-                        context,
-                        { _, year, month, day ->
-                            val selectedDate = Calendar.getInstance().apply {
-                                set(year, month, day)
-                            }.time
-                            onDateRangeChange(selectedDate, endDate)
-                        },
-                        calendar.get(Calendar.YEAR),
-                        calendar.get(Calendar.MONTH),
-                        calendar.get(Calendar.DAY_OF_MONTH)
-                    ).show()
-                },
-                modifier = Modifier.weight(1f)
+            // Start Date Field
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { showStartDatePicker = true }
             ) {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+                OutlinedTextField(
+                    value = startDate?.let { dateFormatter.format(it) } ?: "",
+                    onValueChange = { },
+                    label = { Text("Start Date") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(Icons.Default.DateRange, contentDescription = "Select start date")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(startDate?.let { dateFormatter.format(it) } ?: "Start Date")
             }
             
-            OutlinedButton(
-                onClick = {
-                    val calendar = Calendar.getInstance()
-                    endDate?.let { calendar.time = it }
-                    
-                    DatePickerDialog(
-                        context,
-                        { _, year, month, day ->
-                            val selectedDate = Calendar.getInstance().apply {
-                                set(year, month, day)
-                            }.time
-                            onDateRangeChange(startDate, selectedDate)
-                        },
-                        calendar.get(Calendar.YEAR),
-                        calendar.get(Calendar.MONTH),
-                        calendar.get(Calendar.DAY_OF_MONTH)
-                    ).show()
-                },
-                modifier = Modifier.weight(1f)
+            // End Date Field
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { showEndDatePicker = true }
             ) {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+                OutlinedTextField(
+                    value = endDate?.let { dateFormatter.format(it) } ?: "",
+                    onValueChange = { },
+                    label = { Text("End Date") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(Icons.Default.DateRange, contentDescription = "Select end date")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(endDate?.let { dateFormatter.format(it) } ?: "End Date")
             }
+        }
+        
+        // Start Date Picker Dialog
+        if (showStartDatePicker) {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = startDate?.time
+            )
+            DatePickerDialog(
+                onDateSelected = { dateMillis ->
+                    dateMillis?.let {
+                        onDateRangeChange(Date(it), endDate)
+                    }
+                    showStartDatePicker = false
+                },
+                onDismiss = { showStartDatePicker = false },
+                datePickerState = datePickerState
+            )
+        }
+        
+        // End Date Picker Dialog
+        if (showEndDatePicker) {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = endDate?.time
+            )
+            DatePickerDialog(
+                onDateSelected = { dateMillis ->
+                    dateMillis?.let {
+                        onDateRangeChange(startDate, Date(it))
+                    }
+                    showEndDatePicker = false
+                },
+                onDismiss = { showEndDatePicker = false },
+                datePickerState = datePickerState
+            )
         }
     }
 }
@@ -456,11 +502,12 @@ private fun EntryTypeFilterSection(
     onEntryTypeChange: (EntryTypeFilter) -> Unit
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             text = "Entry Type",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
@@ -468,7 +515,7 @@ private fun EntryTypeFilterSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             EntryTypeFilter.values().forEach { entryType ->
                 Row(
@@ -478,17 +525,18 @@ private fun EntryTypeFilterSection(
                             onClick = { onEntryTypeChange(entryType) },
                             role = Role.RadioButton
                         )
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
                         selected = selectedEntryType == entryType,
                         onClick = null
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = entryType.displayName,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (selectedEntryType == entryType) FontWeight.Medium else FontWeight.Normal
                     )
                 }
             }
@@ -520,7 +568,8 @@ private fun SortDropdown(
             },
             modifier = Modifier
                 .menuAnchor()
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
         )
         
         ExposedDropdownMenu(
@@ -550,12 +599,20 @@ private fun EnhancedSummarySection(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    Card {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Overall totals
             Row(
@@ -567,14 +624,15 @@ private fun EnhancedSummarySection(
                 ) {
                     Text(
                         text = totalEntries.toString(),
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Total Entries",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
@@ -583,7 +641,7 @@ private fun EnhancedSummarySection(
                 ) {
                     Text(
                         text = totalAmount,
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = if (totalAmount.startsWith("+")) {
                             MaterialTheme.colorScheme.primary
@@ -593,8 +651,9 @@ private fun EnhancedSummarySection(
                     )
                     Text(
                         text = "Net Amount",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -637,7 +696,7 @@ private fun GroupedTotalsList(
     totals: List<com.fleetmanager.ui.viewmodel.GroupedTotal>
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         totals.take(5).forEach { total ->
             Row(
@@ -650,19 +709,19 @@ private fun GroupedTotalsList(
                 ) {
                     Text(
                         text = total.label,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = "${total.count} entries",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
                 Text(
                     text = total.displayAmount,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = if (total.amount >= 0) {
                         MaterialTheme.colorScheme.primary
@@ -692,16 +751,24 @@ private fun ChartsSection(
     
     var selectedChartTab by remember { mutableStateOf(0) }
     
-    Card {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
                 text = "Charts",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
             
@@ -811,13 +878,19 @@ private fun ReportEntryCard(
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
     
     Card(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(2.dp, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -876,5 +949,31 @@ private fun ReportEntryCard(
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerDialog(
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit,
+    datePickerState: DatePickerState
+) {
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onDateSelected(datePickerState.selectedDateMillis)
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }
