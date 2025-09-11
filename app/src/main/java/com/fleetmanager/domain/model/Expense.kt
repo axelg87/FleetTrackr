@@ -1,22 +1,47 @@
 package com.fleetmanager.domain.model
 
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.PropertyName
 import java.util.Date
 
 /**
  * Domain model for expense entry.
  * This represents the business entity without any framework dependencies.
+ * 
+ * Firebase Firestore compatible with proper field mapping.
  */
 data class Expense(
-    val id: String,
-    val type: ExpenseType,
-    val amount: Double,
-    val date: Date,
-    val driverName: String,
-    val vehicle: String,
+    @get:PropertyName("id")
+    val id: String = "",
+    
+    @get:PropertyName("type")
+    val type: ExpenseType = ExpenseType.FUEL,
+    
+    @get:PropertyName("amount")
+    val amount: Double = 0.0,
+    
+    @get:PropertyName("date")
+    val date: Date = Date(),
+    
+    @get:PropertyName("driver")
+    val driverName: String = "",
+    
+    @get:PropertyName("car")
+    val vehicle: String = "",
+    
+    @get:PropertyName("notes")
     val notes: String = "",
+    
+    @get:PropertyName("photos")
     val photoUrls: List<String> = emptyList(),
+    
+    @get:PropertyName("isSynced")
     val isSynced: Boolean = false,
+    
+    @get:PropertyName("createdAt")
     val createdAt: Date = Date(),
+    
+    @get:PropertyName("updatedAt")
     val updatedAt: Date = Date()
 ) {
     fun isValid(): Boolean {
@@ -53,6 +78,15 @@ enum class ExpenseType(val displayName: String) {
     companion object {
         fun fromDisplayName(displayName: String): ExpenseType? {
             return values().find { it.displayName == displayName }
+        }
+        
+        // For Firestore serialization - it will use the enum name (e.g., "FUEL")
+        fun fromString(value: String): ExpenseType {
+            return try {
+                valueOf(value)
+            } catch (e: IllegalArgumentException) {
+                OTHER // Default fallback
+            }
         }
     }
 }
