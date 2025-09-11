@@ -41,12 +41,6 @@ fun AddEntryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        uri?.let { viewModel.updatePhotoUri(it) }
-    }
-    
     val multiplePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
     ) { uris ->
@@ -289,32 +283,16 @@ fun AddEntryScreen(
                         }
                     }
                     
-                    // Photo selection buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Photo selection button
+                    OutlinedButton(
+                        onClick = {
+                            multiplePhotoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Add Photo")
-                        }
-                        
-                        OutlinedButton(
-                            onClick = {
-                                multiplePhotoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Add Multiple")
-                        }
+                        Text("Add Photos")
                     }
                 }
             }
