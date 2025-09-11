@@ -1,5 +1,6 @@
 package com.fleetmanager.data.remote
 
+import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.snapshots
@@ -9,6 +10,8 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.Expense
+import com.fleetmanager.ui.utils.ToastHelper
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -18,7 +21,9 @@ import javax.inject.Singleton
 @Singleton
 class FirestoreService @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val authService: AuthService
+    private val authService: AuthService,
+    @ApplicationContext private val context: Context,
+    private val toastHelper: ToastHelper
 ) {
     
     companion object {
@@ -44,11 +49,18 @@ class FirestoreService @Inject constructor(
     suspend fun saveDailyEntry(entry: DailyEntry) {
         val userId = requireAuth()
         Log.d(TAG, "Saving daily entry to Firestore for user $userId: ${entry.id}")
-        getUserCollection("dailyEntries")
-            .document(entry.id)
-            .set(entry)
-            .await()
-        Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
+        try {
+            getUserCollection("dailyEntries")
+                .document(entry.id)
+                .set(entry)
+                .await()
+            Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
+        } catch (e: Exception) {
+            val errorMessage = "Failed to save daily entry: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
     }
     
     suspend fun getDailyEntries(): List<DailyEntry> {
@@ -76,10 +88,18 @@ class FirestoreService @Inject constructor(
     
     // Drivers
     suspend fun saveDriver(driver: Driver) {
-        getUserCollection("drivers")
-            .document(driver.id)
-            .set(driver)
-            .await()
+        try {
+            getUserCollection("drivers")
+                .document(driver.id)
+                .set(driver)
+                .await()
+            Log.d(TAG, "Successfully saved driver to Firestore: ${driver.id}")
+        } catch (e: Exception) {
+            val errorMessage = "Failed to save driver: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
     }
     
     suspend fun getDrivers(): List<Driver> {
@@ -92,10 +112,18 @@ class FirestoreService @Inject constructor(
     
     // Vehicles
     suspend fun saveVehicle(vehicle: Vehicle) {
-        getUserCollection("vehicles")
-            .document(vehicle.id)
-            .set(vehicle)
-            .await()
+        try {
+            getUserCollection("vehicles")
+                .document(vehicle.id)
+                .set(vehicle)
+                .await()
+            Log.d(TAG, "Successfully saved vehicle to Firestore: ${vehicle.id}")
+        } catch (e: Exception) {
+            val errorMessage = "Failed to save vehicle: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
     }
     
     suspend fun getVehicles(): List<Vehicle> {
@@ -178,11 +206,18 @@ class FirestoreService @Inject constructor(
     suspend fun saveExpense(expense: Expense) {
         val userId = requireAuth()
         Log.d(TAG, "Saving expense to Firestore for user $userId: ${expense.id}")
-        getUserCollection("expenses")
-            .document(expense.id)
-            .set(expense)
-            .await()
-        Log.d(TAG, "Successfully saved expense to Firestore: ${expense.id}")
+        try {
+            getUserCollection("expenses")
+                .document(expense.id)
+                .set(expense)
+                .await()
+            Log.d(TAG, "Successfully saved expense to Firestore: ${expense.id}")
+        } catch (e: Exception) {
+            val errorMessage = "Failed to save expense: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
     }
     
     suspend fun getExpenses(): List<Expense> {
