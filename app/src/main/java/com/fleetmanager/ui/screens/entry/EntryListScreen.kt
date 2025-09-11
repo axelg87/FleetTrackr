@@ -41,21 +41,7 @@ fun EntryListScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            ScreenHeader(
-                title = "History",
-                actions = {
-                    FloatingActionButton(
-                        onClick = onAddEntryClick,
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Add, 
-                            contentDescription = "Add entry",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            )
+            ScreenHeader(title = "History")
         }
         
         when {

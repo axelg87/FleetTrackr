@@ -23,7 +23,10 @@ import com.fleetmanager.ui.screens.dashboard.DashboardScreen
 import com.fleetmanager.ui.screens.entry.AddEntryScreen
 import com.fleetmanager.ui.screens.entry.EntryDetailScreen
 import com.fleetmanager.ui.screens.entry.EntryListScreen
+import com.fleetmanager.ui.screens.entry.NewEntryScreen
+import com.fleetmanager.ui.screens.entry.NewExpenseEntryScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
+import com.fleetmanager.ui.components.FloatingActionButtonMenu
 
 sealed class Screen(val route: String) {
     object SignIn : Screen("sign_in")
@@ -31,6 +34,8 @@ sealed class Screen(val route: String) {
     object History : Screen("history") // This will be the EntryList screen
     object Settings : Screen("settings")
     object AddEntry : Screen("add_entry")
+    object NewEntry : Screen("new_entry") // Income entry
+    object NewExpenseEntry : Screen("new_expense_entry") // Expense entry
     object EntryDetail : Screen("entry_detail/{entryId}") {
         fun createRoute(entryId: String) = "entry_detail/$entryId"
     }
@@ -63,6 +68,18 @@ fun MainScreenWithBottomNav(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
                         navigateToBottomNavDestination(navController, route)
+                    }
+                )
+            }
+        },
+        floatingActionButton = {
+            if (shouldShowFab(currentRoute)) {
+                FloatingActionButtonMenu(
+                    onIncomeClick = {
+                        navController.navigate(Screen.NewEntry.route)
+                    },
+                    onExpenseClick = {
+                        navController.navigate(Screen.NewExpenseEntry.route)
                     }
                 )
             }
@@ -100,6 +117,13 @@ private fun BottomNavigationBar(
 
 private fun shouldShowBottomNav(currentRoute: String?): Boolean {
     return currentRoute in bottomNavItems.map { it.screen.route }
+}
+
+private fun shouldShowFab(currentRoute: String?): Boolean {
+    return currentRoute in listOf(
+        Screen.Dashboard.route,
+        Screen.History.route
+    )
 }
 
 private fun navigateToBottomNavDestination(
@@ -161,6 +185,22 @@ fun FleetNavigation(
         
         composable(Screen.AddEntry.route) {
             AddEntryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.NewEntry.route) {
+            NewEntryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.NewExpenseEntry.route) {
+            NewExpenseEntryScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
