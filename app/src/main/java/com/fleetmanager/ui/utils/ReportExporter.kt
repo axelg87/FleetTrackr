@@ -77,7 +77,7 @@ class ReportExporter @Inject constructor() {
      */
     private fun escapeCsvValue(value: String): String {
         return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            "\"${value.replace("\"", "\"\"\")}\""
+            "\"${value.replace("\"", "\"\"")}\""
         } else {
             value
         }
