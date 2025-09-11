@@ -129,9 +129,9 @@ fun AddEntryScreen(
                 onExpandedChange = viewModel::toggleDriverDropdown
             ) {
                 OutlinedTextField(
-                    value = uiState.selectedDriver?.name ?: "",
-                    onValueChange = { },
-                    readOnly = true,
+                    value = uiState.driverInput,
+                    onValueChange = viewModel::updateDriverInput,
+                    readOnly = false,
                     label = { Text(stringResource(R.string.driver_name)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.driverDropdownExpanded) },
                     modifier = Modifier
@@ -161,9 +161,9 @@ fun AddEntryScreen(
                 onExpandedChange = viewModel::toggleVehicleDropdown
             ) {
                 OutlinedTextField(
-                    value = uiState.selectedVehicle?.displayName ?: "",
-                    onValueChange = { },
-                    readOnly = true,
+                    value = uiState.vehicleInput,
+                    onValueChange = viewModel::updateVehicleInput,
+                    readOnly = false,
                     label = { Text(stringResource(R.string.vehicle)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.vehicleDropdownExpanded) },
                     modifier = Modifier
