@@ -55,7 +55,8 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build APK with Gradle
-        run: ./gradlew :app:assembleDebug \
+        run: |
+          ./gradlew :app:assembleDebug \
           -PVERSION_CODE=$VERSION_CODE \
           -PVERSION_NAME=$VERSION_NAME \
           --build-cache --parallel --daemon --no-configuration-cache \
