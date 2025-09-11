@@ -57,6 +57,15 @@ fun FloatingActionButtonMenu(
         modifier = modifier,
         contentAlignment = Alignment.BottomEnd
     ) {
+        // Invisible overlay to close menu when tapping outside
+        if (isExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { isExpanded = false }
+            )
+        }
+        
         // Menu items
         AnimatedVisibility(
             visible = isExpanded,
@@ -91,15 +100,6 @@ fun FloatingActionButtonMenu(
                 imageVector = fabIcon,
                 contentDescription = if (isExpanded) "Close menu" else "Open menu",
                 modifier = Modifier.rotate(rotationAngle)
-            )
-        }
-        
-        // Invisible overlay to close menu when tapping outside
-        if (isExpanded) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { isExpanded = false }
             )
         }
     }

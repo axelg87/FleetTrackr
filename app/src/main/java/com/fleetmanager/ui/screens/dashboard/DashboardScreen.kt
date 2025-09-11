@@ -29,7 +29,7 @@ fun DashboardScreen(
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
-    val onAddExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
+    val onExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
     val onSyncClick: () -> Unit = rememberStableLambda0({ viewModel.syncNow() })
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -106,7 +106,7 @@ fun DashboardScreen(
         FloatingActionButtonMenu(
             items = createDefaultFabMenuItems(
                 onIncomeClick = onAddClick,
-                onExpenseClick = onAddExpenseClick
+                onExpenseClick = onExpenseClick
             ),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
