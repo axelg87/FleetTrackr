@@ -48,18 +48,18 @@ fun SimplePieChart(
     }
     
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Pie chart
         Canvas(
-            modifier = Modifier.size(200.dp)
+            modifier = Modifier.size(240.dp)
         ) {
             drawPieChart(data, size)
         }
         
         if (showLegend) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             PieChartLegend(data = data)
         }
     }
@@ -96,39 +96,42 @@ private fun DrawScope.drawPieChart(data: PieChartData, canvasSize: Size) {
 @Composable
 private fun PieChartLegend(data: PieChartData) {
     LazyColumn(
-        modifier = Modifier.heightIn(max = 150.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        modifier = Modifier.heightIn(max = 180.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(data.slices) { slice ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(12.dp)
+                        .size(16.dp)
                         .clip(CircleShape)
                         .background(slice.color)
                 )
                 
                 Text(
                     text = slice.label,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
                 )
                 
                 Text(
                     text = "${slice.getPercentage(data.total).roundToInt()}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
                 Text(
                     text = "$${String.format("%.2f", slice.value)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.End,
-                    modifier = Modifier.widthIn(min = 60.dp)
+                    modifier = Modifier.widthIn(min = 70.dp),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -158,13 +161,15 @@ fun SimpleBarChart(
         return
     }
     
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier.padding(16.dp)
+    ) {
         if (data.title.isNotEmpty()) {
             Text(
                 text = data.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
         }
         
