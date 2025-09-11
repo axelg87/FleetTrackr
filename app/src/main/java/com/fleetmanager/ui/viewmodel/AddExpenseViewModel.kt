@@ -22,6 +22,8 @@ data class AddExpenseUiState(
     val vehicles: List<Vehicle> = emptyList(),
     val selectedDriver: Driver? = null,
     val selectedVehicle: Vehicle? = null,
+    val driverInput: String = "",
+    val vehicleInput: String = "",
     val selectedExpenseType: ExpenseType = ExpenseType.FUEL,
     val date: Date = Date(),
     val amount: String = "",
@@ -39,8 +41,8 @@ data class AddExpenseUiState(
     val notesError: String? = null
 ) {
     val canSave: Boolean
-        get() = selectedDriver != null && 
-                selectedVehicle != null &&
+        get() = driverInput.isNotBlank() && 
+                vehicleInput.isNotBlank() &&
                 amount.isNotBlank() &&
                 amountError == null &&
                 notesError == null &&
@@ -60,61 +62,77 @@ class AddExpenseViewModel @Inject constructor(
     private val validator: InputValidator
 ) : BaseViewModel<AddExpenseUiState>() {
     
-    override fun getInitialState() = AddExpenseUiState()
+    override fun getInitialState() = AddExpenseUiState(
+        drivers = getSampleDrivers(),
+        vehicles = getSampleVehicles()
+    )
     
     init {
         loadInitialData()
     }
     
-    private fun loadInitialData() {
-        executeAsync {
-            // Load drivers
-            getActiveDriversUseCase()
-                .catch { }
-                .collect { drivers ->
-                    updateState { it.copy(drivers = drivers) }
-                    
-                    // Auto-add sample drivers if none exist
-                    if (drivers.isEmpty()) {
-                        addSampleData()
-                    }
-                }
-        }
-        
-        executeAsync {
-            // Load vehicles
-            getActiveVehiclesUseCase()
-                .catch { }
-                .collect { vehicles ->
-                    updateState { it.copy(vehicles = vehicles) }
-                }
-        }
+    private fun getSampleDrivers(): List<Driver> {
+        return listOf(
+            Driver("sample_driver_1", "Usman"),
+            Driver("sample_driver_2", "Ahmed"),
+            Driver("sample_driver_3", "Rashid")
+        )
     }
     
-    private suspend fun addSampleData() {
-        // Add some sample drivers and vehicles for demo
-        val sampleDrivers = listOf(
-            Driver("driver_1", "John Smith"),
-            Driver("driver_2", "Maria Garcia"),
-            Driver("driver_3", "Ahmed Hassan")
+    private fun getSampleVehicles(): List<Vehicle> {
+        return listOf(
+            Vehicle("sample_vehicle_1", "Mitsubishi", "Outlander 1", 2020, "ABC-123"),
+            Vehicle("sample_vehicle_2", "Mitsubishi", "Outlander 2", 2021, "XYZ-789"),
+            Vehicle("sample_vehicle_3", "Mitsubishi", "Outlander 3", 2022, "DEF-456")
         )
+    }
+    
+    private fun loadInitialData() {
+        executeAsync {
+            // Load drivers from database and merge with sample data
+            getActiveDriversUseCase()
+                .catch { }
+                .collect { dbDrivers ->
+                    val allDrivers = (getSampleDrivers() + dbDrivers).distinctBy { it.name }
+                    updateState { it.copy(drivers = allDrivers) }
+                }
+        }
         
-        val sampleVehicles = listOf(
-            Vehicle("vehicle_1", "Toyota", "Camry", 2020, "ABC-123"),
-            Vehicle("vehicle_2", "Honda", "Accord", 2019, "XYZ-789"),
-            Vehicle("vehicle_3", "Hyundai", "Elantra", 2021, "DEF-456")
-        )
-        
-        sampleDrivers.forEach { saveDriverUseCase(it) }
-        sampleVehicles.forEach { saveVehicleUseCase(it) }
+        executeAsync {
+            // Load vehicles from database and merge with sample data
+            getActiveVehiclesUseCase()
+                .catch { }
+                .collect { dbVehicles ->
+                    val allVehicles = (getSampleVehicles() + dbVehicles).distinctBy { it.displayName }
+                    updateState { it.copy(vehicles = allVehicles) }
+                }
+        }
     }
     
     fun selectDriver(driver: Driver) {
-        updateState { it.copy(selectedDriver = driver) }
+        updateState { it.copy(selectedDriver = driver, driverInput = driver.name) }
     }
     
     fun selectVehicle(vehicle: Vehicle) {
-        updateState { it.copy(selectedVehicle = vehicle) }
+        updateState { it.copy(selectedVehicle = vehicle, vehicleInput = vehicle.displayName) }
+    }
+    
+    fun updateDriverInput(input: String) {
+        updateState { 
+            it.copy(
+                driverInput = input,
+                selectedDriver = it.drivers.find { driver -> driver.name == input }
+            ) 
+        }
+    }
+    
+    fun updateVehicleInput(input: String) {
+        updateState { 
+            it.copy(
+                vehicleInput = input,
+                selectedVehicle = it.vehicles.find { vehicle -> vehicle.displayName == input }
+            ) 
+        }
     }
     
     fun selectExpenseType(expenseType: ExpenseType) {
@@ -200,8 +218,8 @@ class AddExpenseViewModel @Inject constructor(
                 type = currentState.selectedExpenseType,
                 amount = currentState.amount.toDoubleOrNull() ?: 0.0,
                 date = currentState.date,
-                driverName = currentState.selectedDriver!!.name,
-                vehicle = currentState.selectedVehicle!!.displayName,
+                driverName = currentState.driverInput,
+                vehicle = currentState.vehicleInput,
                 notes = currentState.notes,
                 createdAt = Date(),
                 updatedAt = Date()

@@ -40,12 +40,6 @@ fun NewExpenseEntryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        uri?.let { viewModel.updatePhotoUri(it) }
-    }
-    
     val multiplePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
     ) { uris ->
@@ -171,9 +165,9 @@ fun NewExpenseEntryScreen(
                 onExpandedChange = viewModel::toggleDriverDropdown
             ) {
                 OutlinedTextField(
-                    value = uiState.selectedDriver?.name ?: "",
-                    onValueChange = { },
-                    readOnly = true,
+                    value = uiState.driverInput,
+                    onValueChange = viewModel::updateDriverInput,
+                    readOnly = false,
                     label = { Text("Driver") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.driverDropdownExpanded) },
                     modifier = Modifier
@@ -203,9 +197,9 @@ fun NewExpenseEntryScreen(
                 onExpandedChange = viewModel::toggleVehicleDropdown
             ) {
                 OutlinedTextField(
-                    value = uiState.selectedVehicle?.displayName ?: "",
-                    onValueChange = { },
-                    readOnly = true,
+                    value = uiState.vehicleInput,
+                    onValueChange = viewModel::updateVehicleInput,
+                    readOnly = false,
                     label = { Text("Vehicle") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.vehicleDropdownExpanded) },
                     modifier = Modifier
@@ -308,32 +302,16 @@ fun NewExpenseEntryScreen(
                         }
                     }
                     
-                    // Photo selection buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Photo selection button
+                    OutlinedButton(
+                        onClick = {
+                            multiplePhotoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Add Photo")
-                        }
-                        
-                        OutlinedButton(
-                            onClick = {
-                                multiplePhotoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Add Multiple")
-                        }
+                        Text("Add Photos")
                     }
                 }
             }
