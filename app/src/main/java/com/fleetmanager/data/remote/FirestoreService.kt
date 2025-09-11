@@ -89,6 +89,74 @@ class FirestoreService @Inject constructor(
     }
     
     // Expenses
+    /**
+     * Saves an expense to Firebase Firestore.
+     * 
+     * FIREBASE SETUP REQUIRED:
+     * ========================
+     * 
+     * 1. ENABLE FIRESTORE DATABASE:
+     *    - Go to Firebase Console (https://console.firebase.google.com)
+     *    - Select your project: "ag-motion" 
+     *    - Navigate to "Firestore Database" in the left sidebar
+     *    - Click "Create database"
+     *    - Choose "Start in production mode" (recommended) or "test mode"
+     *    - Select a location (choose closest to your users)
+     * 
+     * 2. FIRESTORE SECURITY RULES:
+     *    Replace the default rules with these rules in the Firebase Console > Firestore Database > Rules:
+     *    
+     *    ```
+     *    rules_version = '2';
+     *    service cloud.firestore {
+     *      match /databases/{database}/documents {
+     *        // Users can only access their own data
+     *        match /users/{userId}/{document=**} {
+     *          allow read, write: if request.auth != null && request.auth.uid == userId;
+     *        }
+     *        
+     *        // Expenses collection structure: users/{userId}/expenses/{expenseId}
+     *        match /users/{userId}/expenses/{expenseId} {
+     *          allow read, write: if request.auth != null && request.auth.uid == userId;
+     *        }
+     *      }
+     *    }
+     *    ```
+     * 
+     * 3. FIRESTORE COLLECTION STRUCTURE:
+     *    The app will automatically create these collections:
+     *    - users/{userId}/expenses/{expenseId}
+     *      - Fields: id, type, amount, date, driver, car, notes, photos, createdAt, updatedAt
+     *    - users/{userId}/dailyEntries/{entryId}
+     *    - users/{userId}/drivers/{driverId}  
+     *    - users/{userId}/vehicles/{vehicleId}
+     * 
+     * 4. REQUIRED FIREBASE SERVICES:
+     *    ✅ Authentication (already configured)
+     *    ✅ Firestore Database (enable this)
+     *    ✅ Cloud Storage (for photo uploads, already configured)
+     * 
+     * 5. VERIFY CONFIGURATION:
+     *    - Ensure google-services.json is in app/ directory ✅
+     *    - Firebase dependencies are in build.gradle.kts ✅
+     *    - User must be signed in for Firestore operations to work
+     * 
+     * 6. DATA STRUCTURE EXAMPLE:
+     *    Each expense document will contain:
+     *    {
+     *      "id": "uuid-string",
+     *      "type": "FUEL" | "MAINTENANCE" | "SERVICE" | "CAR_WASH" | "FINE" | "OTHER",
+     *      "amount": 50.75,
+     *      "date": Timestamp,
+     *      "driver": "Ahmed",
+     *      "car": "Mitsubishi Outlander 1", 
+     *      "notes": "Fill up tank",
+     *      "photos": ["https://storage.googleapis.com/..."],
+     *      "createdAt": Timestamp,
+     *      "updatedAt": Timestamp,
+     *      "isSynced": true
+     *    }
+     */
     suspend fun saveExpense(expense: Expense) {
         getUserCollection("expenses")
             .document(expense.id)
