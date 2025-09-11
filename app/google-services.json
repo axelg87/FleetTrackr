@@ -7,43 +7,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:905385497658:android:5dbde0bba21a0401501103",
-        "android_client_info": {
-          "package_name": "com.agmotion.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "905385497658-tna493e74kultmek04kf60qhgvan2r9n.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.agmotion.app",
-            "certificate_hash": "3039b87f867006a6ca33525c4aa66b16fd34571d"
-          }
-        },
-        {
-          "client_id": "905385497658-bhkg6pbfl2l38aq6p5ve0rcggisl0r55.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDXoCVTQdZewEUMVDSgYnzcxLH2aL5YHt4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "905385497658-bhkg6pbfl2l38aq6p5ve0rcggisl0r55.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:905385497658:android:010f0c2d3e7a5409501103",
         "android_client_info": {
           "package_name": "com.fleetmanager"
