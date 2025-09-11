@@ -108,9 +108,9 @@ class ReportViewModel @Inject constructor(
         }
     }
     
-    fun updateVehicleFilter(vehicleName: String?) {
+    fun updateVehicleFilter(vehicleDisplayName: String?) {
         updateState { currentState ->
-            val newState = currentState.copy(selectedVehicle = vehicleName)
+            val newState = currentState.copy(selectedVehicle = vehicleDisplayName)
             newState.copy(filteredEntries = applyFilters(newState))
         }
     }
@@ -140,8 +140,19 @@ class ReportViewModel @Inject constructor(
             filtered = filtered.filter { it.driverName == driver }
         }
         
-        state.selectedVehicle?.let { vehicle ->
-            filtered = filtered.filter { it.vehicle == vehicle }
+        state.selectedVehicle?.let { selectedVehicleDisplayName ->
+            // Find the vehicle that matches the display name and get its actual identifier
+            val matchingVehicle = state.vehicles.find { it.displayName == selectedVehicleDisplayName }
+            matchingVehicle?.let { vehicle ->
+                // The vehicle field in entries might contain different identifiers
+                // We need to match against possible vehicle identifiers
+                filtered = filtered.filter { entry ->
+                    entry.vehicle == vehicle.licensePlate || 
+                    entry.vehicle == vehicle.displayName ||
+                    entry.vehicle == "${vehicle.make} ${vehicle.model}" ||
+                    entry.vehicle.contains(vehicle.licensePlate, ignoreCase = true)
+                }
+            }
         }
         
         state.selectedType?.let { type ->

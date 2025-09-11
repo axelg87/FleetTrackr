@@ -18,7 +18,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
-import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.ReportViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -30,18 +29,18 @@ fun ReportScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
-    val onDriverFilterChange: (String?) -> Unit = rememberStableLambda0({ driver ->
+    val onDriverFilterChange = remember { { driver: String? ->
         viewModel.updateDriverFilter(driver)
-    })
-    val onVehicleFilterChange: (String?) -> Unit = rememberStableLambda0({ vehicle ->
+    } }
+    val onVehicleFilterChange = remember { { vehicle: String? ->
         viewModel.updateVehicleFilter(vehicle)
-    })
-    val onTypeFilterChange: (String?) -> Unit = rememberStableLambda0({ type ->
+    } }
+    val onTypeFilterChange = remember { { type: String? ->
         viewModel.updateTypeFilter(type)
-    })
-    val onClearFilters: () -> Unit = rememberStableLambda0({
+    } }
+    val onClearFilters = remember { {
         viewModel.clearAllFilters()
-    })
+    } }
     
     if (uiState.isLoading) {
         Box(
@@ -68,7 +67,7 @@ fun ReportScreen(
         item {
             FiltersSection(
                 drivers = uiState.drivers.map { it.name },
-                vehicles = uiState.vehicles.map { it.name },
+                vehicles = uiState.vehicles.map { it.displayName },
                 types = uiState.availableTypes,
                 selectedDriver = uiState.selectedDriver,
                 selectedVehicle = uiState.selectedVehicle,
