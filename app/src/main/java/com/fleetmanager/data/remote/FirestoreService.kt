@@ -7,6 +7,7 @@ import com.fleetmanager.auth.AuthService
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.domain.model.Expense
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -85,5 +86,36 @@ class FirestoreService @Inject constructor(
             .await()
             .documents
             .mapNotNull { it.toObject<Vehicle>() }
+    }
+    
+    // Expenses
+    suspend fun saveExpense(expense: Expense) {
+        getUserCollection("expenses")
+            .document(expense.id)
+            .set(expense)
+            .await()
+    }
+    
+    suspend fun getExpenses(): List<Expense> {
+        return getUserCollection("expenses")
+            .get()
+            .await()
+            .documents
+            .mapNotNull { it.toObject<Expense>() }
+    }
+    
+    fun getExpensesFlow(): Flow<List<Expense>> {
+        return getUserCollection("expenses")
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toObject<Expense>() }
+            }
+    }
+    
+    suspend fun deleteExpense(expenseId: String) {
+        getUserCollection("expenses")
+            .document(expenseId)
+            .delete()
+            .await()
     }
 }

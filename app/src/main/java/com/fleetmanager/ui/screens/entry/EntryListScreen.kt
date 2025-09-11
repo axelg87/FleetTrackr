@@ -25,6 +25,7 @@ import java.util.*
 @Composable
 fun EntryListScreen(
     onAddEntryClick: () -> Unit,
+    onAddExpenseClick: () -> Unit,
     onEntryClick: (String) -> Unit,
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
@@ -32,30 +33,18 @@ fun EntryListScreen(
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
+    val onAddExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
     val onItemClick: (String) -> Unit = rememberStableLambda1({ entryId: String -> onEntryClick(entryId) })
     
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
-            ScreenHeader(
-                title = "History",
-                actions = {
-                    FloatingActionButton(
-                        onClick = onAddEntryClick,
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Add, 
-                            contentDescription = "Add entry",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            )
+            ScreenHeader(title = "History")
         }
         
         when {
@@ -75,9 +64,7 @@ fun EntryListScreen(
                     EmptyState(
                         icon = Icons.Default.Assignment,
                         title = "No entries yet",
-                        description = "Add your first daily entry to get started",
-                    actionText = "Add Entry",
-                    onActionClick = onAddClick
+                        description = "Add your first daily entry or expense to get started"
                     )
                 }
             }
@@ -94,6 +81,17 @@ fun EntryListScreen(
                 }
             }
         }
+        
+        // Floating Action Button Menu
+        FloatingActionButtonMenu(
+            items = createDefaultFabMenuItems(
+                onIncomeClick = onAddClick,
+                onExpenseClick = onAddExpenseClick
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 }
 

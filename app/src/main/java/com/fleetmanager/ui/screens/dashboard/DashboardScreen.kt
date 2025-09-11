@@ -8,7 +8,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -20,20 +22,23 @@ import com.fleetmanager.ui.viewmodel.DashboardViewModel
 @Composable
 fun DashboardScreen(
     onAddEntryClick: () -> Unit,
+    onAddExpenseClick: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
+    val onAddExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
     val onSyncClick: () -> Unit = rememberStableLambda0({ viewModel.syncNow() })
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
             ScreenHeader(title = "Dashboard")
         }
@@ -51,12 +56,6 @@ fun DashboardScreen(
         item {
             QuickActionsRow(
                 actions = listOf(
-                    ActionItem(
-                        text = "Add Entry",
-                        icon = Icons.Default.Add,
-                        onClick = onAddClick,
-                        isPrimary = true
-                    ),
                     ActionItem(
                         text = "Sync",
                         icon = Icons.Default.Refresh,
@@ -77,9 +76,7 @@ fun DashboardScreen(
                 EmptyState(
                     icon = Icons.Default.Assignment,
                     title = "No entries yet",
-                    description = "Start by adding your first daily entry",
-                    actionText = "Add Entry",
-                    onActionClick = onAddClick
+                    description = "Start by adding your first daily entry or expense"
                 )
             }
         } else {
@@ -103,5 +100,16 @@ fun DashboardScreen(
                 )
             }
         }
+        
+        // Floating Action Button Menu
+        FloatingActionButtonMenu(
+            items = createDefaultFabMenuItems(
+                onIncomeClick = onAddClick,
+                onExpenseClick = onAddExpenseClick
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 }

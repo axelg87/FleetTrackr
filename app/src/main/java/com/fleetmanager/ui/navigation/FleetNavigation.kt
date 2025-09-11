@@ -23,6 +23,7 @@ import com.fleetmanager.ui.screens.dashboard.DashboardScreen
 import com.fleetmanager.ui.screens.entry.AddEntryScreen
 import com.fleetmanager.ui.screens.entry.EntryDetailScreen
 import com.fleetmanager.ui.screens.entry.EntryListScreen
+import com.fleetmanager.ui.screens.entry.NewExpenseEntryScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
@@ -31,6 +32,7 @@ sealed class Screen(val route: String) {
     object History : Screen("history") // This will be the EntryList screen
     object Settings : Screen("settings")
     object AddEntry : Screen("add_entry")
+    object AddExpense : Screen("add_expense")
     object EntryDetail : Screen("entry_detail/{entryId}") {
         fun createRoute(entryId: String) = "entry_detail/$entryId"
     }
@@ -140,6 +142,9 @@ fun FleetNavigation(
             DashboardScreen(
                 onAddEntryClick = {
                     navController.navigate(Screen.AddEntry.route)
+                },
+                onAddExpenseClick = {
+                    navController.navigate(Screen.AddExpense.route)
                 }
             )
         }
@@ -148,6 +153,9 @@ fun FleetNavigation(
             EntryListScreen(
                 onAddEntryClick = {
                     navController.navigate(Screen.AddEntry.route)
+                },
+                onAddExpenseClick = {
+                    navController.navigate(Screen.AddExpense.route)
                 },
                 onEntryClick = { entryId ->
                     navController.navigate(Screen.EntryDetail.createRoute(entryId))
@@ -161,6 +169,14 @@ fun FleetNavigation(
         
         composable(Screen.AddEntry.route) {
             AddEntryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.AddExpense.route) {
+            NewExpenseEntryScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
