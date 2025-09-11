@@ -6,6 +6,7 @@ import com.fleetmanager.data.local.FleetManagerDatabase
 import com.fleetmanager.data.local.dao.DailyEntryDao
 import com.fleetmanager.data.local.dao.DriverDao
 import com.fleetmanager.data.local.dao.VehicleDao
+import com.fleetmanager.data.local.dao.ExpenseDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,4 +41,8 @@ object DatabaseModule {
     @Provides
     fun provideVehicleDao(database: FleetManagerDatabase): VehicleDao = 
         database.vehicleDao()
+    
+    @Provides
+    fun provideExpenseDao(database: FleetManagerDatabase): ExpenseDao = 
+        database.expenseDao()
 }

@@ -4,6 +4,7 @@ import android.net.Uri
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.domain.model.Expense
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 
@@ -35,4 +36,13 @@ interface FleetRepository {
     fun getAllActiveVehicles(): Flow<List<Vehicle>>
     suspend fun saveVehicle(vehicle: Vehicle)
     suspend fun syncVehicles()
+    
+    // Expenses
+    fun getAllExpenses(): Flow<List<Expense>>
+    fun getExpensesByDateRange(startDate: Date, endDate: Date): Flow<List<Expense>>
+    fun getExpenseById(id: String): Flow<Expense?>
+    suspend fun saveExpense(expense: Expense, photoUri: Uri? = null, photoUris: List<Uri> = emptyList())
+    suspend fun deleteExpense(expenseId: String)
+    suspend fun getTotalExpensesForPeriod(startDate: Date, endDate: Date): Double
+    suspend fun syncExpenses()
 }

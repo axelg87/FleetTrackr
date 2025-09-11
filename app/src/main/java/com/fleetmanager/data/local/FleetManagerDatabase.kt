@@ -8,13 +8,15 @@ import android.content.Context
 import com.fleetmanager.data.local.dao.DailyEntryDao
 import com.fleetmanager.data.local.dao.DriverDao
 import com.fleetmanager.data.local.dao.VehicleDao
+import com.fleetmanager.data.local.dao.ExpenseDao
 import com.fleetmanager.data.dto.DailyEntryDto
 import com.fleetmanager.data.dto.DriverDto
 import com.fleetmanager.data.dto.VehicleDto
+import com.fleetmanager.data.dto.ExpenseDto
 
 @Database(
-    entities = [DailyEntryDto::class, DriverDto::class, VehicleDto::class],
-    version = 2,
+    entities = [DailyEntryDto::class, DriverDto::class, VehicleDto::class, ExpenseDto::class],
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -23,6 +25,7 @@ abstract class FleetManagerDatabase : RoomDatabase() {
     abstract fun dailyEntryDao(): DailyEntryDao
     abstract fun driverDao(): DriverDao
     abstract fun vehicleDao(): VehicleDao
+    abstract fun expenseDao(): ExpenseDao
     
     companion object {
         const val DATABASE_NAME = "fleet_manager_database"

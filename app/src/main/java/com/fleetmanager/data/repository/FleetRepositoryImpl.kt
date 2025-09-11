@@ -4,14 +4,17 @@ import android.net.Uri
 import com.fleetmanager.data.local.dao.DailyEntryDao
 import com.fleetmanager.data.local.dao.DriverDao
 import com.fleetmanager.data.local.dao.VehicleDao
+import com.fleetmanager.data.local.dao.ExpenseDao
 import com.fleetmanager.data.mapper.DailyEntryMapper
 import com.fleetmanager.data.mapper.DriverMapper
 import com.fleetmanager.data.mapper.VehicleMapper
+import com.fleetmanager.data.mapper.ExpenseMapper
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.StorageService
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.repository.FleetRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -25,6 +28,7 @@ class FleetRepositoryImpl @Inject constructor(
     private val dailyEntryDao: DailyEntryDao,
     private val driverDao: DriverDao,
     private val vehicleDao: VehicleDao,
+    private val expenseDao: ExpenseDao,
     private val firestoreService: FirestoreService,
     private val storageService: StorageService
 ) : FleetRepository {
@@ -162,6 +166,95 @@ class FleetRepositoryImpl @Inject constructor(
         try {
             val remoteVehicles = firestoreService.getVehicles()
             vehicleDao.insertVehicles(VehicleMapper.toDtoList(remoteVehicles))
+        } catch (e: Exception) {
+            // Keep local data
+        }
+    }
+    
+    // Expenses - Offline-first approach
+    override fun getAllExpenses(): Flow<List<Expense>> = 
+        expenseDao.getAllExpenses().map { ExpenseMapper.toDomainList(it) }
+    
+    override fun getExpensesByDateRange(startDate: Date, endDate: Date): Flow<List<Expense>> = 
+        expenseDao.getExpensesByDateRange(startDate, endDate).map { ExpenseMapper.toDomainList(it) }
+    
+    override fun getExpenseById(id: String): Flow<Expense?> = flow {
+        val dto = expenseDao.getExpenseById(id)
+        emit(dto?.let { ExpenseMapper.toDomain(it) })
+    }
+    
+    override suspend fun saveExpense(expense: Expense, photoUri: Uri?, photoUris: List<Uri>) {
+        val expenseToSave = when {
+            photoUris.isNotEmpty() -> {
+                try {
+                    val photoUrls = photoUris.map { uri ->
+                        storageService.uploadPhoto(uri, "${expense.id}_${System.currentTimeMillis()}")
+                    }
+                    expense.copy(photoUrls = photoUrls, isSynced = true)
+                } catch (e: Exception) {
+                    // Save locally if upload fails
+                    expense.copy(isSynced = false)
+                }
+            }
+            photoUri != null -> {
+                try {
+                    val photoUrls = listOf(storageService.uploadPhoto(photoUri, expense.id))
+                    expense.copy(photoUrls = photoUrls, isSynced = true)
+                } catch (e: Exception) {
+                    // Save locally if upload fails
+                    expense.copy(isSynced = false)
+                }
+            }
+            else -> expense
+        }
+        
+        // Always save locally first
+        expenseDao.insertExpense(ExpenseMapper.toDto(expenseToSave))
+        
+        // Try to sync to Firestore
+        if (expenseToSave.isSynced || (photoUri == null && photoUris.isEmpty())) {
+            try {
+                firestoreService.saveExpense(expenseToSave.copy(isSynced = true))
+                expenseDao.markAsSynced(expenseToSave.id)
+            } catch (e: Exception) {
+                // Will be synced later by WorkManager
+            }
+        }
+    }
+    
+    override suspend fun deleteExpense(expenseId: String) {
+        val expense = expenseDao.getExpenseById(expenseId)
+        if (expense != null) {
+            expenseDao.deleteExpense(expense)
+            try {
+                firestoreService.deleteExpense(expenseId)
+            } catch (e: Exception) {
+                // Ignore remote delete errors
+            }
+        }
+    }
+    
+    override suspend fun getTotalExpensesForPeriod(startDate: Date, endDate: Date): Double {
+        return expenseDao.getTotalExpensesForPeriod(startDate, endDate)
+    }
+    
+    override suspend fun syncExpenses() {
+        val unsyncedExpenses = expenseDao.getUnsyncedExpenses()
+        unsyncedExpenses.forEach { expenseDto ->
+            try {
+                val expense = ExpenseMapper.toDomain(expenseDto)
+                val syncedExpense = expense.copy(isSynced = true)
+                
+                firestoreService.saveExpense(syncedExpense)
+                expenseDao.updateExpense(ExpenseMapper.toDto(syncedExpense))
+            } catch (e: Exception) {
+                // Keep as unsynced for next attempt
+            }
+        }
+        
+        try {
+            val remoteExpenses = firestoreService.getExpenses()
+            expenseDao.insertExpenses(ExpenseMapper.toDtoList(remoteExpenses))
         } catch (e: Exception) {
             // Keep local data
         }
