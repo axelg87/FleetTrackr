@@ -66,7 +66,7 @@ fun ReportScreen(
         viewModel.clearAllFilters()
     } }
     val onExport = remember { {
-        viewModel.executeAsync { 
+        viewModel.exportData { 
             when (val result = reportExporter.exportToCsv(context, uiState.filteredEntries)) {
                 is com.fleetmanager.ui.utils.ExportResult.Success -> {
                     Toast.makeText(context, "Report exported to: ${result.filePath}", Toast.LENGTH_LONG).show()

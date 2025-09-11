@@ -225,6 +225,19 @@ class ReportViewModel @Inject constructor(
         }
     }
     
+    fun exportData(exportAction: suspend () -> Unit) {
+        executeAsync(
+            onLoading = { isLoading ->
+                updateState { it.copy(isLoading = isLoading) }
+            },
+            onError = { error ->
+                updateState { it.copy(errorMessage = error) }
+            }
+        ) {
+            exportAction()
+        }
+    }
+    
     private fun applySortingAndFilters(state: ReportUiState): List<ReportEntry> {
         var filtered = state.allEntries
         

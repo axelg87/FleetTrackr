@@ -51,27 +51,29 @@ data class TimePoint(
 object ChartDataGenerator {
     
     fun generatePieChartByType(entries: List<ReportEntry>): PieChartData {
-        val typeGroups = entries.groupBy { it.typeDisplayName }
-        val slices = typeGroups.mapIndexed { index, (type, typeEntries) ->
+        val typeGroups = entries.groupBy { entry -> entry.typeDisplayName }
+        val slices = typeGroups.toList().mapIndexed { index, pair ->
+            val (type, typeEntries) = pair
             PieSlice(
                 label = type,
-                value = typeEntries.sumOf { kotlin.math.abs(it.amount) },
+                value = typeEntries.sumOf { entry -> kotlin.math.abs(entry.amount) },
                 color = getColorForIndex(index)
             )
-        }.sortedByDescending { it.value }
+        }.sortedByDescending { slice -> slice.value }
         
         return PieChartData(slices)
     }
     
     fun generatePieChartByDriver(entries: List<ReportEntry>): PieChartData {
-        val driverGroups = entries.groupBy { it.driverName }
-        val slices = driverGroups.mapIndexed { index, (driver, driverEntries) ->
+        val driverGroups = entries.groupBy { entry -> entry.driverName }
+        val slices = driverGroups.toList().mapIndexed { index, pair ->
+            val (driver, driverEntries) = pair
             PieSlice(
                 label = driver,
-                value = driverEntries.sumOf { kotlin.math.abs(it.amount) },
+                value = driverEntries.sumOf { entry -> kotlin.math.abs(entry.amount) },
                 color = getColorForIndex(index)
             )
-        }.sortedByDescending { it.value }
+        }.sortedByDescending { slice -> slice.value }
         
         return PieChartData(slices)
     }
@@ -83,14 +85,15 @@ object ChartDataGenerator {
             "${calendar.get(Calendar.YEAR)}-${String.format("%02d", calendar.get(Calendar.MONTH) + 1)}"
         }
         
-        val bars = monthGroups.map { (month, monthEntries) ->
-            val netAmount = monthEntries.sumOf { if (it.isIncome) it.amount else -it.amount }
+        val bars = monthGroups.map { pair ->
+            val (month, monthEntries) = pair
+            val netAmount = monthEntries.sumOf { entry -> if (entry.isIncome) entry.amount else -entry.amount }
             BarData(
                 label = month,
                 value = netAmount,
                 color = if (netAmount >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
             )
-        }.sortedBy { it.label }
+        }.sortedBy { barData -> barData.label }
         
         return BarChartData(
             bars = bars,
@@ -108,8 +111,9 @@ object ChartDataGenerator {
             calendar.time
         }
         
-        val bars = weekGroups.map { (weekStart, weekEntries) ->
-            val netAmount = weekEntries.sumOf { if (it.isIncome) it.amount else -it.amount }
+        val bars = weekGroups.map { pair ->
+            val (weekStart, weekEntries) = pair
+            val netAmount = weekEntries.sumOf { entry -> if (entry.isIncome) entry.amount else -entry.amount }
             calendar.time = weekStart
             val weekLabel = "${calendar.get(Calendar.MONTH) + 1}/${calendar.get(Calendar.DAY_OF_MONTH)}"
             
@@ -118,7 +122,7 @@ object ChartDataGenerator {
                 value = netAmount,
                 color = if (netAmount >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
             )
-        }.sortedBy { it.label }
+        }.sortedBy { barData -> barData.label }
         
         return BarChartData(
             bars = bars,
