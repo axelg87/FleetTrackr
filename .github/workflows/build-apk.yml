@@ -22,9 +22,6 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Cache Android SDK
         uses: actions/cache@v4
         with:
@@ -35,26 +32,7 @@ jobs:
           restore-keys: |
             android-sdk-${{ runner.os }}-
 
-      - name: Check Android SDK Cache Size (optional)
-        run: du -sh ~/.android $ANDROID_SDK_ROOT || true
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Compute dynamic version
-        id: versioning
-        run: |
-          echo "VERSION_CODE=$((1000 + ${{ github.run_number }}))" >> $GITHUB_ENV
-          echo "VERSION_NAME=0.${{ github.run_number }}" >> $GITHUB_ENV
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
-      - name: Build APK with Gradle
-        run: ./gradlew :app:assembleDebug -PVERSION_CODE=$VERSION_CODE -PVERSION_NAME=$VERSION_NAME --build-cache --parallel --daemon --no-configuration-cache
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'pull_request'
-        with:
-          name: app-debug-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
-          compression-level: 6
+      - name: Check Android SDK Cache Size (
