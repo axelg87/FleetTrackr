@@ -41,6 +41,10 @@ jobs:
       - name: Check Android SDK Cache Size (optional)
         run: du -sh ~/.android $ANDROID_SDK_ROOT || true
 
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
+  
       - name: Compute dynamic version
         id: versioning
         run: |
@@ -51,7 +55,11 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build APK with Gradle
-        run: ./gradlew :app:assembleDebug -PVERSION_CODE=$VERSION_CODE -PVERSION_NAME=$VERSION_NAME --build-cache --parallel --daemon --no-configuration-cache
+        run: ./gradlew :app:assembleDebug -PVERSION_CODE=$VERSION_CODE -PVERSION_NAME=$VERSION_NAME --build-cache --parallel --daemon --no-configuration-cache \
+            -Pandroid.injected.signing.store.file=release.keystore \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
