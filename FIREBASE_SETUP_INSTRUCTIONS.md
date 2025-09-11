@@ -50,13 +50,30 @@ service cloud.firestore {
 }
 ```
 
-### 3. Verify Required Firebase Services
+### 3. Configure Firebase Storage Security Rules
+
+Replace the default Storage rules with these secure rules in Firebase Console → Storage → Rules:
+
+```javascript
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Users can only access their own photos
+    match /users/{userId}/photos/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+### 4. Verify Required Firebase Services
 
 Ensure these services are enabled in your Firebase project:
 
 - ✅ **Authentication** (already configured)
 - ⚠️ **Firestore Database** (enable this now)
-- ✅ **Cloud Storage** (for photo uploads, already configured)
+- ✅ **Cloud Storage** (for photo uploads, already configured with rules above)
 
 ---
 
@@ -122,10 +139,35 @@ Each expense document contains:
 
 ### Troubleshooting:
 
-- **No data appearing?** Check that user is signed in
-- **Permission errors?** Verify security rules are set correctly
-- **Connection issues?** Check internet connectivity
-- **App crashes?** Check logs for Firebase initialization errors
+#### Common Issues:
+
+**1. "Object doesn't exist at location" error:**
+- ✅ **FIXED**: Ensure user is signed in before uploading photos
+- ✅ **FIXED**: Added proper authentication checks in StorageService
+- Verify Firebase Storage is enabled in Firebase Console
+- Check that Storage security rules are configured correctly
+
+**2. No data appearing in Firestore:**
+- Check that user is signed in (see Authentication status in app)
+- Verify Firestore Database is enabled in Firebase Console
+- Check internet connectivity
+- Verify security rules allow read/write for authenticated users
+
+**3. Permission errors:**
+- Verify Firestore security rules are set correctly
+- Verify Storage security rules are set correctly
+- Ensure user is authenticated before operations
+
+**4. Photo upload failures:**
+- Check internet connectivity
+- Verify user is signed in
+- Ensure Firebase Storage is enabled
+- Check Storage security rules
+
+**5. App crashes:**
+- Check logs for Firebase initialization errors
+- Verify google-services.json is in app/ directory
+- Check Firebase dependencies in build.gradle.kts
 
 ---
 
