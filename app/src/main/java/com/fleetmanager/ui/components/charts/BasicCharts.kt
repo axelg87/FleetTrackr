@@ -179,8 +179,8 @@ fun SimpleBarChart(
 }
 
 private fun DrawScope.drawBarChart(data: BarChartData, canvasSize: Size) {
-    val maxValue = data.bars.maxOfOrNull { abs(it.value) } ?: return
-    val minValue = data.bars.minOfOrNull { it.value } ?: return
+    val maxValue = data.bars.maxOfOrNull { abs(it.value) }?.toFloat() ?: return
+    val minValue = data.bars.minOfOrNull { it.value }?.toFloat() ?: return
     
     val padding = 40f
     val chartWidth = canvasSize.width - (padding * 2)
@@ -210,7 +210,7 @@ private fun DrawScope.drawBarChart(data: BarChartData, canvasSize: Size) {
         val x = padding + (index * (barWidth + barSpacing)) + (barSpacing / 2)
         
         val barHeight = if (maxValue != minValue) {
-            (abs(bar.value) / (maxValue - minValue)) * chartHeight
+            (abs(bar.value.toFloat()) / (maxValue - minValue)) * chartHeight
         } else {
             0f
         }
