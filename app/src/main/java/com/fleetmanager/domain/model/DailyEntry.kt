@@ -1,23 +1,49 @@
 package com.fleetmanager.domain.model
 
+import com.google.firebase.firestore.PropertyName
 import java.util.Date
 
 /**
  * Domain model for daily entry.
  * This represents the business entity without any framework dependencies.
+ * 
+ * Firebase Firestore compatible with proper field mapping.
  */
 data class DailyEntry(
-    val id: String,
-    val date: Date,
-    val driverName: String,
-    val vehicle: String,
-    val uberEarnings: Double,
-    val yangoEarnings: Double,
-    val privateJobsEarnings: Double,
-    val notes: String,
+    @get:PropertyName("id")
+    val id: String = "",
+    
+    @get:PropertyName("date")
+    val date: Date = Date(),
+    
+    @get:PropertyName("driver")
+    val driverName: String = "",
+    
+    @get:PropertyName("vehicle") 
+    val vehicle: String = "",
+    
+    @get:PropertyName("uberEarnings")
+    val uberEarnings: Double = 0.0,
+    
+    @get:PropertyName("yangoEarnings")
+    val yangoEarnings: Double = 0.0,
+    
+    @get:PropertyName("privateJobsEarnings")
+    val privateJobsEarnings: Double = 0.0,
+    
+    @get:PropertyName("notes")
+    val notes: String = "",
+    
+    @get:PropertyName("photos")
     val photoUrls: List<String> = emptyList(),
+    
+    @get:PropertyName("isSynced")
     val isSynced: Boolean = false,
+    
+    @get:PropertyName("createdAt")
     val createdAt: Date = Date(),
+    
+    @get:PropertyName("updatedAt")
     val updatedAt: Date = Date()
 ) {
     val totalEarnings: Double

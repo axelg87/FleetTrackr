@@ -1,5 +1,6 @@
 package com.fleetmanager.data.remote
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.snapshots
 import com.google.firebase.firestore.ktx.toObject
@@ -20,17 +21,34 @@ class FirestoreService @Inject constructor(
     private val authService: AuthService
 ) {
     
+    companion object {
+        private const val TAG = "FirestoreService"
+    }
+    
     private fun getUserCollection(collection: String) = 
         firestore.collection("users")
             .document(authService.getCurrentUserId() ?: "")
             .collection(collection)
     
+    private fun requireAuth(): String {
+        val userId = authService.getCurrentUserId()
+        if (userId.isNullOrBlank()) {
+            Log.e(TAG, "User not authenticated! Cannot perform Firestore operations.")
+            throw IllegalStateException("User must be authenticated to access Firestore")
+        }
+        Log.d(TAG, "User authenticated with ID: $userId")
+        return userId
+    }
+    
     // Daily Entries
     suspend fun saveDailyEntry(entry: DailyEntry) {
+        val userId = requireAuth()
+        Log.d(TAG, "Saving daily entry to Firestore for user $userId: ${entry.id}")
         getUserCollection("dailyEntries")
             .document(entry.id)
             .set(entry)
             .await()
+        Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
     }
     
     suspend fun getDailyEntries(): List<DailyEntry> {
@@ -158,10 +176,13 @@ class FirestoreService @Inject constructor(
      *    }
      */
     suspend fun saveExpense(expense: Expense) {
+        val userId = requireAuth()
+        Log.d(TAG, "Saving expense to Firestore for user $userId: ${expense.id}")
         getUserCollection("expenses")
             .document(expense.id)
             .set(expense)
             .await()
+        Log.d(TAG, "Successfully saved expense to Firestore: ${expense.id}")
     }
     
     suspend fun getExpenses(): List<Expense> {

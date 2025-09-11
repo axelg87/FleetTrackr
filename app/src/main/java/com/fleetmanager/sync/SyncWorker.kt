@@ -20,6 +20,9 @@ class SyncWorker @AssistedInject constructor(
             // Sync unsynced entries to remote
             fleetRepository.syncUnsyncedEntries()
             
+            // Sync unsynced expenses to remote
+            fleetRepository.syncExpenses()
+            
             // Fetch and cache remote data
             fleetRepository.fetchAndCacheRemoteEntries()
             fleetRepository.syncDrivers()
