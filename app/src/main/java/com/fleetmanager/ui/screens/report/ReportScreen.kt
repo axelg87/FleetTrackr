@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -44,6 +45,9 @@ fun ReportScreen(
     
     // Track current tab for charts/totals
     var selectedTab by remember { mutableStateOf(0) }
+    
+    // Track collapsible filter panel state
+    var isFilterExpanded by rememberSaveable { mutableStateOf(true) }
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onDriverFilterChange = remember { { driver: String? ->
@@ -93,8 +97,8 @@ fun ReportScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
         // Screen Header with Export Button
         item {
@@ -122,7 +126,9 @@ fun ReportScreen(
         
         // Enhanced Filters Section
         item {
-            EnhancedFiltersSection(
+            CollapsibleFiltersSection(
+                isExpanded = isFilterExpanded,
+                onToggleExpanded = { isFilterExpanded = !isFilterExpanded },
                 drivers = uiState.drivers.map { it.name },
                 vehicles = uiState.vehicles.map { it.displayName },
                 types = uiState.availableTypes,
@@ -192,7 +198,9 @@ fun ReportScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EnhancedFiltersSection(
+private fun CollapsibleFiltersSection(
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
     drivers: List<String>,
     vehicles: List<String>,
     types: List<String>,
@@ -221,13 +229,14 @@ private fun EnhancedFiltersSection(
         )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
+            // Collapsible header
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpanded() }
+                    .padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -248,25 +257,49 @@ private fun EnhancedFiltersSection(
                     )
                 }
                 
-                val hasFilters = selectedDriver != null || selectedVehicle != null || 
-                    selectedType != null || selectedEntryType != EntryTypeFilter.ALL || 
-                    startDate != null || endDate != null
-                
-                if (hasFilters) {
-                    FilledTonalButton(
-                        onClick = onClearFilters,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Clear All")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val hasFilters = selectedDriver != null || selectedVehicle != null || 
+                        selectedType != null || selectedEntryType != EntryTypeFilter.ALL || 
+                        startDate != null || endDate != null
+                    
+                    if (hasFilters && isExpanded) {
+                        FilledTonalButton(
+                            onClick = onClearFilters,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Clear All")
+                        }
                     }
+                    
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "Collapse filters" else "Expand filters",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
+            
+            // Animated content
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isExpanded,
+                enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
             
             // Date Range Filter
             DateRangeFilter(
@@ -321,6 +354,8 @@ private fun EnhancedFiltersSection(
                     onSortOptionSelected = onSortOptionChange,
                     modifier = Modifier.weight(1f)
                 )
+            }
+                }
             }
         }
     }
@@ -511,33 +546,72 @@ private fun EntryTypeFilterSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            EntryTypeFilter.values().forEach { entryType ->
-                Row(
-                    modifier = Modifier
-                        .selectable(
+            // First row with first two options
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                EntryTypeFilter.values().take(2).forEach { entryType ->
+                    Row(
+                        modifier = Modifier
+                            .selectable(
+                                selected = selectedEntryType == entryType,
+                                onClick = { onEntryTypeChange(entryType) },
+                                role = Role.RadioButton
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
                             selected = selectedEntryType == entryType,
-                            onClick = { onEntryTypeChange(entryType) },
-                            role = Role.RadioButton
+                            onClick = null
                         )
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = entryType.displayName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (selectedEntryType == entryType) FontWeight.Medium else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+            
+            // Second row with remaining options
+            if (EntryTypeFilter.values().size > 2) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
                 ) {
-                    RadioButton(
-                        selected = selectedEntryType == entryType,
-                        onClick = null
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = entryType.displayName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (selectedEntryType == entryType) FontWeight.Medium else FontWeight.Normal
-                    )
+                    EntryTypeFilter.values().drop(2).forEach { entryType ->
+                        Row(
+                            modifier = Modifier
+                                .selectable(
+                                    selected = selectedEntryType == entryType,
+                                    onClick = { onEntryTypeChange(entryType) },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedEntryType == entryType,
+                                onClick = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = entryType.displayName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (selectedEntryType == entryType) FontWeight.Medium else FontWeight.Normal
+                            )
+                        }
+                    }
                 }
             }
         }
