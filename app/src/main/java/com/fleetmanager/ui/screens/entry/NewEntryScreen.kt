@@ -28,8 +28,8 @@ fun NewEntryScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
+    LaunchedEffect(uiState.isSaved) {
+        if (uiState.isSaved) {
             onNavigateBack()
         }
     }
@@ -100,7 +100,7 @@ fun NewEntryScreen(
             // Driver Selection
             ExposedDropdownMenuBox(
                 expanded = uiState.driverDropdownExpanded,
-                onExpandedChange = { viewModel.toggleDriverDropdown() }
+                onExpandedChange = { viewModel.toggleDriverDropdown(it) }
             ) {
                 OutlinedTextField(
                     value = uiState.selectedDriver?.name ?: "",
@@ -115,14 +115,14 @@ fun NewEntryScreen(
                 )
                 ExposedDropdownMenu(
                     expanded = uiState.driverDropdownExpanded,
-                    onDismissRequest = { viewModel.toggleDriverDropdown() }
+                    onDismissRequest = { viewModel.toggleDriverDropdown(false) }
                 ) {
                     uiState.drivers.forEach { driver ->
                         DropdownMenuItem(
                             text = { Text(driver.name) },
                             onClick = {
                                 viewModel.selectDriver(driver)
-                                viewModel.toggleDriverDropdown()
+                                viewModel.toggleDriverDropdown(false)
                             }
                         )
                     }
@@ -132,10 +132,10 @@ fun NewEntryScreen(
             // Vehicle Selection
             ExposedDropdownMenuBox(
                 expanded = uiState.vehicleDropdownExpanded,
-                onExpandedChange = { viewModel.toggleVehicleDropdown() }
+                onExpandedChange = { viewModel.toggleVehicleDropdown(it) }
             ) {
                 OutlinedTextField(
-                    value = uiState.selectedVehicle?.plateNumber ?: "",
+                    value = uiState.selectedVehicle?.licensePlate ?: "",
                     onValueChange = { },
                     readOnly = true,
                     label = { Text("Vehicle") },
@@ -147,14 +147,14 @@ fun NewEntryScreen(
                 )
                 ExposedDropdownMenu(
                     expanded = uiState.vehicleDropdownExpanded,
-                    onDismissRequest = { viewModel.toggleVehicleDropdown() }
+                    onDismissRequest = { viewModel.toggleVehicleDropdown(false) }
                 ) {
                     uiState.vehicles.forEach { vehicle ->
                         DropdownMenuItem(
-                            text = { Text("${vehicle.plateNumber} - ${vehicle.model}") },
+                            text = { Text("${vehicle.licensePlate} - ${vehicle.model}") },
                             onClick = {
                                 viewModel.selectVehicle(vehicle)
-                                viewModel.toggleVehicleDropdown()
+                                viewModel.toggleVehicleDropdown(false)
                             }
                         )
                     }
@@ -210,7 +210,7 @@ fun NewEntryScreen(
             )
 
             // Error message
-            uiState.error?.let { error ->
+            uiState.errorMessage?.let { error ->
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
@@ -228,9 +228,9 @@ fun NewEntryScreen(
             Button(
                 onClick = viewModel::saveEntry,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading && uiState.selectedDriver != null && uiState.selectedVehicle != null
+                enabled = !uiState.isSaving && uiState.selectedDriver != null && uiState.selectedVehicle != null
             ) {
-                if (uiState.isLoading) {
+                if (uiState.isSaving) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp
