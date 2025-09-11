@@ -1,5 +1,8 @@
 package com.fleetmanager.ui.viewmodel
 
+import com.fleetmanager.auth.AuthService
+import com.fleetmanager.data.preferences.ReportFilterPreferences
+import com.fleetmanager.data.preferences.ReportPreferencesDataStore
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
@@ -54,7 +57,10 @@ data class ReportUiState(
     val endDate: Date? = null,
     val sortOption: SortOption = SortOption.DATE_DESC,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isFilterPanelExpanded: Boolean = false, // Default to collapsed
+    val currentUserId: String? = null,
+    val isCurrentUserDriver: Boolean = false
 ) {
     val totalEntries: Int
         get() = filteredEntries.size
@@ -110,13 +116,16 @@ data class ReportUiState(
 class ReportViewModel @Inject constructor(
     private val getReportDataUseCase: GetReportDataUseCase,
     private val getActiveDriversUseCase: GetActiveDriversUseCase,
-    private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase
+    private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
+    private val authService: AuthService,
+    private val reportPreferencesDataStore: ReportPreferencesDataStore
 ) : BaseViewModel<ReportUiState>() {
     
     override fun getInitialState() = ReportUiState()
     
     init {
         loadReportData()
+        loadUserContext()
     }
     
     private fun loadReportData() {
@@ -165,6 +174,9 @@ class ReportViewModel @Inject constructor(
                     )
                     newState.copy(filteredEntries = applySortingAndFilters(newState))
                 }
+                
+                // Load preferences after data is loaded
+                loadUserPreferences()
             }
         }
     }
@@ -174,6 +186,7 @@ class ReportViewModel @Inject constructor(
             val newState = currentState.copy(selectedDriver = driverName)
             newState.copy(filteredEntries = applySortingAndFilters(newState))
         }
+        saveCurrentPreferences()
     }
     
     fun updateVehicleFilter(vehicleDisplayName: String?) {
@@ -181,6 +194,7 @@ class ReportViewModel @Inject constructor(
             val newState = currentState.copy(selectedVehicle = vehicleDisplayName)
             newState.copy(filteredEntries = applySortingAndFilters(newState))
         }
+        saveCurrentPreferences()
     }
     
     fun updateTypeFilter(typeName: String?) {
@@ -188,6 +202,7 @@ class ReportViewModel @Inject constructor(
             val newState = currentState.copy(selectedType = typeName)
             newState.copy(filteredEntries = applySortingAndFilters(newState))
         }
+        saveCurrentPreferences()
     }
     
     fun updateEntryTypeFilter(entryType: EntryTypeFilter) {
@@ -195,6 +210,7 @@ class ReportViewModel @Inject constructor(
             val newState = currentState.copy(selectedEntryType = entryType)
             newState.copy(filteredEntries = applySortingAndFilters(newState))
         }
+        saveCurrentPreferences()
     }
     
     fun updateDateRange(startDate: Date?, endDate: Date?) {
@@ -202,6 +218,7 @@ class ReportViewModel @Inject constructor(
             val newState = currentState.copy(startDate = startDate, endDate = endDate)
             newState.copy(filteredEntries = applySortingAndFilters(newState))
         }
+        saveCurrentPreferences()
     }
     
     fun updateSortOption(sortOption: SortOption) {
@@ -209,6 +226,7 @@ class ReportViewModel @Inject constructor(
             val newState = currentState.copy(sortOption = sortOption)
             newState.copy(filteredEntries = applySortingAndFilters(newState))
         }
+        saveCurrentPreferences()
     }
     
     fun clearAllFilters() {
@@ -223,6 +241,13 @@ class ReportViewModel @Inject constructor(
             )
             newState.copy(filteredEntries = applySortingAndFilters(newState))
         }
+        saveCurrentPreferences()
+    }
+    
+    fun toggleFilterPanel() {
+        updateState { currentState ->
+            currentState.copy(isFilterPanelExpanded = !currentState.isFilterPanelExpanded)
+        }
     }
     
     fun exportData(exportAction: suspend () -> Unit) {
@@ -235,6 +260,105 @@ class ReportViewModel @Inject constructor(
             }
         ) {
             exportAction()
+        }
+    }
+    
+    private fun loadUserContext() {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(errorMessage = error) }
+            }
+        ) {
+            authService.currentUser.collect { user ->
+                val userId = user?.uid
+                updateState { currentState ->
+                    currentState.copy(
+                        currentUserId = userId,
+                        isCurrentUserDriver = userId != null && isUserADriver(userId, currentState.drivers)
+                    )
+                }
+            }
+        }
+    }
+    
+    private fun loadUserPreferences() {
+        val currentState = _uiState.value
+        val userId = currentState.currentUserId ?: return
+        
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(errorMessage = error) }
+            }
+        ) {
+            reportPreferencesDataStore.getFilterPreferences(userId).collect { preferences ->
+                updateState { state ->
+                    // Auto-fill driver and vehicle for drivers
+                    val autoSelectedDriver = if (state.isCurrentUserDriver) {
+                        // Find the driver that matches the current user
+                        val matchingDriver = state.drivers.find { driver ->
+                            driver.id == userId
+                        }
+                        preferences.selectedDriver ?: matchingDriver?.name
+                    } else {
+                        preferences.selectedDriver
+                    }
+                    
+                    // For drivers, try to auto-select their last used vehicle
+                    val autoSelectedVehicle = if (state.isCurrentUserDriver) {
+                        preferences.selectedVehicle ?: findDriversLastUsedVehicle(autoSelectedDriver, state.allEntries)
+                    } else {
+                        preferences.selectedVehicle
+                    }
+                    
+                    val newState = state.copy(
+                        selectedDriver = autoSelectedDriver,
+                        selectedVehicle = autoSelectedVehicle,
+                        selectedType = preferences.selectedType,
+                        selectedEntryType = preferences.selectedEntryType,
+                        startDate = preferences.startDate,
+                        endDate = preferences.endDate,
+                        sortOption = preferences.sortOption
+                    )
+                    newState.copy(filteredEntries = applySortingAndFilters(newState))
+                }
+            }
+        }
+    }
+    
+    private fun findDriversLastUsedVehicle(driverName: String?, entries: List<ReportEntry>): String? {
+        if (driverName == null) return null
+        
+        return entries
+            .filter { it.driverName == driverName }
+            .maxByOrNull { it.date }
+            ?.vehicle
+    }
+    
+    private fun saveCurrentPreferences() {
+        val currentState = _uiState.value
+        val userId = currentState.currentUserId ?: return
+        
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(errorMessage = error) }
+            }
+        ) {
+            val preferences = ReportFilterPreferences(
+                selectedDriver = currentState.selectedDriver,
+                selectedVehicle = currentState.selectedVehicle,
+                selectedType = currentState.selectedType,
+                selectedEntryType = currentState.selectedEntryType,
+                startDate = currentState.startDate,
+                endDate = currentState.endDate,
+                sortOption = currentState.sortOption
+            )
+            reportPreferencesDataStore.saveFilterPreferences(userId, preferences)
+        }
+    }
+    
+    private fun isUserADriver(userId: String, drivers: List<Driver>): Boolean {
+        return drivers.any { driver -> 
+            driver.id == userId
         }
     }
     

@@ -46,8 +46,8 @@ fun ReportScreen(
     // Track current tab for charts/totals
     var selectedTab by remember { mutableStateOf(0) }
     
-    // Track collapsible filter panel state
-    var isFilterExpanded by rememberSaveable { mutableStateOf(true) }
+    // Use ViewModel state for filter panel collapse
+    val isFilterExpanded = uiState.isFilterPanelExpanded
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onDriverFilterChange = remember { { driver: String? ->
@@ -131,7 +131,7 @@ fun ReportScreen(
         item {
             CollapsibleFiltersSection(
                 isExpanded = isFilterExpanded,
-                onToggleExpanded = { isFilterExpanded = !isFilterExpanded },
+                onToggleExpanded = { viewModel.toggleFilterPanel() },
                 drivers = uiState.drivers.map { it.name },
                 vehicles = uiState.vehicles.map { it.displayName },
                 types = uiState.availableTypes,
@@ -247,17 +247,46 @@ private fun CollapsibleFiltersSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    val hasActiveFilters = selectedDriver != null || selectedVehicle != null || 
+                        selectedType != null || selectedEntryType != EntryTypeFilter.ALL || 
+                        startDate != null || endDate != null
+                    
                     Icon(
-                        imageVector = Icons.Default.FilterList,
+                        imageVector = if (hasActiveFilters) Icons.Default.FilterAlt else Icons.Default.FilterList,
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (hasActiveFilters) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        text = "Filters & Sorting",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Column {
+                        Text(
+                            text = if (isExpanded) "Hide Filters" else "Show Filters",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        
+                        // Show active filters summary when collapsed
+                        if (!isExpanded) {
+                            val activeFilters = mutableListOf<String>()
+                            selectedDriver?.let { activeFilters.add("Driver: $it") }
+                            selectedVehicle?.let { activeFilters.add("Vehicle: $it") }
+                            selectedType?.let { activeFilters.add("Type: $it") }
+                            if (selectedEntryType != EntryTypeFilter.ALL) {
+                                activeFilters.add("Entry: ${selectedEntryType.displayName}")
+                            }
+                            if (startDate != null || endDate != null) {
+                                activeFilters.add("Date Range")
+                            }
+                            
+                            if (activeFilters.isNotEmpty()) {
+                                Text(
+                                    text = "${activeFilters.size} filter${if (activeFilters.size == 1) "" else "s"} active",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
                 }
                 
                 Row(
