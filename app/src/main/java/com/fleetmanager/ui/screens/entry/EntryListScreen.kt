@@ -33,7 +33,7 @@ fun EntryListScreen(
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
-    val onAddExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
+    val onExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
     val onItemClick: (String) -> Unit = rememberStableLambda1({ entryId: String -> onEntryClick(entryId) })
     
     Box(modifier = Modifier.fillMaxSize()) {
@@ -87,7 +87,7 @@ fun EntryListScreen(
         FloatingActionButtonMenu(
             items = createDefaultFabMenuItems(
                 onIncomeClick = onAddClick,
-                onExpenseClick = onAddExpenseClick
+                onExpenseClick = onExpenseClick
             ),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
