@@ -56,6 +56,23 @@ val bottomNavItems = listOf(
 
 
 @Composable
+fun AppNavigation(
+    navController: NavHostController,
+    isSignedIn: Boolean
+) {
+    if (isSignedIn) {
+        MainScreenWithBottomNav(navController = navController)
+    } else {
+        // Show only the sign-in screen when not authenticated
+        FleetNavigation(
+            navController = navController,
+            startDestination = Screen.SignIn.route,
+            modifier = Modifier
+        )
+    }
+}
+
+@Composable
 fun MainScreenWithBottomNav(
     navController: NavHostController
 ) {
