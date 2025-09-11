@@ -1,6 +1,7 @@
 package com.fleetmanager.data.repository
 
 import android.net.Uri
+import android.util.Log
 import com.fleetmanager.data.local.dao.DailyEntryDao
 import com.fleetmanager.data.local.dao.DriverDao
 import com.fleetmanager.data.local.dao.VehicleDao
@@ -32,6 +33,10 @@ class FleetRepositoryImpl @Inject constructor(
     private val firestoreService: FirestoreService,
     private val storageService: StorageService
 ) : FleetRepository {
+    
+    companion object {
+        private const val TAG = "FleetRepositoryImpl"
+    }
     
     // Daily Entries - Offline-first approach
     override fun getAllDailyEntries(): Flow<List<DailyEntry>> = 
@@ -76,9 +81,12 @@ class FleetRepositoryImpl @Inject constructor(
         // Try to sync to Firestore
         if (entryToSave.isSynced || (photoUri == null && photoUris.isEmpty())) {
             try {
+                Log.d(TAG, "Attempting to save daily entry to Firestore: ${entryToSave.id}")
                 firestoreService.saveDailyEntry(entryToSave.copy(isSynced = true))
                 dailyEntryDao.markAsSynced(entryToSave.id)
+                Log.d(TAG, "Successfully saved daily entry to Firestore: ${entryToSave.id}")
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to save daily entry to Firestore: ${entryToSave.id}", e)
                 // Will be synced later by WorkManager
             }
         }
@@ -214,9 +222,12 @@ class FleetRepositoryImpl @Inject constructor(
         // Try to sync to Firestore
         if (expenseToSave.isSynced || (photoUri == null && photoUris.isEmpty())) {
             try {
+                Log.d(TAG, "Attempting to save expense to Firestore: ${expenseToSave.id}")
                 firestoreService.saveExpense(expenseToSave.copy(isSynced = true))
                 expenseDao.markAsSynced(expenseToSave.id)
+                Log.d(TAG, "Successfully saved expense to Firestore: ${expenseToSave.id}")
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to save expense to Firestore: ${expenseToSave.id}", e)
                 // Will be synced later by WorkManager
             }
         }
