@@ -44,6 +44,7 @@ data class Expense(
 
 enum class ExpenseType(val displayName: String) {
     FUEL("Fuel"),
+    SERVICE("Service"),
     CAR_WASH("Car Wash"),
     FINE("Fine"),
     MAINTENANCE("Maintenance"),

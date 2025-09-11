@@ -3,6 +3,7 @@ package com.fleetmanager.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
@@ -24,12 +25,14 @@ import com.fleetmanager.ui.screens.entry.AddEntryScreen
 import com.fleetmanager.ui.screens.entry.EntryDetailScreen
 import com.fleetmanager.ui.screens.entry.EntryListScreen
 import com.fleetmanager.ui.screens.entry.NewExpenseEntryScreen
+import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
     object SignIn : Screen("sign_in")
     object Dashboard : Screen("dashboard")
     object History : Screen("history") // This will be the EntryList screen
+    object Reports : Screen("reports")
     object Settings : Screen("settings")
     object AddEntry : Screen("add_entry")
     object AddExpense : Screen("add_expense")
@@ -47,6 +50,7 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Dashboard, "Dashboard", Icons.Default.Dashboard),
     BottomNavItem(Screen.History, "History", Icons.Default.History),
+    BottomNavItem(Screen.Reports, "Reports", Icons.Default.Assessment),
     BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings)
 )
 
@@ -161,6 +165,10 @@ fun FleetNavigation(
                     navController.navigate(Screen.EntryDetail.createRoute(entryId))
                 }
             )
+        }
+        
+        composable(Screen.Reports.route) {
+            ReportScreen()
         }
         
         composable(Screen.Settings.route) {
