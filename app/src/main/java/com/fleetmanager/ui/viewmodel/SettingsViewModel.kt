@@ -151,10 +151,15 @@ class SettingsViewModel @Inject constructor(
     }
     
     // Admin-only functions with permission checks
-    fun addDriver(name: String, email: String = "") {
+    fun addDriver(name: String, email: String) {
         val currentRole = _uiState.value.currentUserRole
         if (currentRole == null || !PermissionManager.canCreateDrivers(currentRole)) {
             updateState { it.copy(error = "You don't have permission to create drivers") }
+            return
+        }
+        
+        if (name.isBlank() || email.isBlank()) {
+            updateState { it.copy(error = "Name and email are required") }
             return
         }
         
@@ -165,7 +170,7 @@ class SettingsViewModel @Inject constructor(
         ) {
             val driver = userFirestoreService.createDriverUser(name, email)
             updateState { 
-                it.copy(message = "Driver '${driver.name}' added successfully") 
+                it.copy(message = "Driver user '${driver.name}' created successfully with email: $email") 
             }
         }
     }

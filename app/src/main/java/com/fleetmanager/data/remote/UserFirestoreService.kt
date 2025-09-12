@@ -118,67 +118,84 @@ class UserFirestoreService @Inject constructor(
         }
     }
     
-    // Get drivers from the 'drivers' collection
+    // Get all users except ADMIN (so DRIVER and MANAGER users)
     suspend fun getDriverUsers(): List<UserDto> {
         return try {
-            firestore.collection("drivers")
+            getCollection()
+                .whereIn("role", listOf(UserRole.DRIVER.name, UserRole.MANAGER.name))
                 .get()
                 .await()
                 .documents
                 .mapNotNull { document ->
                     try {
+                        val roleString = document.getString("role") ?: "DRIVER"
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: "Unknown Driver",
-                            role = UserRole.DRIVER
+                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
+                            role = try {
+                                UserRole.valueOf(roleString.uppercase())
+                            } catch (e: Exception) {
+                                UserRole.DRIVER
+                            }
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse driver: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse user: ${document.id}", e)
                         null
                     }
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch drivers: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch users: ${e.message}", e)
             emptyList()
         }
     }
     
     fun getDriverUsersFlow(): Flow<List<UserDto>> {
-        return firestore.collection("drivers")
+        return getCollection()
+            .whereIn("role", listOf(UserRole.DRIVER.name, UserRole.MANAGER.name))
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { document ->
                     try {
+                        val roleString = document.getString("role") ?: "DRIVER"
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: "Unknown Driver",
-                            role = UserRole.DRIVER
+                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
+                            role = try {
+                                UserRole.valueOf(roleString.uppercase())
+                            } catch (e: Exception) {
+                                UserRole.DRIVER
+                            }
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse driver: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse user: ${document.id}", e)
                         null
                     }
                 }
             }
     }
     
-    // Admin-only method for creating new drivers
+    // Admin-only method for creating new driver users in users collection
     suspend fun createDriverUser(name: String, email: String = ""): UserDto {
-        val driverId = java.util.UUID.randomUUID().toString()
-        val driverData = mapOf(
-            "id" to driverId,
+        val userId = java.util.UUID.randomUUID().toString()
+        val userData = mapOf(
+            "id" to userId,
             "name" to name,
+            "displayName" to name, // For compatibility
             "email" to email,
-            "createdAt" to com.google.firebase.Timestamp.now()
+            "role" to UserRole.DRIVER.name,
+            "createdAt" to com.google.firebase.Timestamp.now(),
+            "updatedAt" to com.google.firebase.Timestamp.now()
         )
         
-        firestore.collection("drivers")
-            .document(driverId)
-            .set(driverData)
+        getCollection()
+            .document(userId)
+            .set(userData)
             .await()
         
+        Log.d(TAG, "✅ Created new driver user: $name ($userId)")
+        
         return UserDto(
-            id = driverId,
+            id = userId,
             name = name,
             role = UserRole.DRIVER
         )

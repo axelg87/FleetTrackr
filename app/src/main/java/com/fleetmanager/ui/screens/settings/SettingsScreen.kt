@@ -215,7 +215,7 @@ private fun AdminSection(
         SettingsItem(
             icon = Icons.Default.PersonAdd,
             title = "Add Driver",
-            subtitle = "Create a new driver user account",
+            subtitle = "Create a new user with DRIVER role",
             onClick = { showAddDriverDialog = true }
         )
         
@@ -279,21 +279,28 @@ private fun AddDriverDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add New Driver") },
+        title = { Text("Add New Driver User") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Text(
+                    text = "This will create a new user with DRIVER role in the users collection.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Driver Name *") },
+                    label = { Text("Full Name *") },
+                    placeholder = { Text("e.g., John Smith") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email (Optional)") },
+                    label = { Text("Email Address *") },
+                    placeholder = { Text("e.g., john@example.com") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -301,9 +308,9 @@ private fun AddDriverDialog(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(name, email) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank() && email.isNotBlank()
             ) {
-                Text("Add Driver")
+                Text("Create Driver")
             }
         },
         dismissButton = {
