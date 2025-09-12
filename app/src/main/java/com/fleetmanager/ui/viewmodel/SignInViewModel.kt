@@ -1,11 +1,14 @@
 package com.fleetmanager.ui.viewmodel
 
 import android.content.Intent
+import androidx.lifecycle.viewModelScope
 import com.fleetmanager.domain.repository.AuthRepository
 import com.fleetmanager.sync.SyncManager
+import com.fleetmanager.data.remote.FirestoreService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
 import javax.inject.Inject
 
 data class SignInUiState(
@@ -17,7 +20,8 @@ data class SignInUiState(
 @HiltViewModel
 class SignInViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val firestoreService: FirestoreService
 ) : BaseViewModel<SignInUiState>() {
     
     override fun getInitialState() = SignInUiState()
@@ -33,6 +37,16 @@ class SignInViewModel @Inject constructor(
                 if (isSignedIn) {
                     // Start periodic sync when user is signed in
                     syncManager.startPeriodicSync()
+                    
+                    // Create user document in a separate, non-cancellable coroutine
+                    viewModelScope.launch(kotlinx.coroutines.SupervisorJob()) {
+                        try {
+                            kotlinx.coroutines.delay(1000) // Wait for auth to fully stabilize
+                            firestoreService.saveUserIfMissing()
+                        } catch (e: Exception) {
+                            android.util.Log.e("SignInViewModel", "Failed to create user document", e)
+                        }
+                    }
                 }
             }
         }
@@ -55,6 +69,17 @@ class SignInViewModel @Inject constructor(
             result.fold(
                 onSuccess = {
                     updateState { it.copy(isLoading = false) }
+                    
+                    // Create user document after a short delay to ensure Firebase Auth is ready
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(500) // Wait 500ms for auth to stabilize
+                        try {
+                            firestoreService.saveUserIfMissing()
+                        } catch (e: Exception) {
+                            android.util.Log.e("SignInViewModel", "User creation failed", e)
+                        }
+                    }
+                    
                     // Trigger initial sync
                     syncManager.triggerManualSync()
                 },

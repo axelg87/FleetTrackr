@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +24,8 @@ import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.fleetmanager.R
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,13 +34,18 @@ import java.util.*
 fun EntryDetailScreen(
     entryId: String,
     onNavigateBack: () -> Unit,
+    onEditEntry: (String) -> Unit = {},
     viewModel: EntryDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     
     LaunchedEffect(entryId) {
         viewModel.loadEntry(entryId)
     }
+    
+    // State for delete confirmation dialog
+    var showDeleteDialog by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -45,6 +54,21 @@ fun EntryDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // Edit button (only for admins)
+                    if (PermissionManager.canEdit(userRole)) {
+                        IconButton(onClick = { onEditEntry(entryId) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
+                    }
+                    
+                    // Delete button (only for admins)
+                    if (PermissionManager.canDelete(userRole)) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        }
                     }
                 }
             )
@@ -86,6 +110,34 @@ fun EntryDetailScreen(
                     )
                 }
             }
+        }
+        
+        // Delete confirmation dialog
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Entry") },
+                text = { Text("Are you sure you want to delete this entry? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            viewModel.deleteEntry(entryId) {
+                                onNavigateBack()
+                            }
+                        }
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showDeleteDialog = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

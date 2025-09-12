@@ -1,8 +1,12 @@
 package com.fleetmanager.ui.viewmodel
 
 import android.util.Log
+import androidx.lifecycle.viewModelScope
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
+import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.dto.UserDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -15,7 +19,8 @@ data class EntryListUiState(
 
 @HiltViewModel
 class EntryListViewModel @Inject constructor(
-    private val getAllEntriesRealtimeUseCase: GetAllEntriesRealtimeUseCase
+    private val getAllEntriesRealtimeUseCase: GetAllEntriesRealtimeUseCase,
+    private val firestoreService: FirestoreService
 ) : BaseViewModel<EntryListUiState>() {
     
     companion object {
@@ -24,11 +29,28 @@ class EntryListViewModel @Inject constructor(
     
     override fun getInitialState() = EntryListUiState()
     
+    // Expose user profile from Firestore
+    val userProfile: StateFlow<UserDto> = firestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserDto("", "Loading...", UserRole.DRIVER)
+        )
+    
+    // Expose user role for convenience
+    val userRole: StateFlow<UserRole> = userProfile
+        .map { it.role }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserRole.DRIVER
+        )
+    
     init {
-        observeEntriesRealtime()
+        observeEntriesWithRole()
     }
     
-    private fun observeEntriesRealtime() {
+    private fun observeEntriesWithRole() {
         executeAsync(
             onLoading = { isLoading ->
                 updateState { it.copy(isLoading = isLoading) }
@@ -38,26 +60,28 @@ class EntryListViewModel @Inject constructor(
                 updateState { it.copy(isLoading = false, errorMessage = error) }
             }
         ) {
-            getAllEntriesRealtimeUseCase()
-                .catch { e ->
-                    Log.e(TAG, "Firestore snapshot listener error", e)
-                    updateState { 
-                        it.copy(
-                            isLoading = false, 
-                            errorMessage = "Failed to load entries: ${e.message}"
-                        ) 
+            userRole.collect { role ->
+                firestoreService.getDailyEntriesFlowForRole(role)
+                    .catch { e ->
+                        Log.e(TAG, "Firestore snapshot listener error", e)
+                        updateState { 
+                            it.copy(
+                                isLoading = false, 
+                                errorMessage = "Failed to load entries: ${e.message}"
+                            ) 
+                        }
                     }
-                }
-                .collect { entries ->
-                    Log.d(TAG, "Received ${entries.size} entries from Firestore")
-                    updateState {
-                        it.copy(
-                            entries = entries,
-                            isLoading = false,
-                            errorMessage = null
-                        )
+                    .collect { entries ->
+                        Log.d(TAG, "Received ${entries.size} entries for role $role")
+                        updateState {
+                            it.copy(
+                                entries = entries,
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                        }
                     }
-                }
+            }
         }
     }
 }

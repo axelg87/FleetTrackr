@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.EntryListViewModel
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
@@ -30,6 +32,7 @@ fun EntryListScreen(
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
@@ -45,6 +48,25 @@ fun EntryListScreen(
         ) {
         item {
             ScreenHeader(title = "History")
+        }
+        
+        // Role indicator for managers and admins
+        if (PermissionManager.canViewAll(userRole)) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Text(
+                        text = "Viewing as ${userRole.name} - Showing all entries",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
         }
         
         when {
@@ -83,7 +105,7 @@ fun EntryListScreen(
         }
     }
         
-        // Floating Action Button Menu
+        // Floating Action Button Menu - all roles can create
         FloatingActionButtonMenu(
             items = createDefaultFabMenuItems(
                 onIncomeClick = onAddClick,

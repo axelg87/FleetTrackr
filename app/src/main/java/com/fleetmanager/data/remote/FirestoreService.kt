@@ -10,6 +10,10 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.Expense
+import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.data.dto.UserDto
+import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +46,94 @@ class FirestoreService @Inject constructor(
         return userId
     }
     
+    // Get user profile from Firestore
+    fun getUserProfile(userId: String): Flow<UserDto> {
+        return getCollection("users")
+            .document(userId)
+            .snapshots()
+            .map { document ->
+                if (document.exists()) {
+                    UserDto(
+                        id = document.id,
+                        name = document.getString("displayName") ?: document.getString("name") ?: "Unknown User",
+                        role = try {
+                            UserRole.valueOf((document.getString("role") ?: "DRIVER").uppercase())
+                        } catch (e: Exception) {
+                            UserRole.DRIVER
+                        }
+                    )
+                } else {
+                    // Default user profile if document doesn't exist
+                    UserDto(
+                        id = userId,
+                        name = "Unknown User",
+                        role = UserRole.DRIVER
+                    )
+                }
+            }
+    }
+    
+    // Get current user's profile
+    fun getCurrentUserProfile(): Flow<UserDto> {
+        val userId = authService.getCurrentUserId() ?: ""
+        return getUserProfile(userId)
+    }
+    
+    // Simple method to get current user's role (default to DRIVER if not found)
+    suspend fun getCurrentUserRole(): UserRole {
+        val userId = authService.getCurrentUserId() ?: return UserRole.DRIVER
+        return try {
+            val userDoc = getCollection("users").document(userId).get().await()
+            val roleString = userDoc.getString("role") ?: "DRIVER"
+            UserRole.valueOf(roleString.uppercase())
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not fetch user role, defaulting to DRIVER", e)
+            UserRole.DRIVER
+        }
+    }
+    
+    // Create user document if it doesn't exist (called on first sign-in)
+    suspend fun saveUserIfMissing() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            Log.w(TAG, "No authenticated user found")
+            return
+        }
+        
+        val userId = currentUser.uid
+        Log.d(TAG, "Checking user document for: $userId")
+        
+        try {
+            val userDoc = getCollection("users").document(userId).get().await()
+            
+            if (!userDoc.exists()) {
+                Log.d(TAG, "Creating new user document for: $userId")
+                
+                val userData = mapOf(
+                    "id" to userId,
+                    "name" to (currentUser.displayName ?: "Unknown User"),
+                    "role" to UserRole.DRIVER.name,
+                    "email" to (currentUser.email ?: ""),
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                )
+                
+                getCollection("users")
+                    .document(userId)
+                    .set(userData)
+                    .await()
+                
+                Log.d(TAG, "✅ User document created successfully for: $userId")
+                toastHelper.showMessage(context, "✅ User profile created")
+            } else {
+                Log.d(TAG, "User document already exists for: $userId")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to create user document: ${e.message}", e)
+            toastHelper.showError(context, "❌ Failed to create user: ${e.message}")
+            throw e
+        }
+    }
+    
     // Daily Entries
     suspend fun saveDailyEntry(entry: DailyEntry) {
         val userId = requireAuth()
@@ -64,12 +156,24 @@ class FirestoreService @Inject constructor(
     
     suspend fun getDailyEntries(): List<DailyEntry> {
         val userId = requireAuth()
-        return getCollection("entries")
-            .whereEqualTo("userId", userId)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { it.toObject<DailyEntry>() }
+        val userRole = getCurrentUserRole()
+        
+        return if (PermissionManager.canViewAll(userRole)) {
+            // Managers and Admins can see all entries
+            getCollection("entries")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject<DailyEntry>() }
+        } else {
+            // Drivers can only see their own entries
+            getCollection("entries")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject<DailyEntry>() }
+        }
     }
     
     fun getDailyEntriesFlow(): Flow<List<DailyEntry>> {
@@ -81,6 +185,29 @@ class FirestoreService @Inject constructor(
                 snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
             }
     }
+    
+    // Role-based flow for entries
+    fun getDailyEntriesFlowForRole(userRole: UserRole): Flow<List<DailyEntry>> {
+        val userId = authService.getCurrentUserId() ?: ""
+        
+        return if (PermissionManager.canViewAll(userRole)) {
+            // Managers and Admins can see all entries
+            getCollection("entries")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                }
+        } else {
+            // Drivers can only see their own entries
+            getCollection("entries")
+                .whereEqualTo("userId", userId)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                }
+        }
+    }
+    
     
     suspend fun deleteDailyEntry(entryId: String) {
         getCollection("entries")
@@ -248,12 +375,24 @@ class FirestoreService @Inject constructor(
     
     suspend fun getExpenses(): List<Expense> {
         val userId = requireAuth()
-        return getCollection("expenses")
-            .whereEqualTo("userId", userId)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { it.toObject<Expense>() }
+        val userRole = getCurrentUserRole()
+        
+        return if (PermissionManager.canViewAll(userRole)) {
+            // Managers and Admins can see all expenses
+            getCollection("expenses")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject<Expense>() }
+        } else {
+            // Drivers can only see their own expenses
+            getCollection("expenses")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject<Expense>() }
+        }
     }
     
     fun getExpensesFlow(): Flow<List<Expense>> {
@@ -265,6 +404,29 @@ class FirestoreService @Inject constructor(
                 snapshot.documents.mapNotNull { it.toObject<Expense>() }
             }
     }
+    
+    // Role-based flow for expenses
+    fun getExpensesFlowForRole(userRole: UserRole): Flow<List<Expense>> {
+        val userId = authService.getCurrentUserId() ?: ""
+        
+        return if (PermissionManager.canViewAll(userRole)) {
+            // Managers and Admins can see all expenses
+            getCollection("expenses")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { it.toObject<Expense>() }
+                }
+        } else {
+            // Drivers can only see their own expenses
+            getCollection("expenses")
+                .whereEqualTo("userId", userId)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { it.toObject<Expense>() }
+                }
+        }
+    }
+    
     
     suspend fun deleteExpense(expenseId: String) {
         getCollection("expenses")

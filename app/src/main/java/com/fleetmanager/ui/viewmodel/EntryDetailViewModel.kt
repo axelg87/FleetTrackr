@@ -1,7 +1,12 @@
 package com.fleetmanager.ui.viewmodel
 
+import androidx.lifecycle.viewModelScope
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetEntryByIdUseCase
+import com.fleetmanager.domain.usecase.DeleteDailyEntryUseCase
+import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.dto.UserDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -14,10 +19,29 @@ data class EntryDetailUiState(
 
 @HiltViewModel
 class EntryDetailViewModel @Inject constructor(
-    private val getEntryByIdUseCase: GetEntryByIdUseCase
+    private val getEntryByIdUseCase: GetEntryByIdUseCase,
+    private val deleteDailyEntryUseCase: DeleteDailyEntryUseCase,
+    private val firestoreService: FirestoreService
 ) : BaseViewModel<EntryDetailUiState>() {
     
     override fun getInitialState() = EntryDetailUiState()
+    
+    // Expose user profile from Firestore
+    val userProfile: StateFlow<UserDto> = firestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserDto("", "Loading...", UserRole.DRIVER)
+        )
+    
+    // Expose user role for convenience
+    val userRole: StateFlow<UserRole> = userProfile
+        .map { it.role }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserRole.DRIVER
+        )
     
     fun loadEntry(entryId: String) {
         executeAsync(
@@ -38,6 +62,17 @@ class EntryDetailViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+    
+    fun deleteEntry(entryId: String, onSuccess: () -> Unit) {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(errorMessage = "Failed to delete entry: $error") }
+            }
+        ) {
+            deleteDailyEntryUseCase(entryId)
+            onSuccess()
         }
     }
 }
