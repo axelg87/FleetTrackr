@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.EntryListViewModel
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
@@ -30,6 +32,7 @@ fun EntryListScreen(
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
@@ -45,34 +48,6 @@ fun EntryListScreen(
         ) {
         item {
             ScreenHeader(title = "History")
-        }
-        
-        // Role information card (for testing/debugging)
-        if (uiState.userRole != com.fleetmanager.domain.model.UserRole.DRIVER || 
-            uiState.canEdit || uiState.canDelete) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Role: ${uiState.userRole.displayName}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = com.fleetmanager.domain.model.RolePermissions.getRoleDescription(uiState.userRole),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            }
         }
         
         when {
@@ -111,20 +86,16 @@ fun EntryListScreen(
         }
     }
         
-        // Floating Action Button Menu (only show if user can create)
-        if (uiState.userRole == com.fleetmanager.domain.model.UserRole.DRIVER || 
-            uiState.userRole == com.fleetmanager.domain.model.UserRole.MANAGER ||
-            uiState.userRole == com.fleetmanager.domain.model.UserRole.ADMIN) {
-            FloatingActionButtonMenu(
-                items = createDefaultFabMenuItems(
-                    onIncomeClick = onAddClick,
-                    onExpenseClick = onExpenseClick
-                ),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            )
-        }
+        // Floating Action Button Menu - all roles can create
+        FloatingActionButtonMenu(
+            items = createDefaultFabMenuItems(
+                onIncomeClick = onAddClick,
+                onExpenseClick = onExpenseClick
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 }
 

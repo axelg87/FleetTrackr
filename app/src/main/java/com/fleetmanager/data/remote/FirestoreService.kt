@@ -10,9 +10,8 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.Expense
-import com.fleetmanager.domain.model.User
 import com.fleetmanager.domain.model.UserRole
-import com.fleetmanager.domain.model.RolePermissions
+import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -45,6 +44,19 @@ class FirestoreService @Inject constructor(
         return userId
     }
     
+    // Simple method to get current user's role (default to DRIVER if not found)
+    suspend fun getCurrentUserRole(): UserRole {
+        val userId = authService.getCurrentUserId() ?: return UserRole.DRIVER
+        return try {
+            val userDoc = getCollection("users").document(userId).get().await()
+            val roleString = userDoc.getString("role") ?: "DRIVER"
+            UserRole.valueOf(roleString.uppercase())
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not fetch user role, defaulting to DRIVER", e)
+            UserRole.DRIVER
+        }
+    }
+    
     // Daily Entries
     suspend fun saveDailyEntry(entry: DailyEntry) {
         val userId = requireAuth()
@@ -67,10 +79,9 @@ class FirestoreService @Inject constructor(
     
     suspend fun getDailyEntries(): List<DailyEntry> {
         val userId = requireAuth()
-        val currentUser = getCurrentUser()
-        val userRole = currentUser?.getUserRole() ?: UserRole.DRIVER
+        val userRole = getCurrentUserRole()
         
-        return if (RolePermissions.canViewAllData(userRole)) {
+        return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
             getCollection("entries")
                 .get()
@@ -90,9 +101,6 @@ class FirestoreService @Inject constructor(
     
     fun getDailyEntriesFlow(): Flow<List<DailyEntry>> {
         val userId = authService.getCurrentUserId() ?: ""
-        // Note: For Flow, we need to determine role synchronously or use a different approach
-        // For now, we'll use the existing behavior and let the UI handle filtering
-        // A better approach would be to use the UserRoleViewModel to determine access
         return getCollection("entries")
             .whereEqualTo("userId", userId)
             .snapshots()
@@ -101,12 +109,11 @@ class FirestoreService @Inject constructor(
             }
     }
     
-    /**
-     * Get daily entries with role-based filtering for Flow
-     * This should be used by ViewModels that have access to user role
-     */
-    fun getDailyEntriesFlowForRole(userRole: UserRole, userId: String): Flow<List<DailyEntry>> {
-        return if (RolePermissions.canViewAllData(userRole)) {
+    // Role-based flow for entries
+    fun getDailyEntriesFlowForRole(userRole: UserRole): Flow<List<DailyEntry>> {
+        val userId = authService.getCurrentUserId() ?: ""
+        
+        return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
             getCollection("entries")
                 .snapshots()
@@ -123,6 +130,7 @@ class FirestoreService @Inject constructor(
                 }
         }
     }
+    
     
     suspend fun deleteDailyEntry(entryId: String) {
         getCollection("entries")
@@ -290,10 +298,9 @@ class FirestoreService @Inject constructor(
     
     suspend fun getExpenses(): List<Expense> {
         val userId = requireAuth()
-        val currentUser = getCurrentUser()
-        val userRole = currentUser?.getUserRole() ?: UserRole.DRIVER
+        val userRole = getCurrentUserRole()
         
-        return if (RolePermissions.canViewAllData(userRole)) {
+        return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
             getCollection("expenses")
                 .get()
@@ -313,9 +320,6 @@ class FirestoreService @Inject constructor(
     
     fun getExpensesFlow(): Flow<List<Expense>> {
         val userId = authService.getCurrentUserId() ?: ""
-        // Note: For Flow, we need to determine role synchronously or use a different approach
-        // For now, we'll use the existing behavior and let the UI handle filtering
-        // A better approach would be to use the UserRoleViewModel to determine access
         return getCollection("expenses")
             .whereEqualTo("userId", userId)
             .snapshots()
@@ -324,12 +328,11 @@ class FirestoreService @Inject constructor(
             }
     }
     
-    /**
-     * Get expenses with role-based filtering for Flow
-     * This should be used by ViewModels that have access to user role
-     */
-    fun getExpensesFlowForRole(userRole: UserRole, userId: String): Flow<List<Expense>> {
-        return if (RolePermissions.canViewAllData(userRole)) {
+    // Role-based flow for expenses
+    fun getExpensesFlowForRole(userRole: UserRole): Flow<List<Expense>> {
+        val userId = authService.getCurrentUserId() ?: ""
+        
+        return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
             getCollection("expenses")
                 .snapshots()
@@ -347,158 +350,11 @@ class FirestoreService @Inject constructor(
         }
     }
     
+    
     suspend fun deleteExpense(expenseId: String) {
         getCollection("expenses")
             .document(expenseId)
             .delete()
             .await()
-    }
-    
-    // Users Management
-    /**
-     * Save or update a user in the users collection.
-     * Uses the Firebase uid as the document ID.
-     */
-    suspend fun saveUser(user: User) {
-        Log.d(TAG, "Saving user to Firestore: ${user.uid}")
-        try {
-            getCollection("users")
-                .document(user.uid)
-                .set(user)
-                .await()
-            Log.d(TAG, "Successfully saved user to Firestore: ${user.uid}")
-        } catch (e: Exception) {
-            val errorMessage = "Failed to save user: ${e.message}"
-            Log.e(TAG, errorMessage, e)
-            toastHelper.showError(context, errorMessage)
-            throw e
-        }
-    }
-    
-    /**
-     * Get a user by their Firebase uid
-     */
-    suspend fun getUserByUid(uid: String): User? {
-        return try {
-            Log.d(TAG, "Fetching user from Firestore: $uid")
-            val document = getCollection("users")
-                .document(uid)
-                .get()
-                .await()
-            
-            if (document.exists()) {
-                document.toObject<User>()?.also {
-                    Log.d(TAG, "Successfully fetched user: ${it.displayName} with role: ${it.role}")
-                }
-            } else {
-                Log.d(TAG, "User not found in Firestore: $uid")
-                null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch user $uid: ${e.message}", e)
-            null
-        }
-    }
-    
-    /**
-     * Get current user's data
-     */
-    suspend fun getCurrentUser(): User? {
-        val userId = authService.getCurrentUserId()
-        return if (userId != null) {
-            getUserByUid(userId)
-        } else {
-            null
-        }
-    }
-    
-    /**
-     * Create a new user from Firebase Auth data (for first-time sign-in)
-     */
-    suspend fun createUserFromAuth(
-        uid: String,
-        displayName: String?,
-        email: String?,
-        photoUrl: String?,
-        role: UserRole = UserRole.DRIVER
-    ): User {
-        val user = User.fromFirebaseUser(
-            uid = uid,
-            displayName = displayName,
-            email = email,
-            photoUrl = photoUrl,
-            role = role
-        )
-        saveUser(user)
-        return user
-    }
-    
-    /**
-     * Update user role (admin only)
-     */
-    suspend fun updateUserRole(uid: String, newRole: UserRole) {
-        val currentUserId = requireAuth()
-        val currentUser = getCurrentUser()
-        
-        if (currentUser?.getUserRole() != UserRole.ADMIN) {
-            throw SecurityException("Only admins can update user roles")
-        }
-        
-        Log.d(TAG, "Admin $currentUserId updating role for user $uid to $newRole")
-        try {
-            getCollection("users")
-                .document(uid)
-                .update("role", newRole.name.lowercase())
-                .await()
-            Log.d(TAG, "Successfully updated user role: $uid -> $newRole")
-        } catch (e: Exception) {
-            val errorMessage = "Failed to update user role: ${e.message}"
-            Log.e(TAG, errorMessage, e)
-            toastHelper.showError(context, errorMessage)
-            throw e
-        }
-    }
-    
-    /**
-     * Get all users (admin only)
-     */
-    suspend fun getAllUsers(): List<User> {
-        val currentUser = getCurrentUser()
-        if (currentUser?.getUserRole() != UserRole.ADMIN) {
-            throw SecurityException("Only admins can view all users")
-        }
-        
-        return try {
-            getCollection("users")
-                .get()
-                .await()
-                .documents
-                .mapNotNull { it.toObject<User>() }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch all users: ${e.message}", e)
-            emptyList()
-        }
-    }
-    
-    /**
-     * Get users by role (admin only)
-     */
-    suspend fun getUsersByRole(role: UserRole): List<User> {
-        val currentUser = getCurrentUser()
-        if (currentUser?.getUserRole() != UserRole.ADMIN) {
-            throw SecurityException("Only admins can view users by role")
-        }
-        
-        return try {
-            getCollection("users")
-                .whereEqualTo("role", role.name.lowercase())
-                .get()
-                .await()
-                .documents
-                .mapNotNull { it.toObject<User>() }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch users by role $role: ${e.message}", e)
-            emptyList()
-        }
     }
 }

@@ -24,6 +24,8 @@ import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.fleetmanager.R
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,6 +38,7 @@ fun EntryDetailScreen(
     viewModel: EntryDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     
     LaunchedEffect(entryId) {
         viewModel.loadEntry(entryId)
@@ -55,14 +58,14 @@ fun EntryDetailScreen(
                 },
                 actions = {
                     // Edit button (only for admins)
-                    if (uiState.canEdit) {
+                    if (PermissionManager.canEdit(userRole)) {
                         IconButton(onClick = { onEditEntry(entryId) }) {
                             Icon(Icons.Default.Edit, contentDescription = "Edit")
                         }
                     }
                     
                     // Delete button (only for admins)
-                    if (uiState.canDelete) {
+                    if (PermissionManager.canDelete(userRole)) {
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
@@ -122,23 +125,14 @@ fun EntryDetailScreen(
                             viewModel.deleteEntry(entryId) {
                                 onNavigateBack()
                             }
-                        },
-                        enabled = !uiState.isDeleting
-                    ) {
-                        if (uiState.isDeleting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Delete")
                         }
+                    ) {
+                        Text("Delete")
                     }
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = { showDeleteDialog = false },
-                        enabled = !uiState.isDeleting
+                        onClick = { showDeleteDialog = false }
                     ) {
                         Text("Cancel")
                     }

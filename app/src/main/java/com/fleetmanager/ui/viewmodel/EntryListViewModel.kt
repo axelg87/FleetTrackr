@@ -5,7 +5,6 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
 import com.fleetmanager.data.remote.FirestoreService
-import com.fleetmanager.auth.AuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -13,18 +12,13 @@ import javax.inject.Inject
 data class EntryListUiState(
     val entries: List<DailyEntry> = emptyList(),
     val isLoading: Boolean = true,
-    val errorMessage: String? = null,
-    val userRole: UserRole = UserRole.DRIVER,
-    val canEdit: Boolean = false,
-    val canDelete: Boolean = false
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
 class EntryListViewModel @Inject constructor(
     private val getAllEntriesRealtimeUseCase: GetAllEntriesRealtimeUseCase,
-    private val firestoreService: FirestoreService,
-    private val authService: AuthService,
-    private val userRoleViewModel: UserRoleViewModel
+    private val firestoreService: FirestoreService
 ) : BaseViewModel<EntryListUiState>() {
     
     companion object {
@@ -33,11 +27,23 @@ class EntryListViewModel @Inject constructor(
     
     override fun getInitialState() = EntryListUiState()
     
+    // Expose user role as a separate flow
+    val userRole: StateFlow<UserRole> = flow {
+        while (true) {
+            emit(firestoreService.getCurrentUserRole())
+            kotlinx.coroutines.delay(5000) // Refresh every 5 seconds
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = UserRole.DRIVER
+    )
+    
     init {
-        observeUserRoleAndEntries()
+        observeEntriesWithRole()
     }
     
-    private fun observeUserRoleAndEntries() {
+    private fun observeEntriesWithRole() {
         executeAsync(
             onLoading = { isLoading ->
                 updateState { it.copy(isLoading = isLoading) }
@@ -47,42 +53,27 @@ class EntryListViewModel @Inject constructor(
                 updateState { it.copy(isLoading = false, errorMessage = error) }
             }
         ) {
-            // First observe user role, then switch to appropriate entries flow
-            userRoleViewModel.uiState.collect { roleState ->
-                if (!roleState.isLoading && roleState.currentUser != null) {
-                    val userId = authService.getCurrentUserId() ?: ""
-                    
-                    // Update state with role permissions
-                    updateState {
-                        it.copy(
-                            userRole = roleState.userRole,
-                            canEdit = roleState.canEdit,
-                            canDelete = roleState.canDelete
-                        )
+            userRole.collect { role ->
+                firestoreService.getDailyEntriesFlowForRole(role)
+                    .catch { e ->
+                        Log.e(TAG, "Firestore snapshot listener error", e)
+                        updateState { 
+                            it.copy(
+                                isLoading = false, 
+                                errorMessage = "Failed to load entries: ${e.message}"
+                            ) 
+                        }
                     }
-                    
-                    // Switch to appropriate entries flow based on role
-                    firestoreService.getDailyEntriesFlowForRole(roleState.userRole, userId)
-                        .catch { e ->
-                            Log.e(TAG, "Firestore snapshot listener error", e)
-                            updateState { 
-                                it.copy(
-                                    isLoading = false, 
-                                    errorMessage = "Failed to load entries: ${e.message}"
-                                ) 
-                            }
+                    .collect { entries ->
+                        Log.d(TAG, "Received ${entries.size} entries for role $role")
+                        updateState {
+                            it.copy(
+                                entries = entries,
+                                isLoading = false,
+                                errorMessage = null
+                            )
                         }
-                        .collect { entries ->
-                            Log.d(TAG, "Received ${entries.size} entries for role ${roleState.userRole}")
-                            updateState {
-                                it.copy(
-                                    entries = entries,
-                                    isLoading = false,
-                                    errorMessage = null
-                                )
-                            }
-                        }
-                }
+                    }
             }
         }
     }
