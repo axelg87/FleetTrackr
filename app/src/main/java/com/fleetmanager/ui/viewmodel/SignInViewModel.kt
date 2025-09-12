@@ -8,6 +8,7 @@ import com.fleetmanager.data.remote.FirestoreService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
 import javax.inject.Inject
 
 data class SignInUiState(
@@ -34,15 +35,18 @@ class SignInViewModel @Inject constructor(
             authRepository.isSignedIn.collect { isSignedIn ->
                 updateState { it.copy(isSignedIn = isSignedIn) }
                 if (isSignedIn) {
-                    // Create user document whenever user is signed in (app start or fresh sign-in)
-                    try {
-                        firestoreService.saveUserIfMissing()
-                    } catch (e: Exception) {
-                        android.util.Log.e("SignInViewModel", "Failed to create user document in auth observer", e)
-                    }
-                    
                     // Start periodic sync when user is signed in
                     syncManager.startPeriodicSync()
+                    
+                    // Create user document in a separate, non-cancellable coroutine
+                    viewModelScope.launch(kotlinx.coroutines.SupervisorJob()) {
+                        try {
+                            kotlinx.coroutines.delay(1000) // Wait for auth to fully stabilize
+                            firestoreService.saveUserIfMissing()
+                        } catch (e: Exception) {
+                            android.util.Log.e("SignInViewModel", "Failed to create user document", e)
+                        }
+                    }
                 }
             }
         }
