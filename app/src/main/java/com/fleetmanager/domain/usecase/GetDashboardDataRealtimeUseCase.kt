@@ -9,14 +9,6 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-data class DashboardData(
-    val thisMonthEarnings: Double,
-    val thisWeekEarnings: Double,
-    val last24hEarnings: Double,
-    val activeDriversCount: Int,
-    val recentEntries: List<DailyEntry>
-)
-
 /**
  * Use case for getting dashboard data with real-time Firestore updates.
  * Encapsulates the business logic for calculating dashboard statistics using snapshot listeners.
