@@ -43,29 +43,32 @@ data class UserDto(
 )
 ```
 
-### 4. FirestoreService Updates (~70 lines)
+### 4. FirestoreService Updates (~100 lines)
 **File**: `data/remote/FirestoreService.kt`
 
 Added role-based functionality:
 - `getUserProfile(userId: String): Flow<UserDto>` - Real-time user profile from Firestore
 - `getCurrentUserProfile(): Flow<UserDto>` - Current user's profile
 - `getCurrentUserRole()` - Fetches current user role (with DRIVER default)
+- `saveUserIfMissing()` - **Automatically creates user documents on first sign-in**
 - `getDailyEntriesFlowForRole()` - Returns filtered entries based on role
 - `getExpensesFlowForRole()` - Returns filtered expenses based on role
 
 For DRIVER: `whereEqualTo("userId", currentUserId)`
 For MANAGER/ADMIN: No filter (all data)
 
-### 5. Updated ViewModels (~100 lines total)
+### 5. Updated ViewModels (~120 lines total)
 **Files**: 
 - `ui/viewmodel/EntryListViewModel.kt` 
 - `ui/viewmodel/EntryDetailViewModel.kt`
+- `ui/viewmodel/SignInViewModel.kt` - **Calls `saveUserIfMissing()` on sign-in**
 
 Each ViewModel:
 - Exposes `userProfile: StateFlow<UserDto>` from Firestore
 - Exposes `userRole: StateFlow<UserRole>` for convenience
 - Uses role-based Firestore queries dynamically
 - Real-time role updates from Firestore
+- **Automatic user document creation on first sign-in**
 
 ### 6. UI Permission Checks (~40 lines)
 **Files**:
@@ -91,11 +94,19 @@ if (PermissionManager.canEdit(userRole)) {
 ### Users Collection
 ```
 users/{uid} -> {
+  "id": "firebase-user-uid",
+  "name": "User Display Name",
   "role": "ADMIN" | "MANAGER" | "DRIVER",
-  "displayName": "User Name",
-  "email": "user@example.com"
+  "email": "user@example.com",
+  "createdAt": Timestamp
 }
 ```
+
+**Automatically created on first sign-in with:**
+- Document ID = Firebase Auth UID
+- Default role = DRIVER
+- Name from Firebase Auth displayName
+- Email from Firebase Auth
 
 ### Entries/Expenses
 Each entry/expense includes:

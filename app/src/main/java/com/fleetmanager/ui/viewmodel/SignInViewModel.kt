@@ -3,6 +3,7 @@ package com.fleetmanager.ui.viewmodel
 import android.content.Intent
 import com.fleetmanager.domain.repository.AuthRepository
 import com.fleetmanager.sync.SyncManager
+import com.fleetmanager.data.remote.FirestoreService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,7 +18,8 @@ data class SignInUiState(
 @HiltViewModel
 class SignInViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val firestoreService: FirestoreService
 ) : BaseViewModel<SignInUiState>() {
     
     override fun getInitialState() = SignInUiState()
@@ -31,6 +33,14 @@ class SignInViewModel @Inject constructor(
             authRepository.isSignedIn.collect { isSignedIn ->
                 updateState { it.copy(isSignedIn = isSignedIn) }
                 if (isSignedIn) {
+                    // Create user document if it doesn't exist
+                    try {
+                        firestoreService.saveUserIfMissing()
+                    } catch (e: Exception) {
+                        // Log error but don't fail sign-in
+                        android.util.Log.e("SignInViewModel", "Failed to create user document", e)
+                    }
+                    
                     // Start periodic sync when user is signed in
                     syncManager.startPeriodicSync()
                 }
@@ -54,6 +64,14 @@ class SignInViewModel @Inject constructor(
             val result = authRepository.signInWithGoogle(idToken)
             result.fold(
                 onSuccess = {
+                    // Create user document if it doesn't exist
+                    try {
+                        firestoreService.saveUserIfMissing()
+                    } catch (e: Exception) {
+                        // Log error but don't fail sign-in
+                        android.util.Log.e("SignInViewModel", "Failed to create user document", e)
+                    }
+                    
                     updateState { it.copy(isLoading = false) }
                     // Trigger initial sync
                     syncManager.triggerManualSync()

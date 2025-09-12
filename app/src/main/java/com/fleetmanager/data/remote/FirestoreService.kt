@@ -13,6 +13,7 @@ import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.data.dto.UserDto
+import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -88,6 +89,49 @@ class FirestoreService @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Could not fetch user role, defaulting to DRIVER", e)
             UserRole.DRIVER
+        }
+    }
+    
+    // Create user document if it doesn't exist (called on first sign-in)
+    suspend fun saveUserIfMissing() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            Log.w(TAG, "No authenticated user found, cannot create user document")
+            return
+        }
+        
+        val userId = currentUser.uid
+        Log.d(TAG, "Checking if user document exists for: $userId")
+        
+        try {
+            val userDoc = getCollection("users").document(userId).get().await()
+            
+            if (!userDoc.exists()) {
+                Log.d(TAG, "User document doesn't exist, creating new user: $userId")
+                
+                // Create new user document with default DRIVER role
+                val userData = mapOf(
+                    "id" to userId,
+                    "name" to (currentUser.displayName ?: "Unknown User"),
+                    "role" to UserRole.DRIVER.name,
+                    "email" to (currentUser.email ?: ""),
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                )
+                
+                getCollection("users")
+                    .document(userId)
+                    .set(userData)
+                    .await()
+                
+                Log.d(TAG, "Successfully created user document for: $userId with role: DRIVER")
+            } else {
+                Log.d(TAG, "User document already exists for: $userId")
+            }
+        } catch (e: Exception) {
+            val errorMessage = "Failed to create user document: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
         }
     }
     
