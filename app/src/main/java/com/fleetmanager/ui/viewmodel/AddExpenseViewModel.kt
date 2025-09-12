@@ -23,7 +23,6 @@ import java.util.*
 import javax.inject.Inject
 
 data class AddExpenseUiState(
-    val drivers: List<Driver> = emptyList(),
     val driverUsers: List<UserDto> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val expenseTypes: List<ExpenseTypeItem> = emptyList(),
@@ -58,17 +57,17 @@ data class AddExpenseUiState(
     val hasValidationErrors: Boolean
         get() = amountError != null || notesError != null
     
-    // Combined list of driver names from both sources
+    // Driver names from Firestore only
     val allDriverNames: List<String>
-        get() = (drivers.map { it.name } + driverUsers.map { it.name }).distinct().sorted()
+        get() = driverUsers.map { it.name }.sorted()
     
-    // Combined list of vehicle names
+    // Vehicle names from Firestore only
     val allVehicleNames: List<String>
-        get() = vehicles.map { it.displayName }.distinct().sorted()
+        get() = vehicles.map { it.displayName }.sorted()
     
-    // Combined list of expense types
+    // Expense types from Firestore only
     val allExpenseTypes: List<String>
-        get() = (ExpenseType.values().map { it.displayName } + expenseTypes.map { it.displayName }).distinct().sorted()
+        get() = expenseTypes.map { it.displayName }.sorted()
 }
 
 @HiltViewModel
@@ -87,66 +86,27 @@ class AddExpenseViewModel @Inject constructor(
     override fun getInitialState() = AddExpenseUiState()
     
     init {
-        loadInitialData()
         loadFirestoreData()
     }
     
-    private fun getSampleDrivers(): List<Driver> {
-        return listOf(
-            Driver("sample_driver_1", "", "Usman"),
-            Driver("sample_driver_2", "", "Ahmed"),
-            Driver("sample_driver_3", "", "Rashid")
-        )
-    }
-    
-    private fun getSampleVehicles(): List<Vehicle> {
-        return listOf(
-            Vehicle("sample_vehicle_1", "", "Mitsubishi", "Outlander 1", 2020, "ABC-123"),
-            Vehicle("sample_vehicle_2", "", "Mitsubishi", "Outlander 2", 2021, "XYZ-789"),
-            Vehicle("sample_vehicle_3", "", "Mitsubishi", "Outlander 3", 2022, "DEF-456")
-        )
-    }
-    
-    private fun loadInitialData() {
-        executeAsync {
-            // Load drivers from database and merge with sample data
-            getActiveDriversUseCase()
-                .catch { }
-                .collect { dbDrivers ->
-                    val allDrivers = (getSampleDrivers() + dbDrivers).distinctBy { it.name }
-                    updateState { it.copy(drivers = allDrivers) }
-                }
-        }
-        
-        executeAsync {
-            // Load vehicles from database and merge with sample data
-            getActiveVehiclesUseCase()
-                .catch { }
-                .collect { dbVehicles ->
-                    val allVehicles = (getSampleVehicles() + dbVehicles).distinctBy { it.displayName }
-                    updateState { it.copy(vehicles = allVehicles) }
-                }
-        }
-    }
     
     private fun loadFirestoreData() {
         executeAsync(
             onError = { error ->
-                // Don't show error, just gracefully handle missing data
-                updateState { it.copy(errorMessage = null) }
+                updateState { it.copy(errorMessage = "Failed to load data: $error") }
             }
         ) {
             combine(
                 userFirestoreService.getDriverUsersFlow(),
                 vehicleFirestoreService.getVehiclesFlow(),
                 expenseTypeFirestoreService.getExpenseTypesFlow()
-            ) { driverUsers, firestoreVehicles, expenseTypes ->
-                Triple(driverUsers, firestoreVehicles, expenseTypes)
-            }.collect { (driverUsers, firestoreVehicles, expenseTypes) ->
+            ) { driverUsers, vehicles, expenseTypes ->
+                Triple(driverUsers, vehicles, expenseTypes)
+            }.collect { (driverUsers, vehicles, expenseTypes) ->
                 updateState { currentState ->
                     currentState.copy(
                         driverUsers = driverUsers,
-                        vehicles = if (firestoreVehicles.isNotEmpty()) firestoreVehicles else currentState.vehicles,
+                        vehicles = vehicles,
                         expenseTypes = expenseTypes
                     )
                 }

@@ -137,14 +137,21 @@ fun AddEntryScreen(
                     expanded = uiState.driverDropdownExpanded,
                     onDismissRequest = { viewModel.toggleDriverDropdown(false) }
                 ) {
-                    uiState.allDriverNames.forEach { driverName ->
+                    if (uiState.allDriverNames.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text(driverName) },
-                            onClick = {
-                                viewModel.updateDriverInput(driverName)
-                                viewModel.toggleDriverDropdown(false)
-                            }
+                            text = { Text("No drivers available") },
+                            onClick = { }
                         )
+                    } else {
+                        uiState.allDriverNames.forEach { driverName ->
+                            DropdownMenuItem(
+                                text = { Text(driverName) },
+                                onClick = {
+                                    viewModel.updateDriverInput(driverName)
+                                    viewModel.toggleDriverDropdown(false)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -169,14 +176,21 @@ fun AddEntryScreen(
                     expanded = uiState.vehicleDropdownExpanded,
                     onDismissRequest = { viewModel.toggleVehicleDropdown(false) }
                 ) {
-                    uiState.allVehicleNames.forEach { vehicleName ->
+                    if (uiState.allVehicleNames.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text(vehicleName) },
-                            onClick = {
-                                viewModel.updateVehicleInput(vehicleName)
-                                viewModel.toggleVehicleDropdown(false)
-                            }
+                            text = { Text("No vehicles available") },
+                            onClick = { }
                         )
+                    } else {
+                        uiState.allVehicleNames.forEach { vehicleName ->
+                            DropdownMenuItem(
+                                text = { Text(vehicleName) },
+                                onClick = {
+                                    viewModel.updateVehicleInput(vehicleName)
+                                    viewModel.toggleVehicleDropdown(false)
+                                }
+                            )
+                        }
                     }
                 }
             }

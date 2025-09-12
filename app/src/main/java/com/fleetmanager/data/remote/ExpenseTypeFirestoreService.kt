@@ -23,7 +23,7 @@ class ExpenseTypeFirestoreService @Inject constructor(
     
     companion object {
         private const val TAG = "ExpenseTypeFirestoreService"
-        private const val EXPENSE_TYPES_COLLECTION = "expenseTypes"
+        private const val EXPENSE_TYPES_COLLECTION = "expense_types"
     }
     
     private fun getCollection() = firestore.collection(EXPENSE_TYPES_COLLECTION)
@@ -46,7 +46,6 @@ class ExpenseTypeFirestoreService @Inject constructor(
     suspend fun getExpenseTypes(): List<ExpenseTypeItem> {
         return try {
             getCollection()
-                .whereEqualTo("isActive", true)
                 .get()
                 .await()
                 .documents
@@ -59,7 +58,6 @@ class ExpenseTypeFirestoreService @Inject constructor(
     
     fun getExpenseTypesFlow(): Flow<List<ExpenseTypeItem>> {
         return getCollection()
-            .whereEqualTo("isActive", true)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { it.toObject<ExpenseTypeItem>() }
@@ -79,53 +77,4 @@ class ExpenseTypeFirestoreService @Inject constructor(
         return expenseType
     }
     
-    suspend fun initializeDefaultExpenseTypes() {
-        val existingExpenseTypes = getExpenseTypes()
-        if (existingExpenseTypes.isEmpty()) {
-            Log.d(TAG, "Initializing default expense types...")
-            val defaultExpenseTypes = listOf(
-                ExpenseTypeItem(
-                    id = "fuel",
-                    name = "FUEL",
-                    displayName = "Fuel",
-                    isActive = true
-                ),
-                ExpenseTypeItem(
-                    id = "maintenance",
-                    name = "MAINTENANCE",
-                    displayName = "Maintenance",
-                    isActive = true
-                ),
-                ExpenseTypeItem(
-                    id = "service",
-                    name = "SERVICE",
-                    displayName = "Service",
-                    isActive = true
-                ),
-                ExpenseTypeItem(
-                    id = "car_wash",
-                    name = "CAR_WASH",
-                    displayName = "Car Wash",
-                    isActive = true
-                ),
-                ExpenseTypeItem(
-                    id = "fine",
-                    name = "FINE",
-                    displayName = "Fine",
-                    isActive = true
-                ),
-                ExpenseTypeItem(
-                    id = "other",
-                    name = "OTHER",
-                    displayName = "Other",
-                    isActive = true
-                )
-            )
-            
-            defaultExpenseTypes.forEach { expenseType ->
-                saveExpenseType(expenseType)
-            }
-            Log.d(TAG, "✅ Default expense types initialized")
-        }
-    }
 }

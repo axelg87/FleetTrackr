@@ -118,76 +118,63 @@ class UserFirestoreService @Inject constructor(
         }
     }
     
-    // Get drivers and managers for dropdowns (both can be assigned to entries)
+    // Get drivers from the 'drivers' collection
     suspend fun getDriverUsers(): List<UserDto> {
         return try {
-            getCollection()
-                .whereIn("role", listOf(UserRole.DRIVER.name, UserRole.MANAGER.name))
+            firestore.collection("drivers")
                 .get()
                 .await()
                 .documents
                 .mapNotNull { document ->
                     try {
-                        val roleString = document.getString("role") ?: "DRIVER"
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
-                            role = try {
-                                UserRole.valueOf(roleString.uppercase())
-                            } catch (e: Exception) {
-                                UserRole.DRIVER
-                            }
+                            name = document.getString("name") ?: "Unknown Driver",
+                            role = UserRole.DRIVER
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse driver: ${document.id}", e)
                         null
                     }
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch driver users: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch drivers: ${e.message}", e)
             emptyList()
         }
     }
     
     fun getDriverUsersFlow(): Flow<List<UserDto>> {
-        return getCollection()
-            .whereIn("role", listOf(UserRole.DRIVER.name, UserRole.MANAGER.name))
+        return firestore.collection("drivers")
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { document ->
                     try {
-                        val roleString = document.getString("role") ?: "DRIVER"
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
-                            role = try {
-                                UserRole.valueOf(roleString.uppercase())
-                            } catch (e: Exception) {
-                                UserRole.DRIVER
-                            }
+                            name = document.getString("name") ?: "Unknown Driver",
+                            role = UserRole.DRIVER
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse driver: ${document.id}", e)
                         null
                     }
                 }
             }
     }
     
-    // Admin-only method for creating new driver users
+    // Admin-only method for creating new drivers
     suspend fun createDriverUser(name: String, email: String = ""): UserDto {
         val driverId = java.util.UUID.randomUUID().toString()
-        val userData = mapOf(
+        val driverData = mapOf(
             "id" to driverId,
             "name" to name,
-            "role" to UserRole.DRIVER.name,
             "email" to email,
             "createdAt" to com.google.firebase.Timestamp.now()
         )
         
-        getCollection()
+        firestore.collection("drivers")
             .document(driverId)
-            .set(userData)
+            .set(driverData)
             .await()
         
         return UserDto(

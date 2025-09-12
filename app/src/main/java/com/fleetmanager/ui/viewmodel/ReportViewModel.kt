@@ -133,21 +133,8 @@ class ReportViewModel @Inject constructor(
     override fun getInitialState() = ReportUiState()
     
     init {
-        initializeData()
         loadReportData()
         loadUserContext()
-    }
-    
-    private fun initializeData() {
-        executeAsync(
-            onError = { error ->
-                updateState { it.copy(errorMessage = error) }
-            }
-        ) {
-            // Initialize default data in parallel
-            expenseTypeFirestoreService.initializeDefaultExpenseTypes()
-            vehicleFirestoreService.initializeSampleVehicles()
-        }
     }
     
     private fun loadReportData() {

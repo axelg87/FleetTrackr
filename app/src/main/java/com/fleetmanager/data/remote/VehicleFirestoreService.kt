@@ -46,7 +46,6 @@ class VehicleFirestoreService @Inject constructor(
     suspend fun getVehicles(): List<Vehicle> {
         return try {
             getCollection()
-                .whereEqualTo("isActive", true)
                 .get()
                 .await()
                 .documents
@@ -59,7 +58,6 @@ class VehicleFirestoreService @Inject constructor(
     
     fun getVehiclesFlow(): Flow<List<Vehicle>> {
         return getCollection()
-            .whereEqualTo("isActive", true)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { it.toObject<Vehicle>() }
@@ -81,41 +79,4 @@ class VehicleFirestoreService @Inject constructor(
         return vehicle
     }
     
-    suspend fun initializeSampleVehicles() {
-        val existingVehicles = getVehicles()
-        if (existingVehicles.isEmpty()) {
-            Log.d(TAG, "Initializing sample vehicles...")
-            val sampleVehicles = listOf(
-                Vehicle(
-                    id = "vehicle_1",
-                    make = "Toyota",
-                    model = "Camry",
-                    year = 2020,
-                    licensePlate = "ABC-123",
-                    isActive = true
-                ),
-                Vehicle(
-                    id = "vehicle_2",
-                    make = "Honda",
-                    model = "Civic",
-                    year = 2019,
-                    licensePlate = "XYZ-789",
-                    isActive = true
-                ),
-                Vehicle(
-                    id = "vehicle_3",
-                    make = "Mitsubishi",
-                    model = "Outlander",
-                    year = 2021,
-                    licensePlate = "DEF-456",
-                    isActive = true
-                )
-            )
-            
-            sampleVehicles.forEach { vehicle ->
-                saveVehicle(vehicle)
-            }
-            Log.d(TAG, "✅ Sample vehicles initialized")
-        }
-    }
 }

@@ -20,7 +20,6 @@ import java.util.*
 import javax.inject.Inject
 
 data class AddEntryUiState(
-    val drivers: List<Driver> = emptyList(),
     val driverUsers: List<UserDto> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val selectedDriver: Driver? = null,
@@ -60,13 +59,13 @@ data class AddEntryUiState(
                 privateJobsEarningsError != null || 
                 notesError != null
     
-    // Combined list of driver names from both sources
+    // Driver names from Firestore only
     val allDriverNames: List<String>
-        get() = (drivers.map { it.name } + driverUsers.map { it.name }).distinct().sorted()
+        get() = driverUsers.map { it.name }.sorted()
     
-    // Combined list of vehicle names
+    // Vehicle names from Firestore only
     val allVehicleNames: List<String>
-        get() = vehicles.map { it.displayName }.distinct().sorted()
+        get() = vehicles.map { it.displayName }.sorted()
 }
 
 @HiltViewModel
@@ -84,88 +83,32 @@ class AddEntryViewModel @Inject constructor(
     override fun getInitialState() = AddEntryUiState()
     
     init {
-        loadInitialData()
         loadFirestoreData()
     }
     
-    private fun getSampleDrivers(): List<Driver> {
-        return listOf(
-            Driver("sample_driver_1", "", "Usman"),
-            Driver("sample_driver_2", "", "Ahmed"),
-            Driver("sample_driver_3", "", "Rashid")
-        )
-    }
-    
-    private fun getSampleVehicles(): List<Vehicle> {
-        return listOf(
-            Vehicle("sample_vehicle_1", "", "Mitsubishi", "Outlander 1", 2020, "ABC-123"),
-            Vehicle("sample_vehicle_2", "", "Mitsubishi", "Outlander 2", 2021, "XYZ-789"),
-            Vehicle("sample_vehicle_3", "", "Mitsubishi", "Outlander 3", 2022, "DEF-456")
-        )
-    }
-    
-    private fun loadInitialData() {
-        executeAsync {
-            // Load drivers from database and merge with sample data
-            getActiveDriversUseCase()
-                .catch { }
-                .collect { dbDrivers ->
-                    val allDrivers = (getSampleDrivers() + dbDrivers).distinctBy { it.name }
-                    updateState { it.copy(drivers = allDrivers) }
-                }
-        }
-        
-        executeAsync {
-            // Load vehicles from database and merge with sample data
-            getActiveVehiclesUseCase()
-                .catch { }
-                .collect { dbVehicles ->
-                    val allVehicles = (getSampleVehicles() + dbVehicles).distinctBy { it.displayName }
-                    updateState { it.copy(vehicles = allVehicles) }
-                }
-        }
-    }
     
     private fun loadFirestoreData() {
         executeAsync(
             onError = { error ->
-                // Don't show error, just gracefully handle missing data
-                updateState { it.copy(errorMessage = null) }
+                updateState { it.copy(errorMessage = "Failed to load data: $error") }
             }
         ) {
             combine(
                 userFirestoreService.getDriverUsersFlow(),
                 vehicleFirestoreService.getVehiclesFlow()
-            ) { driverUsers, firestoreVehicles ->
-                Pair(driverUsers, firestoreVehicles)
-            }.collect { (driverUsers, firestoreVehicles) ->
+            ) { driverUsers, vehicles ->
+                Pair(driverUsers, vehicles)
+            }.collect { (driverUsers, vehicles) ->
                 updateState { currentState ->
                     currentState.copy(
                         driverUsers = driverUsers,
-                        vehicles = if (firestoreVehicles.isNotEmpty()) firestoreVehicles else currentState.vehicles
+                        vehicles = vehicles
                     )
                 }
             }
         }
     }
     
-    private suspend fun addSampleData() {
-        // Add some sample drivers and vehicles for demo
-        val sampleDrivers = listOf(
-            Driver("driver_1", "", "John Smith"),
-            Driver("driver_2", "", "Maria Garcia"),
-            Driver("driver_3", "", "Ahmed Hassan")
-        )
-        
-        val sampleVehicles = listOf(
-            Vehicle("vehicle_1", "", "Toyota", "Camry", 2020, "ABC-123"),
-            Vehicle("vehicle_2", "", "Honda", "Accord", 2019, "XYZ-789"),
-            Vehicle("vehicle_3", "", "Hyundai", "Elantra", 2021, "DEF-456")
-        )
-        
-        sampleDrivers.forEach { saveDriverUseCase(it) }
-        sampleVehicles.forEach { saveVehicleUseCase(it) }
-    }
     
     fun selectDriver(driver: Driver) {
         updateState { it.copy(selectedDriver = driver, driverInput = driver.name) }

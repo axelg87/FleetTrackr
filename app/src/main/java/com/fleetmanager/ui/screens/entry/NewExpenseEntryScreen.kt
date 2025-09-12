@@ -136,16 +136,23 @@ fun NewExpenseEntryScreen(
                     expanded = uiState.expenseTypeDropdownExpanded,
                     onDismissRequest = { viewModel.toggleExpenseTypeDropdown(false) }
                 ) {
-                    uiState.allExpenseTypes.forEach { expenseTypeName ->
+                    if (uiState.allExpenseTypes.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text(expenseTypeName) },
-                            onClick = {
-                                // Find the matching ExpenseType enum or use default
-                                val expenseType = ExpenseType.values().find { it.displayName == expenseTypeName } ?: ExpenseType.OTHER
-                                viewModel.selectExpenseType(expenseType)
-                                viewModel.toggleExpenseTypeDropdown(false)
-                            }
+                            text = { Text("No expense types available") },
+                            onClick = { }
                         )
+                    } else {
+                        uiState.allExpenseTypes.forEach { expenseTypeName ->
+                            DropdownMenuItem(
+                                text = { Text(expenseTypeName) },
+                                onClick = {
+                                    // Find the matching ExpenseType enum or use default
+                                    val expenseType = ExpenseType.values().find { it.displayName == expenseTypeName } ?: ExpenseType.OTHER
+                                    viewModel.selectExpenseType(expenseType)
+                                    viewModel.toggleExpenseTypeDropdown(false)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -181,14 +188,21 @@ fun NewExpenseEntryScreen(
                     expanded = uiState.driverDropdownExpanded,
                     onDismissRequest = { viewModel.toggleDriverDropdown(false) }
                 ) {
-                    uiState.allDriverNames.forEach { driverName ->
+                    if (uiState.allDriverNames.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text(driverName) },
-                            onClick = {
-                                viewModel.updateDriverInput(driverName)
-                                viewModel.toggleDriverDropdown(false)
-                            }
+                            text = { Text("No drivers available") },
+                            onClick = { }
                         )
+                    } else {
+                        uiState.allDriverNames.forEach { driverName ->
+                            DropdownMenuItem(
+                                text = { Text(driverName) },
+                                onClick = {
+                                    viewModel.updateDriverInput(driverName)
+                                    viewModel.toggleDriverDropdown(false)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -213,14 +227,21 @@ fun NewExpenseEntryScreen(
                     expanded = uiState.vehicleDropdownExpanded,
                     onDismissRequest = { viewModel.toggleVehicleDropdown(false) }
                 ) {
-                    uiState.allVehicleNames.forEach { vehicleName ->
+                    if (uiState.allVehicleNames.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text(vehicleName) },
-                            onClick = {
-                                viewModel.updateVehicleInput(vehicleName)
-                                viewModel.toggleVehicleDropdown(false)
-                            }
+                            text = { Text("No vehicles available") },
+                            onClick = { }
                         )
+                    } else {
+                        uiState.allVehicleNames.forEach { vehicleName ->
+                            DropdownMenuItem(
+                                text = { Text(vehicleName) },
+                                onClick = {
+                                    viewModel.updateVehicleInput(vehicleName)
+                                    viewModel.toggleVehicleDropdown(false)
+                                }
+                            )
+                        }
                     }
                 }
             }
