@@ -50,6 +50,25 @@ fun EntryListScreen(
             ScreenHeader(title = "History")
         }
         
+        // Role indicator for managers and admins
+        if (PermissionManager.canViewAll(userRole)) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Text(
+                        text = "Viewing as ${userRole.name} - Showing all entries",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        }
+        
         when {
             uiState.isLoading -> {
                 item {

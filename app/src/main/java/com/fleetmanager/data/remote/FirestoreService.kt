@@ -12,6 +12,7 @@ import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +43,39 @@ class FirestoreService @Inject constructor(
         }
         Log.d(TAG, "User authenticated with ID: $userId")
         return userId
+    }
+    
+    // Get user profile from Firestore
+    fun getUserProfile(userId: String): Flow<UserDto> {
+        return getCollection("users")
+            .document(userId)
+            .snapshots()
+            .map { document ->
+                if (document.exists()) {
+                    UserDto(
+                        id = document.id,
+                        name = document.getString("displayName") ?: document.getString("name") ?: "Unknown User",
+                        role = try {
+                            UserRole.valueOf((document.getString("role") ?: "DRIVER").uppercase())
+                        } catch (e: Exception) {
+                            UserRole.DRIVER
+                        }
+                    )
+                } else {
+                    // Default user profile if document doesn't exist
+                    UserDto(
+                        id = userId,
+                        name = "Unknown User",
+                        role = UserRole.DRIVER
+                    )
+                }
+            }
+    }
+    
+    // Get current user's profile
+    fun getCurrentUserProfile(): Flow<UserDto> {
+        val userId = authService.getCurrentUserId() ?: ""
+        return getUserProfile(userId)
     }
     
     // Simple method to get current user's role (default to DRIVER if not found)

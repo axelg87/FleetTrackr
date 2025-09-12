@@ -4,7 +4,7 @@ This document summarizes the simplified role-based access control system for the
 
 ## Overview
 
-The implementation adds basic role-based access control with just **~200 lines of code** across a few key files.
+The implementation adds basic role-based access control with **~250 lines of code** across a few key files, featuring dynamic role fetching from Firestore.
 
 ### Roles
 - **DRIVER**: Can only view their own entries/expenses
@@ -33,33 +33,50 @@ object PermissionManager {
 }
 ```
 
-### 3. FirestoreService Updates (~50 lines)
+### 3. UserDto (5 lines)
+**File**: `data/dto/UserDto.kt`
+```kotlin
+data class UserDto(
+    val id: String,
+    val name: String,
+    val role: UserRole
+)
+```
+
+### 4. FirestoreService Updates (~70 lines)
 **File**: `data/remote/FirestoreService.kt`
 
-Added simple role-based filtering:
-- `getCurrentUserRole()` - Fetches user role from Firestore users collection
+Added role-based functionality:
+- `getUserProfile(userId: String): Flow<UserDto>` - Real-time user profile from Firestore
+- `getCurrentUserProfile(): Flow<UserDto>` - Current user's profile
+- `getCurrentUserRole()` - Fetches current user role (with DRIVER default)
 - `getDailyEntriesFlowForRole()` - Returns filtered entries based on role
 - `getExpensesFlowForRole()` - Returns filtered expenses based on role
 
 For DRIVER: `whereEqualTo("userId", currentUserId)`
 For MANAGER/ADMIN: No filter (all data)
 
-### 4. Updated ViewModels (~80 lines total)
+### 5. Updated ViewModels (~100 lines total)
 **Files**: 
 - `ui/viewmodel/EntryListViewModel.kt` 
 - `ui/viewmodel/EntryDetailViewModel.kt`
 
 Each ViewModel:
-- Exposes `userRole` as StateFlow
-- Uses role-based Firestore queries
-- Keeps simple state management
+- Exposes `userProfile: StateFlow<UserDto>` from Firestore
+- Exposes `userRole: StateFlow<UserRole>` for convenience
+- Uses role-based Firestore queries dynamically
+- Real-time role updates from Firestore
 
-### 5. UI Permission Checks (~30 lines)
+### 6. UI Permission Checks (~40 lines)
 **Files**:
 - `ui/screens/entry/EntryListScreen.kt`
 - `ui/screens/entry/EntryDetailScreen.kt`
 
-Simple permission checks:
+Features:
+- Role indicator for managers/admins
+- Dynamic edit/delete button visibility
+- Real-time role-based UI updates
+
 ```kotlin
 // Show edit/delete buttons only for admins
 if (PermissionManager.canEdit(userRole)) {
@@ -92,30 +109,33 @@ Each entry/expense includes:
 ## How It Works
 
 1. **Role Storage**: User roles stored in Firestore `users/{uid}` collection
-2. **Role Fetching**: `getCurrentUserRole()` method fetches role (defaults to DRIVER)
+2. **Dynamic Role Fetching**: `getUserProfile()` provides real-time Flow of user data from Firestore
 3. **Data Filtering**: Firestore queries filter based on role:
    - DRIVER: Only their own data (`whereEqualTo("userId", currentUserId)`)
    - MANAGER/ADMIN: All data (no filter)
 4. **UI Permissions**: Simple checks using `PermissionManager` methods
-5. **Real-time Updates**: Role refreshes every 5 seconds in ViewModels
+5. **Real-time Updates**: Role changes reflect immediately via Firestore listeners
 
 ## Benefits
 
-- **Simple**: Only ~200 lines of code total
+- **Simple**: Only ~250 lines of code total
+- **Dynamic**: Real-time role fetching from Firestore
 - **Maintainable**: Clear separation of concerns
 - **Flexible**: Easy to extend with new roles
 - **Secure**: Server-side filtering in Firestore queries
-- **Performant**: Minimal overhead, efficient queries
+- **Performant**: Efficient Firestore listeners, minimal overhead
 
 ## Usage Example
 
 ```kotlin
 // In UI components
+val userRole by viewModel.userRole.collectAsStateWithLifecycle()
 if (PermissionManager.canEdit(userRole)) {
     Button("Edit")
 }
 
 // In ViewModels  
+val userProfile: StateFlow<UserDto> = firestoreService.getCurrentUserProfile()
 firestoreService.getDailyEntriesFlowForRole(userRole)
 ```
 
@@ -124,6 +144,7 @@ firestoreService.getDailyEntriesFlowForRole(userRole)
 1. Create test users with different roles in Firestore
 2. Verify data filtering works correctly
 3. Check UI shows/hides actions appropriately
-4. Test role changes take effect within 5 seconds
+4. Test role changes reflect immediately via Firestore listeners
+5. Confirm role indicator shows for managers/admins
 
-This implementation provides robust role-based access control while maintaining simplicity and avoiding over-engineering.
+This implementation provides robust role-based access control with real-time Firestore integration while maintaining simplicity and avoiding over-engineering.

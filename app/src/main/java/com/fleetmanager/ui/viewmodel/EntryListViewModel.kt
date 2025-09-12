@@ -5,6 +5,7 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
 import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.dto.UserDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -27,17 +28,22 @@ class EntryListViewModel @Inject constructor(
     
     override fun getInitialState() = EntryListUiState()
     
-    // Expose user role as a separate flow
-    val userRole: StateFlow<UserRole> = flow {
-        while (true) {
-            emit(firestoreService.getCurrentUserRole())
-            kotlinx.coroutines.delay(5000) // Refresh every 5 seconds
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = UserRole.DRIVER
-    )
+    // Expose user profile from Firestore
+    val userProfile: StateFlow<UserDto> = firestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserDto("", "Loading...", UserRole.DRIVER)
+        )
+    
+    // Expose user role for convenience
+    val userRole: StateFlow<UserRole> = userProfile
+        .map { it.role }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserRole.DRIVER
+        )
     
     init {
         observeEntriesWithRole()
