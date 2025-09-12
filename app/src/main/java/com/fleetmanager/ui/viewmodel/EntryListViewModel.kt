@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.viewmodel
 
 import android.util.Log
+import androidx.lifecycle.viewModelScope
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
