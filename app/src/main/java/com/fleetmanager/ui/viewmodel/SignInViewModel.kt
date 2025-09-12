@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.viewmodel
 
 import android.content.Intent
+import androidx.lifecycle.viewModelScope
 import com.fleetmanager.domain.repository.AuthRepository
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.data.remote.FirestoreService
@@ -33,13 +34,17 @@ class SignInViewModel @Inject constructor(
             authRepository.isSignedIn.collect { isSignedIn ->
                 updateState { it.copy(isSignedIn = isSignedIn) }
                 if (isSignedIn) {
-                    // Create user document if it doesn't exist (with delay to ensure auth is complete)
-                    kotlinx.coroutines.delay(1000) // Wait 1 second for auth to stabilize
-                    val success = firestoreService.saveUserIfMissing()
-                    android.util.Log.d("SignInViewModel", "User document creation: ${if (success) "success" else "failed"}")
-                    
                     // Start periodic sync when user is signed in
                     syncManager.startPeriodicSync()
+                    
+                    // Create user document if it doesn't exist - launch in separate coroutine
+                    viewModelScope.launch {
+                        try {
+                            firestoreService.saveUserIfMissing()
+                        } catch (e: Exception) {
+                            android.util.Log.e("SignInViewModel", "Failed to create user document", e)
+                        }
+                    }
                 }
             }
         }
