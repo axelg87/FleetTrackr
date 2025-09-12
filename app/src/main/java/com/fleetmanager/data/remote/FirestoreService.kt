@@ -94,60 +94,42 @@ class FirestoreService @Inject constructor(
     
     // Create user document if it doesn't exist (called on first sign-in)
     suspend fun saveUserIfMissing() {
-        Log.d(TAG, "Starting saveUserIfMissing()")
-        
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
-            val error = "No authenticated user found, cannot create user document"
-            Log.e(TAG, error)
-            toastHelper.showError(context, error)
-            throw IllegalStateException(error)
+            Log.w(TAG, "No authenticated user found")
+            return
         }
         
         val userId = currentUser.uid
-        val userName = currentUser.displayName ?: "Unknown User"
-        val userEmail = currentUser.email ?: ""
-        
-        Log.d(TAG, "Creating user document for:")
-        Log.d(TAG, "  - UID: $userId")
-        Log.d(TAG, "  - Name: $userName")
-        Log.d(TAG, "  - Email: $userEmail")
+        Log.d(TAG, "Checking user document for: $userId")
         
         try {
-            Log.d(TAG, "Checking if user document exists...")
             val userDoc = getCollection("users").document(userId).get().await()
             
             if (!userDoc.exists()) {
-                Log.d(TAG, "User document doesn't exist, creating new user document")
+                Log.d(TAG, "Creating new user document for: $userId")
                 
-                // Create new user document with default DRIVER role
                 val userData = mapOf(
                     "id" to userId,
-                    "name" to userName,
+                    "name" to (currentUser.displayName ?: "Unknown User"),
                     "role" to UserRole.DRIVER.name,
-                    "email" to userEmail,
+                    "email" to (currentUser.email ?: ""),
                     "createdAt" to com.google.firebase.Timestamp.now()
                 )
-                
-                Log.d(TAG, "User data to save: $userData")
                 
                 getCollection("users")
                     .document(userId)
                     .set(userData)
                     .await()
                 
-                Log.d(TAG, "Successfully created user document for: $userId with role: DRIVER")
-                toastHelper.showMessage(context, "User profile created successfully")
+                Log.d(TAG, "✅ User document created successfully for: $userId")
+                toastHelper.showMessage(context, "✅ User profile created")
             } else {
                 Log.d(TAG, "User document already exists for: $userId")
-                toastHelper.showMessage(context, "User profile already exists")
             }
         } catch (e: Exception) {
-            val errorMessage = "Failed to create user document: ${e.message}"
-            Log.e(TAG, errorMessage, e)
-            Log.e(TAG, "Exception type: ${e.javaClass.simpleName}")
-            Log.e(TAG, "Stack trace:", e)
-            toastHelper.showError(context, errorMessage)
+            Log.e(TAG, "❌ Failed to create user document: ${e.message}", e)
+            toastHelper.showError(context, "❌ Failed to create user: ${e.message}")
             throw e
         }
     }

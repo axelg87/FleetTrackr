@@ -34,6 +34,13 @@ class SignInViewModel @Inject constructor(
             authRepository.isSignedIn.collect { isSignedIn ->
                 updateState { it.copy(isSignedIn = isSignedIn) }
                 if (isSignedIn) {
+                    // Create user document whenever user is signed in (app start or fresh sign-in)
+                    try {
+                        firestoreService.saveUserIfMissing()
+                    } catch (e: Exception) {
+                        android.util.Log.e("SignInViewModel", "Failed to create user document in auth observer", e)
+                    }
+                    
                     // Start periodic sync when user is signed in
                     syncManager.startPeriodicSync()
                 }
