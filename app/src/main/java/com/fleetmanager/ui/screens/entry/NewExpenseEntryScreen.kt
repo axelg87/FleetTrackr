@@ -136,10 +136,12 @@ fun NewExpenseEntryScreen(
                     expanded = uiState.expenseTypeDropdownExpanded,
                     onDismissRequest = { viewModel.toggleExpenseTypeDropdown(false) }
                 ) {
-                    ExpenseType.values().forEach { expenseType ->
+                    uiState.allExpenseTypes.forEach { expenseTypeName ->
                         DropdownMenuItem(
-                            text = { Text(expenseType.displayName) },
+                            text = { Text(expenseTypeName) },
                             onClick = {
+                                // Find the matching ExpenseType enum or use default
+                                val expenseType = ExpenseType.values().find { it.displayName == expenseTypeName } ?: ExpenseType.OTHER
                                 viewModel.selectExpenseType(expenseType)
                                 viewModel.toggleExpenseTypeDropdown(false)
                             }
@@ -179,11 +181,11 @@ fun NewExpenseEntryScreen(
                     expanded = uiState.driverDropdownExpanded,
                     onDismissRequest = { viewModel.toggleDriverDropdown(false) }
                 ) {
-                    uiState.drivers.forEach { driver ->
+                    uiState.allDriverNames.forEach { driverName ->
                         DropdownMenuItem(
-                            text = { Text(driver.name) },
+                            text = { Text(driverName) },
                             onClick = {
-                                viewModel.selectDriver(driver)
+                                viewModel.updateDriverInput(driverName)
                                 viewModel.toggleDriverDropdown(false)
                             }
                         )
@@ -211,11 +213,11 @@ fun NewExpenseEntryScreen(
                     expanded = uiState.vehicleDropdownExpanded,
                     onDismissRequest = { viewModel.toggleVehicleDropdown(false) }
                 ) {
-                    uiState.vehicles.forEach { vehicle ->
+                    uiState.allVehicleNames.forEach { vehicleName ->
                         DropdownMenuItem(
-                            text = { Text(vehicle.displayName) },
+                            text = { Text(vehicleName) },
                             onClick = {
-                                viewModel.selectVehicle(vehicle)
+                                viewModel.updateVehicleInput(vehicleName)
                                 viewModel.toggleVehicleDropdown(false)
                             }
                         )

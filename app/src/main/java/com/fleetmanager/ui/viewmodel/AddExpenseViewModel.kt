@@ -3,8 +3,13 @@ package com.fleetmanager.ui.viewmodel
 import android.net.Uri
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.ExpenseType
+import com.fleetmanager.domain.model.ExpenseTypeItem
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
+import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
+import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
 import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
 import com.fleetmanager.domain.usecase.SaveExpenseUseCase
@@ -19,7 +24,9 @@ import javax.inject.Inject
 
 data class AddExpenseUiState(
     val drivers: List<Driver> = emptyList(),
+    val driverUsers: List<UserDto> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
+    val expenseTypes: List<ExpenseTypeItem> = emptyList(),
     val selectedDriver: Driver? = null,
     val selectedVehicle: Vehicle? = null,
     val driverInput: String = "",
@@ -50,25 +57,38 @@ data class AddExpenseUiState(
     
     val hasValidationErrors: Boolean
         get() = amountError != null || notesError != null
+    
+    // Combined list of driver names from both sources
+    val allDriverNames: List<String>
+        get() = (drivers.map { it.name } + driverUsers.map { it.name }).distinct().sorted()
+    
+    // Combined list of vehicle names
+    val allVehicleNames: List<String>
+        get() = vehicles.map { it.displayName }.distinct().sorted()
+    
+    // Combined list of expense types
+    val allExpenseTypes: List<String>
+        get() = (ExpenseType.values().map { it.displayName } + expenseTypes.map { it.displayName }).distinct().sorted()
 }
 
 @HiltViewModel
 class AddExpenseViewModel @Inject constructor(
     private val getActiveDriversUseCase: GetActiveDriversUseCase,
     private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
+    private val userFirestoreService: UserFirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService,
+    private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val saveExpenseUseCase: SaveExpenseUseCase,
     private val saveDriverUseCase: SaveDriverUseCase,
     private val saveVehicleUseCase: SaveVehicleUseCase,
     private val validator: InputValidator
 ) : BaseViewModel<AddExpenseUiState>() {
     
-    override fun getInitialState() = AddExpenseUiState(
-        drivers = getSampleDrivers(),
-        vehicles = getSampleVehicles()
-    )
+    override fun getInitialState() = AddExpenseUiState()
     
     init {
         loadInitialData()
+        loadFirestoreData()
     }
     
     private fun getSampleDrivers(): List<Driver> {
@@ -106,6 +126,31 @@ class AddExpenseViewModel @Inject constructor(
                     val allVehicles = (getSampleVehicles() + dbVehicles).distinctBy { it.displayName }
                     updateState { it.copy(vehicles = allVehicles) }
                 }
+        }
+    }
+    
+    private fun loadFirestoreData() {
+        executeAsync(
+            onError = { error ->
+                // Don't show error, just gracefully handle missing data
+                updateState { it.copy(errorMessage = null) }
+            }
+        ) {
+            combine(
+                userFirestoreService.getDriverUsersFlow(),
+                vehicleFirestoreService.getVehiclesFlow(),
+                expenseTypeFirestoreService.getExpenseTypesFlow()
+            ) { driverUsers, firestoreVehicles, expenseTypes ->
+                Triple(driverUsers, firestoreVehicles, expenseTypes)
+            }.collect { (driverUsers, firestoreVehicles, expenseTypes) ->
+                updateState { currentState ->
+                    currentState.copy(
+                        driverUsers = driverUsers,
+                        vehicles = if (firestoreVehicles.isNotEmpty()) firestoreVehicles else currentState.vehicles,
+                        expenseTypes = expenseTypes
+                    )
+                }
+            }
         }
     }
     

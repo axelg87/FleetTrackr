@@ -137,11 +137,11 @@ fun AddEntryScreen(
                     expanded = uiState.driverDropdownExpanded,
                     onDismissRequest = { viewModel.toggleDriverDropdown(false) }
                 ) {
-                    uiState.drivers.forEach { driver ->
+                    uiState.allDriverNames.forEach { driverName ->
                         DropdownMenuItem(
-                            text = { Text(driver.name) },
+                            text = { Text(driverName) },
                             onClick = {
-                                viewModel.selectDriver(driver)
+                                viewModel.updateDriverInput(driverName)
                                 viewModel.toggleDriverDropdown(false)
                             }
                         )
@@ -169,11 +169,11 @@ fun AddEntryScreen(
                     expanded = uiState.vehicleDropdownExpanded,
                     onDismissRequest = { viewModel.toggleVehicleDropdown(false) }
                 ) {
-                    uiState.vehicles.forEach { vehicle ->
+                    uiState.allVehicleNames.forEach { vehicleName ->
                         DropdownMenuItem(
-                            text = { Text(vehicle.displayName) },
+                            text = { Text(vehicleName) },
                             onClick = {
-                                viewModel.selectVehicle(vehicle)
+                                viewModel.updateVehicleInput(vehicleName)
                                 viewModel.toggleVehicleDropdown(false)
                             }
                         )

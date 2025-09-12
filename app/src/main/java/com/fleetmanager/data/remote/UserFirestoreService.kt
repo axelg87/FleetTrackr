@@ -118,20 +118,25 @@ class UserFirestoreService @Inject constructor(
         }
     }
     
-    // Get drivers for reports
+    // Get drivers and managers for dropdowns (both can be assigned to entries)
     suspend fun getDriverUsers(): List<UserDto> {
         return try {
             getCollection()
-                .whereEqualTo("role", UserRole.DRIVER.name)
+                .whereIn("role", listOf(UserRole.DRIVER.name, UserRole.MANAGER.name))
                 .get()
                 .await()
                 .documents
                 .mapNotNull { document ->
                     try {
+                        val roleString = document.getString("role") ?: "DRIVER"
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown Driver",
-                            role = UserRole.DRIVER
+                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
+                            role = try {
+                                UserRole.valueOf(roleString.uppercase())
+                            } catch (e: Exception) {
+                                UserRole.DRIVER
+                            }
                         )
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
@@ -146,15 +151,20 @@ class UserFirestoreService @Inject constructor(
     
     fun getDriverUsersFlow(): Flow<List<UserDto>> {
         return getCollection()
-            .whereEqualTo("role", UserRole.DRIVER.name)
+            .whereIn("role", listOf(UserRole.DRIVER.name, UserRole.MANAGER.name))
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { document ->
                     try {
+                        val roleString = document.getString("role") ?: "DRIVER"
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown Driver",
-                            role = UserRole.DRIVER
+                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
+                            role = try {
+                                UserRole.valueOf(roleString.uppercase())
+                            } catch (e: Exception) {
+                                UserRole.DRIVER
+                            }
                         )
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
