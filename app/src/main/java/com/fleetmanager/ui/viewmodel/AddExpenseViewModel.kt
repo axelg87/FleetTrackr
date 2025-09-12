@@ -10,11 +10,7 @@ import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
 import com.fleetmanager.data.dto.UserDto
-import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
-import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
 import com.fleetmanager.domain.usecase.SaveExpenseUseCase
-import com.fleetmanager.domain.usecase.SaveDriverUseCase
-import com.fleetmanager.domain.usecase.SaveVehicleUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -72,14 +68,10 @@ data class AddExpenseUiState(
 
 @HiltViewModel
 class AddExpenseViewModel @Inject constructor(
-    private val getActiveDriversUseCase: GetActiveDriversUseCase,
-    private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val saveExpenseUseCase: SaveExpenseUseCase,
-    private val saveDriverUseCase: SaveDriverUseCase,
-    private val saveVehicleUseCase: SaveVehicleUseCase,
     private val validator: InputValidator
 ) : BaseViewModel<AddExpenseUiState>() {
     
@@ -126,7 +118,7 @@ class AddExpenseViewModel @Inject constructor(
         updateState { 
             it.copy(
                 driverInput = input,
-                selectedDriver = it.drivers.find { driver -> driver.name == input }
+                selectedDriver = null // We no longer maintain selectedDriver state
             ) 
         }
     }
