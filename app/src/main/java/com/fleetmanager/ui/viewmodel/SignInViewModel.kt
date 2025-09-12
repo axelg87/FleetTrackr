@@ -33,13 +33,10 @@ class SignInViewModel @Inject constructor(
             authRepository.isSignedIn.collect { isSignedIn ->
                 updateState { it.copy(isSignedIn = isSignedIn) }
                 if (isSignedIn) {
-                    // Create user document if it doesn't exist
-                    try {
-                        firestoreService.saveUserIfMissing()
-                    } catch (e: Exception) {
-                        // Log error but don't fail sign-in
-                        android.util.Log.e("SignInViewModel", "Failed to create user document", e)
-                    }
+                    // Create user document if it doesn't exist (with delay to ensure auth is complete)
+                    kotlinx.coroutines.delay(1000) // Wait 1 second for auth to stabilize
+                    val success = firestoreService.saveUserIfMissing()
+                    android.util.Log.d("SignInViewModel", "User document creation: ${if (success) "success" else "failed"}")
                     
                     // Start periodic sync when user is signed in
                     syncManager.startPeriodicSync()
@@ -64,14 +61,6 @@ class SignInViewModel @Inject constructor(
             val result = authRepository.signInWithGoogle(idToken)
             result.fold(
                 onSuccess = {
-                    // Create user document if it doesn't exist
-                    try {
-                        firestoreService.saveUserIfMissing()
-                    } catch (e: Exception) {
-                        // Log error but don't fail sign-in
-                        android.util.Log.e("SignInViewModel", "Failed to create user document", e)
-                    }
-                    
                     updateState { it.copy(isLoading = false) }
                     // Trigger initial sync
                     syncManager.triggerManualSync()

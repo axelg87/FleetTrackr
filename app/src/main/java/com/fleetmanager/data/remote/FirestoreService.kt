@@ -93,17 +93,22 @@ class FirestoreService @Inject constructor(
     }
     
     // Create user document if it doesn't exist (called on first sign-in)
-    suspend fun saveUserIfMissing() {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser == null) {
-            Log.w(TAG, "No authenticated user found, cannot create user document")
-            return
-        }
-        
-        val userId = currentUser.uid
-        Log.d(TAG, "Checking if user document exists for: $userId")
-        
+    suspend fun saveUserIfMissing(): Boolean {
         try {
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser == null) {
+                Log.w(TAG, "No authenticated user found, cannot create user document")
+                return false
+            }
+            
+            val userId = currentUser.uid
+            if (userId.isBlank()) {
+                Log.w(TAG, "User ID is blank, cannot create user document")
+                return false
+            }
+            
+            Log.d(TAG, "Checking if user document exists for: $userId")
+            
             val userDoc = getCollection("users").document(userId).get().await()
             
             if (!userDoc.exists()) {
@@ -124,14 +129,15 @@ class FirestoreService @Inject constructor(
                     .await()
                 
                 Log.d(TAG, "Successfully created user document for: $userId with role: DRIVER")
+                return true
             } else {
                 Log.d(TAG, "User document already exists for: $userId")
+                return true
             }
         } catch (e: Exception) {
-            val errorMessage = "Failed to create user document: ${e.message}"
-            Log.e(TAG, errorMessage, e)
-            toastHelper.showError(context, errorMessage)
-            throw e
+            Log.e(TAG, "Failed to create user document: ${e.message}", e)
+            // Don't show toast or rethrow - just log and return false
+            return false
         }
     }
     
