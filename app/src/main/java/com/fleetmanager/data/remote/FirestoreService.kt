@@ -124,7 +124,7 @@ class FirestoreService @Inject constructor(
                     .await()
                 
                 Log.d(TAG, "Successfully created user document for: $userId with role: DRIVER")
-                toastHelper.showSuccess(context, "User profile created successfully")
+                toastHelper.showMessage(context, "User profile created successfully")
             } else {
                 Log.d(TAG, "User document already exists for: $userId")
             }
