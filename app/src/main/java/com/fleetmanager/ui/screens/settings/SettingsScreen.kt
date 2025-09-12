@@ -64,7 +64,7 @@ fun SettingsScreen(
         }
 
         // Admin Section (Only visible to ADMIN users)
-        if (uiState.isAdmin) {
+        if (uiState.canSeeAdminControls) {
             item {
                 AdminSection(
                     onAddDriver = { name, email -> viewModel.addDriver(name, email) },

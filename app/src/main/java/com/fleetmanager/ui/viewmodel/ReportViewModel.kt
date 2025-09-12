@@ -3,7 +3,9 @@ package com.fleetmanager.ui.viewmodel
 import com.fleetmanager.auth.AuthService
 import com.fleetmanager.data.preferences.ReportFilterPreferences
 import com.fleetmanager.data.preferences.ReportPreferencesDataStore
-import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
+import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
@@ -121,7 +123,9 @@ class ReportViewModel @Inject constructor(
     private val getReportDataRealtimeUseCase: GetReportDataRealtimeUseCase,
     private val getActiveDriversUseCase: GetActiveDriversUseCase,
     private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
-    private val firestoreService: FirestoreService,
+    private val userFirestoreService: UserFirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService,
+    private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val authService: AuthService,
     private val reportPreferencesDataStore: ReportPreferencesDataStore
 ) : BaseViewModel<ReportUiState>() {
@@ -140,7 +144,9 @@ class ReportViewModel @Inject constructor(
                 updateState { it.copy(errorMessage = error) }
             }
         ) {
-            firestoreService.initializeDefaultData()
+            // Initialize default data in parallel
+            expenseTypeFirestoreService.initializeDefaultExpenseTypes()
+            vehicleFirestoreService.initializeSampleVehicles()
         }
     }
     
@@ -155,9 +161,9 @@ class ReportViewModel @Inject constructor(
         ) {
             combine(
                 getReportDataRealtimeUseCase(),
-                firestoreService.getDriverUsersFlow(),
-                firestoreService.getVehiclesFromCollectionFlow(),
-                firestoreService.getExpenseTypesFlow()
+                userFirestoreService.getDriverUsersFlow(),
+                vehicleFirestoreService.getVehiclesFlow(),
+                expenseTypeFirestoreService.getExpenseTypesFlow()
             ) { reportData, driverUsers, vehicles, expenseTypes ->
                 val allEntries = mutableListOf<ReportEntry>()
                 

@@ -29,6 +29,7 @@ import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.ui.viewmodel.NavigationViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -59,14 +60,10 @@ val allBottomNavItems = listOf(
 )
 
 fun getBottomNavItemsForRole(userRole: UserRole): List<BottomNavItem> {
-    return when (userRole) {
-        UserRole.DRIVER -> {
-            // DRIVER users cannot access Reports tab
-            allBottomNavItems.filter { it.screen != Screen.Reports }
-        }
-        UserRole.MANAGER, UserRole.ADMIN -> {
-            // MANAGER and ADMIN users can access all tabs
-            allBottomNavItems
+    return allBottomNavItems.filter { navItem ->
+        when (navItem.screen) {
+            Screen.Reports -> PermissionManager.canAccessReports(userRole)
+            else -> true // Dashboard, History, Settings are available to all roles
         }
     }
 }

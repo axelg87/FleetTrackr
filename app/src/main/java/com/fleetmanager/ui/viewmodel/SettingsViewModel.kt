@@ -2,7 +2,11 @@ package com.fleetmanager.ui.viewmodel
 
 import com.fleetmanager.domain.repository.AuthRepository
 import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
+import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
 import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -20,14 +24,18 @@ data class SettingsUiState(
     val error: String? = null,
     val isSignedIn: Boolean = false,
     val message: String? = null,
-    val currentUserRole: UserRole? = null,
-    val isAdmin: Boolean = false
-)
+    val currentUserRole: UserRole? = null
+) {
+    val canSeeAdminControls: Boolean
+        get() = currentUserRole?.let { PermissionManager.canSeeAdminControls(it) } ?: false
+}
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val firestoreService: FirestoreService,
+    private val userFirestoreService: UserFirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService,
+    private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val syncManager: SyncManager
 ) : BaseViewModel<SettingsUiState>() {
 
@@ -134,25 +142,28 @@ class SettingsViewModel @Inject constructor(
                 updateState { it.copy(error = "Failed to load user role: $error") }
             }
         ) {
-            firestoreService.getCurrentUserProfile().collect { userProfile ->
+            userFirestoreService.getCurrentUserProfile().collect { userProfile ->
                 updateState { 
-                    it.copy(
-                        currentUserRole = userProfile.role,
-                        isAdmin = userProfile.role == UserRole.ADMIN
-                    ) 
+                    it.copy(currentUserRole = userProfile.role) 
                 }
             }
         }
     }
     
-    // Admin-only functions
+    // Admin-only functions with permission checks
     fun addDriver(name: String, email: String = "") {
+        val currentRole = _uiState.value.currentUserRole
+        if (currentRole == null || !PermissionManager.canCreateDrivers(currentRole)) {
+            updateState { it.copy(error = "You don't have permission to create drivers") }
+            return
+        }
+        
         executeAsync(
             onError = { error ->
                 updateState { it.copy(error = "Failed to add driver: $error") }
             }
         ) {
-            val driver = firestoreService.createDriverUser(name, email)
+            val driver = userFirestoreService.createDriverUser(name, email)
             updateState { 
                 it.copy(message = "Driver '${driver.name}' added successfully") 
             }
@@ -160,12 +171,18 @@ class SettingsViewModel @Inject constructor(
     }
     
     fun addVehicle(make: String, model: String, year: Int, licensePlate: String) {
+        val currentRole = _uiState.value.currentUserRole
+        if (currentRole == null || !PermissionManager.canCreateVehicles(currentRole)) {
+            updateState { it.copy(error = "You don't have permission to create vehicles") }
+            return
+        }
+        
         executeAsync(
             onError = { error ->
                 updateState { it.copy(error = "Failed to add vehicle: $error") }
             }
         ) {
-            val vehicle = firestoreService.createVehicle(make, model, year, licensePlate)
+            val vehicle = vehicleFirestoreService.createVehicle(make, model, year, licensePlate)
             updateState { 
                 it.copy(message = "Vehicle '${vehicle.displayName}' added successfully") 
             }
@@ -173,12 +190,18 @@ class SettingsViewModel @Inject constructor(
     }
     
     fun addExpenseType(name: String, displayName: String) {
+        val currentRole = _uiState.value.currentUserRole
+        if (currentRole == null || !PermissionManager.canCreateExpenseTypes(currentRole)) {
+            updateState { it.copy(error = "You don't have permission to create expense types") }
+            return
+        }
+        
         executeAsync(
             onError = { error ->
                 updateState { it.copy(error = "Failed to add expense type: $error") }
             }
         ) {
-            val expenseType = firestoreService.createExpenseType(name, displayName)
+            val expenseType = expenseTypeFirestoreService.createExpenseType(name, displayName)
             updateState { 
                 it.copy(message = "Expense type '${expenseType.displayName}' added successfully") 
             }
