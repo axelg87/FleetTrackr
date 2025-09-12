@@ -11,6 +11,7 @@ object VehicleMapper {
     fun toDomain(dto: VehicleDto): Vehicle {
         return Vehicle(
             id = dto.id,
+            userId = dto.userId,
             make = dto.make,
             model = dto.model,
             year = dto.year,
@@ -22,6 +23,7 @@ object VehicleMapper {
     fun toDto(domain: Vehicle): VehicleDto {
         return VehicleDto(
             id = domain.id,
+            userId = domain.userId,
             make = domain.make,
             model = domain.model,
             year = domain.year,

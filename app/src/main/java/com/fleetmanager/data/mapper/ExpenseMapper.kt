@@ -12,6 +12,7 @@ object ExpenseMapper {
     fun toDomain(dto: ExpenseDto): Expense {
         return Expense(
             id = dto.id,
+            userId = dto.userId,
             type = ExpenseType.valueOf(dto.type),
             amount = dto.amount,
             date = dto.date,
@@ -28,6 +29,7 @@ object ExpenseMapper {
     fun toDto(domain: Expense): ExpenseDto {
         return ExpenseDto(
             id = domain.id,
+            userId = domain.userId,
             type = domain.type.name,
             amount = domain.amount,
             date = domain.date,

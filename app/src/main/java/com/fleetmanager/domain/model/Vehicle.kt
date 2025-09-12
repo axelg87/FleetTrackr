@@ -6,6 +6,7 @@ package com.fleetmanager.domain.model
  */
 data class Vehicle(
     val id: String,
+    val userId: String = "",
     val make: String,
     val model: String,
     val year: Int,

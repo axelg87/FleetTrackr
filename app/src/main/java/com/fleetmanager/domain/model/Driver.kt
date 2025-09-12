@@ -6,6 +6,7 @@ package com.fleetmanager.domain.model
  */
 data class Driver(
     val id: String,
+    val userId: String = "",
     val name: String,
     val isActive: Boolean = true
 ) {

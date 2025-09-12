@@ -13,6 +13,9 @@ data class DailyEntry(
     @get:PropertyName("id")
     val id: String = "",
     
+    @get:PropertyName("userId")
+    val userId: String = "",
+    
     @get:PropertyName("date")
     val date: Date = Date(),
     

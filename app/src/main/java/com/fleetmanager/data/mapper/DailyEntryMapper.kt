@@ -11,6 +11,7 @@ object DailyEntryMapper {
     fun toDomain(dto: DailyEntryDto): DailyEntry {
         return DailyEntry(
             id = dto.id,
+            userId = dto.userId,
             date = dto.date,
             driverName = dto.driverName,
             vehicle = dto.vehicle,
@@ -28,6 +29,7 @@ object DailyEntryMapper {
     fun toDto(domain: DailyEntry): DailyEntryDto {
         return DailyEntryDto(
             id = domain.id,
+            userId = domain.userId,
             date = domain.date,
             driverName = domain.driverName,
             vehicle = domain.vehicle,
