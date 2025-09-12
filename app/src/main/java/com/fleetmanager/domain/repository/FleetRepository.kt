@@ -16,6 +16,7 @@ interface FleetRepository {
     
     // Daily Entries
     fun getAllDailyEntries(): Flow<List<DailyEntry>>
+    fun getAllDailyEntriesRealtime(): Flow<List<DailyEntry>>
     fun getDailyEntriesByDateRange(startDate: Date, endDate: Date): Flow<List<DailyEntry>>
     fun getDailyEntryById(id: String): Flow<DailyEntry?>
     suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri? = null, photoUris: List<Uri> = emptyList())
@@ -39,6 +40,7 @@ interface FleetRepository {
     
     // Expenses
     fun getAllExpenses(): Flow<List<Expense>>
+    fun getAllExpensesRealtime(): Flow<List<Expense>>
     fun getExpensesByDateRange(startDate: Date, endDate: Date): Flow<List<Expense>>
     fun getExpenseById(id: String): Flow<Expense?>
     suspend fun saveExpense(expense: Expense, photoUri: Uri? = null, photoUris: List<Uri> = emptyList())

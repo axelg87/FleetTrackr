@@ -7,7 +7,7 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Schedule
-import com.fleetmanager.domain.usecase.GetDashboardDataUseCase
+import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +33,7 @@ data class DashboardUiState(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val getDashboardDataUseCase: GetDashboardDataUseCase,
+    private val getDashboardDataRealtimeUseCase: GetDashboardDataRealtimeUseCase,
     private val syncManager: SyncManager
 ) : BaseViewModel<DashboardUiState>() {
 
@@ -62,7 +62,7 @@ class DashboardViewModel @Inject constructor(
                 updateState { it.copy(error = error, isLoading = false) }
             }
         ) {
-            getDashboardDataUseCase().collect { dashboardData ->
+            getDashboardDataRealtimeUseCase().collect { dashboardData ->
                 val quickStats = listOf(
                     StatItem(
                         icon = Icons.Default.CalendarToday,

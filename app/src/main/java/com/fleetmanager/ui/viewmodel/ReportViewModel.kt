@@ -7,7 +7,7 @@ import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
 import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
-import com.fleetmanager.domain.usecase.GetReportDataUseCase
+import com.fleetmanager.domain.usecase.GetReportDataRealtimeUseCase
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.model.toReportEntries
 import com.fleetmanager.ui.model.toReportEntry
@@ -114,7 +114,7 @@ data class ReportUiState(
 
 @HiltViewModel
 class ReportViewModel @Inject constructor(
-    private val getReportDataUseCase: GetReportDataUseCase,
+    private val getReportDataRealtimeUseCase: GetReportDataRealtimeUseCase,
     private val getActiveDriversUseCase: GetActiveDriversUseCase,
     private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
     private val authService: AuthService,
@@ -138,7 +138,7 @@ class ReportViewModel @Inject constructor(
             }
         ) {
             combine(
-                getReportDataUseCase(),
+                getReportDataRealtimeUseCase(),
                 getActiveDriversUseCase(),
                 getActiveVehiclesUseCase()
             ) { reportData, drivers, vehicles ->

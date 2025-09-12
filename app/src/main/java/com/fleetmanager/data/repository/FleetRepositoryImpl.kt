@@ -49,6 +49,9 @@ class FleetRepositoryImpl @Inject constructor(
     override fun getAllDailyEntries(): Flow<List<DailyEntry>> = 
         dailyEntryDao.getAllEntries().map { DailyEntryMapper.toDomainList(it) }
     
+    override fun getAllDailyEntriesRealtime(): Flow<List<DailyEntry>> = 
+        firestoreService.getDailyEntriesFlow()
+    
     override fun getDailyEntriesByDateRange(startDate: Date, endDate: Date): Flow<List<DailyEntry>> = 
         dailyEntryDao.getEntriesByDateRange(startDate, endDate).map { DailyEntryMapper.toDomainList(it) }
     
@@ -205,6 +208,9 @@ class FleetRepositoryImpl @Inject constructor(
     // Expenses - Offline-first approach
     override fun getAllExpenses(): Flow<List<Expense>> = 
         expenseDao.getAllExpenses().map { ExpenseMapper.toDomainList(it) }
+    
+    override fun getAllExpensesRealtime(): Flow<List<Expense>> = 
+        firestoreService.getExpensesFlow()
     
     override fun getExpensesByDateRange(startDate: Date, endDate: Date): Flow<List<Expense>> = 
         expenseDao.getExpensesByDateRange(startDate, endDate).map { ExpenseMapper.toDomainList(it) }
