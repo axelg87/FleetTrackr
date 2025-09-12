@@ -2,6 +2,7 @@ package com.fleetmanager.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +17,9 @@ abstract class BaseViewModel<T> : ViewModel() {
     protected val _uiState = MutableStateFlow(getInitialState())
     val uiState: StateFlow<T> = _uiState.asStateFlow()
     
+    // Track active jobs for cleanup
+    private val activeJobs = mutableListOf<Job>()
+    
     /**
      * Get the initial state for this ViewModel
      */
@@ -28,8 +32,8 @@ abstract class BaseViewModel<T> : ViewModel() {
         onLoading: ((Boolean) -> Unit)? = null,
         onError: ((String) -> Unit)? = null,
         block: suspend () -> Unit
-    ) {
-        viewModelScope.launch {
+    ): Job {
+        val job = viewModelScope.launch {
             try {
                 onLoading?.invoke(true)
                 block()
@@ -39,6 +43,8 @@ abstract class BaseViewModel<T> : ViewModel() {
                 onLoading?.invoke(false)
             }
         }
+        activeJobs.add(job)
+        return job
     }
     
     /**
@@ -46,5 +52,15 @@ abstract class BaseViewModel<T> : ViewModel() {
      */
     protected fun updateState(update: (T) -> T) {
         _uiState.value = update(_uiState.value)
+    }
+    
+    /**
+     * Clean up resources when ViewModel is cleared
+     */
+    override fun onCleared() {
+        super.onCleared()
+        // Cancel all active jobs (including Firestore listeners)
+        activeJobs.forEach { it.cancel() }
+        activeJobs.clear()
     }
 }
