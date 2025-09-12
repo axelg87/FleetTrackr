@@ -3,8 +3,10 @@ package com.fleetmanager.ui.screens.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
@@ -13,9 +15,12 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -54,6 +59,21 @@ fun SettingsScreen(
                     title = "Sign Out",
                     subtitle = "Sign out of your account",
                     onClick = { viewModel.signOut() }
+                )
+            }
+        }
+
+        // Admin Section (Only visible to ADMIN users)
+        if (uiState.isAdmin) {
+            item {
+                AdminSection(
+                    onAddDriver = { name, email -> viewModel.addDriver(name, email) },
+                    onAddVehicle = { make, model, year, licensePlate -> 
+                        viewModel.addVehicle(make, model, year, licensePlate) 
+                    },
+                    onAddExpenseType = { name, displayName -> 
+                        viewModel.addExpenseType(name, displayName) 
+                    }
                 )
             }
         }
@@ -178,4 +198,230 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AdminSection(
+    onAddDriver: (String, String) -> Unit,
+    onAddVehicle: (String, String, Int, String) -> Unit,
+    onAddExpenseType: (String, String) -> Unit
+) {
+    var showAddDriverDialog by remember { mutableStateOf(false) }
+    var showAddVehicleDialog by remember { mutableStateOf(false) }
+    var showAddExpenseTypeDialog by remember { mutableStateOf(false) }
+
+    SettingsSection(title = "Admin Controls") {
+        SettingsItem(
+            icon = Icons.Default.PersonAdd,
+            title = "Add Driver",
+            subtitle = "Create a new driver user account",
+            onClick = { showAddDriverDialog = true }
+        )
+        
+        SettingsItem(
+            icon = Icons.Default.DirectionsCar,
+            title = "Add Vehicle",
+            subtitle = "Add a new vehicle to the fleet",
+            onClick = { showAddVehicleDialog = true }
+        )
+        
+        SettingsItem(
+            icon = Icons.Default.Receipt,
+            title = "Add Expense Type",
+            subtitle = "Create a new expense category",
+            onClick = { showAddExpenseTypeDialog = true }
+        )
+    }
+
+    // Add Driver Dialog
+    if (showAddDriverDialog) {
+        AddDriverDialog(
+            onDismiss = { showAddDriverDialog = false },
+            onConfirm = { name, email ->
+                onAddDriver(name, email)
+                showAddDriverDialog = false
+            }
+        )
+    }
+
+    // Add Vehicle Dialog
+    if (showAddVehicleDialog) {
+        AddVehicleDialog(
+            onDismiss = { showAddVehicleDialog = false },
+            onConfirm = { make, model, year, licensePlate ->
+                onAddVehicle(make, model, year, licensePlate)
+                showAddVehicleDialog = false
+            }
+        )
+    }
+
+    // Add Expense Type Dialog
+    if (showAddExpenseTypeDialog) {
+        AddExpenseTypeDialog(
+            onDismiss = { showAddExpenseTypeDialog = false },
+            onConfirm = { name, displayName ->
+                onAddExpenseType(name, displayName)
+                showAddExpenseTypeDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddDriverDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add New Driver") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Driver Name *") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email (Optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name, email) },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Add Driver")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddVehicleDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, Int, String) -> Unit
+) {
+    var make by remember { mutableStateOf("") }
+    var model by remember { mutableStateOf("") }
+    var year by remember { mutableStateOf("") }
+    var licensePlate by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add New Vehicle") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = make,
+                    onValueChange = { make = it },
+                    label = { Text("Make *") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = model,
+                    onValueChange = { model = it },
+                    label = { Text("Model *") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = year,
+                    onValueChange = { year = it },
+                    label = { Text("Year *") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = licensePlate,
+                    onValueChange = { licensePlate = it },
+                    label = { Text("License Plate *") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { 
+                    val yearInt = year.toIntOrNull() ?: 0
+                    onConfirm(make, model, yearInt, licensePlate) 
+                },
+                enabled = make.isNotBlank() && model.isNotBlank() && 
+                         year.toIntOrNull() != null && licensePlate.isNotBlank()
+            ) {
+                Text("Add Vehicle")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddExpenseTypeDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var displayName by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add New Expense Type") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Internal Name *") },
+                    placeholder = { Text("e.g., PARKING") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = displayName,
+                    onValueChange = { displayName = it },
+                    label = { Text("Display Name *") },
+                    placeholder = { Text("e.g., Parking Fees") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name, displayName) },
+                enabled = name.isNotBlank() && displayName.isNotBlank()
+            ) {
+                Text("Add Type")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

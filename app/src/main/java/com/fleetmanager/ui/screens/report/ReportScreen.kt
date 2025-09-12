@@ -132,7 +132,7 @@ fun ReportScreen(
             CollapsibleFiltersSection(
                 isExpanded = isFilterExpanded,
                 onToggleExpanded = { viewModel.toggleFilterPanel() },
-                drivers = uiState.drivers.map { it.name },
+                drivers = uiState.driverUsers.map { it.name },
                 vehicles = uiState.vehicles.map { it.displayName },
                 types = uiState.availableTypes,
                 selectedDriver = uiState.selectedDriver,

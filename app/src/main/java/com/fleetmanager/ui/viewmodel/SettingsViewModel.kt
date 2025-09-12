@@ -1,6 +1,8 @@
 package com.fleetmanager.ui.viewmodel
 
 import com.fleetmanager.domain.repository.AuthRepository
+import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,12 +19,15 @@ data class SettingsUiState(
     val isSyncing: Boolean = false,
     val error: String? = null,
     val isSignedIn: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val currentUserRole: UserRole? = null,
+    val isAdmin: Boolean = false
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val firestoreService: FirestoreService,
     private val syncManager: SyncManager
 ) : BaseViewModel<SettingsUiState>() {
 
@@ -31,6 +36,7 @@ class SettingsViewModel @Inject constructor(
     init {
         loadSettings()
         observeAuthState()
+        loadUserRole()
     }
     
     private fun observeAuthState() {
@@ -120,6 +126,63 @@ class SettingsViewModel @Inject constructor(
     
     fun clearMessage() {
         updateState { it.copy(message = null, error = null) }
+    }
+    
+    private fun loadUserRole() {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(error = "Failed to load user role: $error") }
+            }
+        ) {
+            firestoreService.getCurrentUserProfile().collect { userProfile ->
+                updateState { 
+                    it.copy(
+                        currentUserRole = userProfile.role,
+                        isAdmin = userProfile.role == UserRole.ADMIN
+                    ) 
+                }
+            }
+        }
+    }
+    
+    // Admin-only functions
+    fun addDriver(name: String, email: String = "") {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(error = "Failed to add driver: $error") }
+            }
+        ) {
+            val driver = firestoreService.createDriverUser(name, email)
+            updateState { 
+                it.copy(message = "Driver '${driver.name}' added successfully") 
+            }
+        }
+    }
+    
+    fun addVehicle(make: String, model: String, year: Int, licensePlate: String) {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(error = "Failed to add vehicle: $error") }
+            }
+        ) {
+            val vehicle = firestoreService.createVehicle(make, model, year, licensePlate)
+            updateState { 
+                it.copy(message = "Vehicle '${vehicle.displayName}' added successfully") 
+            }
+        }
+    }
+    
+    fun addExpenseType(name: String, displayName: String) {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(error = "Failed to add expense type: $error") }
+            }
+        ) {
+            val expenseType = firestoreService.createExpenseType(name, displayName)
+            updateState { 
+                it.copy(message = "Expense type '${expenseType.displayName}' added successfully") 
+            }
+        }
     }
 
     private fun getLastSyncTime(): String {

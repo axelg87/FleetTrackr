@@ -10,6 +10,7 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.Expense
+import com.fleetmanager.domain.model.ExpenseTypeItem
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.data.dto.UserDto
@@ -433,5 +434,291 @@ class FirestoreService @Inject constructor(
             .document(expenseId)
             .delete()
             .await()
+    }
+    
+    // ============== NEW COLLECTIONS FOR REPORTS ==============
+    
+    // Vehicles Collection (Global - shared across all users)
+    suspend fun saveVehicleToCollection(vehicle: Vehicle) {
+        try {
+            getCollection("vehicles")
+                .document(vehicle.id)
+                .set(vehicle)
+                .await()
+            Log.d(TAG, "Successfully saved vehicle to collection: ${vehicle.id}")
+        } catch (e: Exception) {
+            val errorMessage = "Failed to save vehicle: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
+    }
+    
+    suspend fun getVehiclesFromCollection(): List<Vehicle> {
+        return try {
+            getCollection("vehicles")
+                .whereEqualTo("isActive", true)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject<Vehicle>() }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch vehicles: ${e.message}", e)
+            emptyList()
+        }
+    }
+    
+    fun getVehiclesFromCollectionFlow(): Flow<List<Vehicle>> {
+        return getCollection("vehicles")
+            .whereEqualTo("isActive", true)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toObject<Vehicle>() }
+            }
+    }
+    
+    // Expense Types Collection (Global - shared across all users)
+    suspend fun saveExpenseType(expenseType: ExpenseTypeItem) {
+        try {
+            getCollection("expenseTypes")
+                .document(expenseType.id)
+                .set(expenseType)
+                .await()
+            Log.d(TAG, "Successfully saved expense type: ${expenseType.id}")
+        } catch (e: Exception) {
+            val errorMessage = "Failed to save expense type: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
+    }
+    
+    suspend fun getExpenseTypes(): List<ExpenseTypeItem> {
+        return try {
+            getCollection("expenseTypes")
+                .whereEqualTo("isActive", true)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject<ExpenseTypeItem>() }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch expense types: ${e.message}", e)
+            emptyList()
+        }
+    }
+    
+    fun getExpenseTypesFlow(): Flow<List<ExpenseTypeItem>> {
+        return getCollection("expenseTypes")
+            .whereEqualTo("isActive", true)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toObject<ExpenseTypeItem>() }
+            }
+    }
+    
+    // Users Collection - Get drivers for reports
+    suspend fun getDriverUsers(): List<UserDto> {
+        return try {
+            getCollection("users")
+                .whereEqualTo("role", UserRole.DRIVER.name)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { document ->
+                    try {
+                        UserDto(
+                            id = document.id,
+                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown Driver",
+                            role = UserRole.DRIVER
+                        )
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
+                        null
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch driver users: ${e.message}", e)
+            emptyList()
+        }
+    }
+    
+    fun getDriverUsersFlow(): Flow<List<UserDto>> {
+        return getCollection("users")
+            .whereEqualTo("role", UserRole.DRIVER.name)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { document ->
+                    try {
+                        UserDto(
+                            id = document.id,
+                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown Driver",
+                            role = UserRole.DRIVER
+                        )
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
+                        null
+                    }
+                }
+            }
+    }
+    
+    // Admin-only methods for creating new items
+    suspend fun createDriverUser(name: String, email: String = ""): UserDto {
+        val userRole = getCurrentUserRole()
+        if (!PermissionManager.canEdit(userRole)) {
+            throw SecurityException("Only admins can create driver users")
+        }
+        
+        val driverId = java.util.UUID.randomUUID().toString()
+        val userData = mapOf(
+            "id" to driverId,
+            "name" to name,
+            "role" to UserRole.DRIVER.name,
+            "email" to email,
+            "createdAt" to com.google.firebase.Timestamp.now()
+        )
+        
+        getCollection("users")
+            .document(driverId)
+            .set(userData)
+            .await()
+        
+        return UserDto(
+            id = driverId,
+            name = name,
+            role = UserRole.DRIVER
+        )
+    }
+    
+    suspend fun createVehicle(make: String, model: String, year: Int, licensePlate: String): Vehicle {
+        val userRole = getCurrentUserRole()
+        if (!PermissionManager.canEdit(userRole)) {
+            throw SecurityException("Only admins can create vehicles")
+        }
+        
+        val vehicleId = java.util.UUID.randomUUID().toString()
+        val vehicle = Vehicle(
+            id = vehicleId,
+            make = make,
+            model = model,
+            year = year,
+            licensePlate = licensePlate,
+            isActive = true
+        )
+        
+        saveVehicleToCollection(vehicle)
+        return vehicle
+    }
+    
+    suspend fun createExpenseType(name: String, displayName: String): ExpenseTypeItem {
+        val userRole = getCurrentUserRole()
+        if (!PermissionManager.canEdit(userRole)) {
+            throw SecurityException("Only admins can create expense types")
+        }
+        
+        val expenseTypeId = java.util.UUID.randomUUID().toString()
+        val expenseType = ExpenseTypeItem(
+            id = expenseTypeId,
+            name = name.uppercase().replace(" ", "_"),
+            displayName = displayName,
+            isActive = true
+        )
+        
+        saveExpenseType(expenseType)
+        return expenseType
+    }
+    
+    // Initialize default data if collections are empty
+    suspend fun initializeDefaultData() {
+        try {
+            // Check if expense types exist, if not create defaults
+            val existingExpenseTypes = getExpenseTypes()
+            if (existingExpenseTypes.isEmpty()) {
+                Log.d(TAG, "Initializing default expense types...")
+                val defaultExpenseTypes = listOf(
+                    ExpenseTypeItem(
+                        id = "fuel",
+                        name = "FUEL",
+                        displayName = "Fuel",
+                        isActive = true
+                    ),
+                    ExpenseTypeItem(
+                        id = "maintenance",
+                        name = "MAINTENANCE",
+                        displayName = "Maintenance",
+                        isActive = true
+                    ),
+                    ExpenseTypeItem(
+                        id = "service",
+                        name = "SERVICE",
+                        displayName = "Service",
+                        isActive = true
+                    ),
+                    ExpenseTypeItem(
+                        id = "car_wash",
+                        name = "CAR_WASH",
+                        displayName = "Car Wash",
+                        isActive = true
+                    ),
+                    ExpenseTypeItem(
+                        id = "fine",
+                        name = "FINE",
+                        displayName = "Fine",
+                        isActive = true
+                    ),
+                    ExpenseTypeItem(
+                        id = "other",
+                        name = "OTHER",
+                        displayName = "Other",
+                        isActive = true
+                    )
+                )
+                
+                defaultExpenseTypes.forEach { expenseType ->
+                    saveExpenseType(expenseType)
+                }
+                Log.d(TAG, "✅ Default expense types initialized")
+            }
+            
+            // Check if vehicles exist, if not create sample vehicles
+            val existingVehicles = getVehiclesFromCollection()
+            if (existingVehicles.isEmpty()) {
+                Log.d(TAG, "Initializing sample vehicles...")
+                val sampleVehicles = listOf(
+                    Vehicle(
+                        id = "vehicle_1",
+                        make = "Toyota",
+                        model = "Camry",
+                        year = 2020,
+                        licensePlate = "ABC-123",
+                        isActive = true
+                    ),
+                    Vehicle(
+                        id = "vehicle_2",
+                        make = "Honda",
+                        model = "Civic",
+                        year = 2019,
+                        licensePlate = "XYZ-789",
+                        isActive = true
+                    ),
+                    Vehicle(
+                        id = "vehicle_3",
+                        make = "Mitsubishi",
+                        model = "Outlander",
+                        year = 2021,
+                        licensePlate = "DEF-456",
+                        isActive = true
+                    )
+                )
+                
+                sampleVehicles.forEach { vehicle ->
+                    saveVehicleToCollection(vehicle)
+                }
+                Log.d(TAG, "✅ Sample vehicles initialized")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize default data: ${e.message}", e)
+        }
     }
 }
