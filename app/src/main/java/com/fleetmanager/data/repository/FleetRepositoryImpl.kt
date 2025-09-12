@@ -13,6 +13,7 @@ import com.fleetmanager.data.mapper.VehicleMapper
 import com.fleetmanager.data.mapper.ExpenseMapper
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.StorageService
+import com.fleetmanager.auth.AuthService
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
@@ -35,6 +36,7 @@ class FleetRepositoryImpl @Inject constructor(
     private val expenseDao: ExpenseDao,
     private val firestoreService: FirestoreService,
     private val storageService: StorageService,
+    private val authService: AuthService,
     @ApplicationContext private val context: Context,
     private val toastHelper: ToastHelper
 ) : FleetRepository {
@@ -56,28 +58,29 @@ class FleetRepositoryImpl @Inject constructor(
     }
     
     override suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri?, photoUris: List<Uri>) {
+        val userId = authService.getCurrentUserId() ?: ""
         val entryToSave = when {
             photoUris.isNotEmpty() -> {
                 try {
                     val photoUrls = photoUris.map { uri ->
                         storageService.uploadPhoto(uri, "${entry.id}_${System.currentTimeMillis()}")
                     }
-                    entry.copy(photoUrls = photoUrls, isSynced = true)
+                    entry.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    entry.copy(isSynced = false)
+                    entry.copy(userId = userId, isSynced = false)
                 }
             }
             photoUri != null -> {
                 try {
                     val photoUrls = listOf(storageService.uploadPhoto(photoUri, entry.id))
-                    entry.copy(photoUrls = photoUrls, isSynced = true)
+                    entry.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    entry.copy(isSynced = false)
+                    entry.copy(userId = userId, isSynced = false)
                 }
             }
-            else -> entry
+            else -> entry.copy(userId = userId)
         }
         
         // Always save locally first
@@ -150,9 +153,11 @@ class FleetRepositoryImpl @Inject constructor(
         driverDao.getAllDrivers().map { DriverMapper.toDomainList(it) }
     
     override suspend fun saveDriver(driver: Driver) {
-        driverDao.insertDriver(DriverMapper.toDto(driver))
+        val userId = authService.getCurrentUserId() ?: ""
+        val driverWithUserId = driver.copy(userId = userId)
+        driverDao.insertDriver(DriverMapper.toDto(driverWithUserId))
         try {
-            firestoreService.saveDriver(driver)
+            firestoreService.saveDriver(driverWithUserId)
         } catch (e: Exception) {
             val errorMessage = "Failed to save driver to Firestore: ${e.message}"
             Log.e(TAG, errorMessage, e)
@@ -175,9 +180,11 @@ class FleetRepositoryImpl @Inject constructor(
         vehicleDao.getAllActiveVehicles().map { VehicleMapper.toDomainList(it) }
     
     override suspend fun saveVehicle(vehicle: Vehicle) {
-        vehicleDao.insertVehicle(VehicleMapper.toDto(vehicle))
+        val userId = authService.getCurrentUserId() ?: ""
+        val vehicleWithUserId = vehicle.copy(userId = userId)
+        vehicleDao.insertVehicle(VehicleMapper.toDto(vehicleWithUserId))
         try {
-            firestoreService.saveVehicle(vehicle)
+            firestoreService.saveVehicle(vehicleWithUserId)
         } catch (e: Exception) {
             val errorMessage = "Failed to save vehicle to Firestore: ${e.message}"
             Log.e(TAG, errorMessage, e)
@@ -208,28 +215,29 @@ class FleetRepositoryImpl @Inject constructor(
     }
     
     override suspend fun saveExpense(expense: Expense, photoUri: Uri?, photoUris: List<Uri>) {
+        val userId = authService.getCurrentUserId() ?: ""
         val expenseToSave = when {
             photoUris.isNotEmpty() -> {
                 try {
                     val photoUrls = photoUris.map { uri ->
                         storageService.uploadPhoto(uri, "${expense.id}_${System.currentTimeMillis()}")
                     }
-                    expense.copy(photoUrls = photoUrls, isSynced = true)
+                    expense.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    expense.copy(isSynced = false)
+                    expense.copy(userId = userId, isSynced = false)
                 }
             }
             photoUri != null -> {
                 try {
                     val photoUrls = listOf(storageService.uploadPhoto(photoUri, expense.id))
-                    expense.copy(photoUrls = photoUrls, isSynced = true)
+                    expense.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    expense.copy(isSynced = false)
+                    expense.copy(userId = userId, isSynced = false)
                 }
             }
-            else -> expense
+            else -> expense.copy(userId = userId)
         }
         
         // Always save locally first

@@ -11,6 +11,7 @@ import androidx.room.PrimaryKey
 data class DriverDto(
     @PrimaryKey
     val id: String,
+    val userId: String = "",
     val name: String,
     val isActive: Boolean = true
 )

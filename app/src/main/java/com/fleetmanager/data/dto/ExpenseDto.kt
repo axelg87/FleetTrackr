@@ -12,6 +12,7 @@ import java.util.Date
 data class ExpenseDto(
     @PrimaryKey
     val id: String,
+    val userId: String = "",
     val type: String, // ExpenseType enum as string
     val amount: Double,
     val date: Date,

@@ -12,6 +12,7 @@ import java.util.Date
 data class DailyEntryDto(
     @PrimaryKey
     val id: String,
+    val userId: String = "",
     val date: Date,
     val driverName: String,
     val vehicle: String,

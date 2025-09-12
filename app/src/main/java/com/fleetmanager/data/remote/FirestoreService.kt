@@ -30,10 +30,7 @@ class FirestoreService @Inject constructor(
         private const val TAG = "FirestoreService"
     }
     
-    private fun getUserCollection(collection: String) = 
-        firestore.collection("users")
-            .document(authService.getCurrentUserId() ?: "")
-            .collection(collection)
+    private fun getCollection(collection: String) = firestore.collection(collection)
     
     private fun requireAuth(): String {
         val userId = authService.getCurrentUserId()
@@ -50,9 +47,11 @@ class FirestoreService @Inject constructor(
         val userId = requireAuth()
         Log.d(TAG, "Saving daily entry to Firestore for user $userId: ${entry.id}")
         try {
-            getUserCollection("dailyEntries")
+            // Add userId field to the entry
+            val entryWithUserId = entry.copy(userId = userId)
+            getCollection("entries")
                 .document(entry.id)
-                .set(entry)
+                .set(entryWithUserId)
                 .await()
             Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
         } catch (e: Exception) {
@@ -64,7 +63,9 @@ class FirestoreService @Inject constructor(
     }
     
     suspend fun getDailyEntries(): List<DailyEntry> {
-        return getUserCollection("dailyEntries")
+        val userId = requireAuth()
+        return getCollection("entries")
+            .whereEqualTo("userId", userId)
             .get()
             .await()
             .documents
@@ -72,7 +73,9 @@ class FirestoreService @Inject constructor(
     }
     
     fun getDailyEntriesFlow(): Flow<List<DailyEntry>> {
-        return getUserCollection("dailyEntries")
+        val userId = authService.getCurrentUserId() ?: ""
+        return getCollection("entries")
+            .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
@@ -80,7 +83,7 @@ class FirestoreService @Inject constructor(
     }
     
     suspend fun deleteDailyEntry(entryId: String) {
-        getUserCollection("dailyEntries")
+        getCollection("entries")
             .document(entryId)
             .delete()
             .await()
@@ -88,10 +91,13 @@ class FirestoreService @Inject constructor(
     
     // Drivers
     suspend fun saveDriver(driver: Driver) {
+        val userId = requireAuth()
         try {
-            getUserCollection("drivers")
+            // Add userId field to the driver
+            val driverWithUserId = driver.copy(userId = userId)
+            getCollection("drivers")
                 .document(driver.id)
-                .set(driver)
+                .set(driverWithUserId)
                 .await()
             Log.d(TAG, "Successfully saved driver to Firestore: ${driver.id}")
         } catch (e: Exception) {
@@ -103,7 +109,9 @@ class FirestoreService @Inject constructor(
     }
     
     suspend fun getDrivers(): List<Driver> {
-        return getUserCollection("drivers")
+        val userId = requireAuth()
+        return getCollection("drivers")
+            .whereEqualTo("userId", userId)
             .get()
             .await()
             .documents
@@ -112,10 +120,13 @@ class FirestoreService @Inject constructor(
     
     // Vehicles
     suspend fun saveVehicle(vehicle: Vehicle) {
+        val userId = requireAuth()
         try {
-            getUserCollection("vehicles")
+            // Add userId field to the vehicle
+            val vehicleWithUserId = vehicle.copy(userId = userId)
+            getCollection("vehicles")
                 .document(vehicle.id)
-                .set(vehicle)
+                .set(vehicleWithUserId)
                 .await()
             Log.d(TAG, "Successfully saved vehicle to Firestore: ${vehicle.id}")
         } catch (e: Exception) {
@@ -127,7 +138,9 @@ class FirestoreService @Inject constructor(
     }
     
     suspend fun getVehicles(): List<Vehicle> {
-        return getUserCollection("vehicles")
+        val userId = requireAuth()
+        return getCollection("vehicles")
+            .whereEqualTo("userId", userId)
             .get()
             .await()
             .documents
@@ -156,26 +169,36 @@ class FirestoreService @Inject constructor(
      *    rules_version = '2';
      *    service cloud.firestore {
      *      match /databases/{database}/documents {
-     *        // Users can only access their own data
-     *        match /users/{userId}/{document=**} {
-     *          allow read, write: if request.auth != null && request.auth.uid == userId;
+     *        // Flat collections with userId filtering
+     *        match /entries/{entryId} {
+     *          allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
      *        }
      *        
-     *        // Expenses collection structure: users/{userId}/expenses/{expenseId}
-     *        match /users/{userId}/expenses/{expenseId} {
-     *          allow read, write: if request.auth != null && request.auth.uid == userId;
+     *        match /expenses/{expenseId} {
+     *          allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+     *        }
+     *        
+     *        match /drivers/{driverId} {
+     *          allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+     *        }
+     *        
+     *        match /vehicles/{vehicleId} {
+     *          allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
      *        }
      *      }
      *    }
      *    ```
      * 
      * 3. FIRESTORE COLLECTION STRUCTURE:
-     *    The app will automatically create these collections:
-     *    - users/{userId}/expenses/{expenseId}
-     *      - Fields: id, type, amount, date, driver, car, notes, photos, createdAt, updatedAt
-     *    - users/{userId}/dailyEntries/{entryId}
-     *    - users/{userId}/drivers/{driverId}  
-     *    - users/{userId}/vehicles/{vehicleId}
+     *    The app will automatically create these flat collections:
+     *    - entries/{entryId}
+     *      - Fields: id, userId, date, driver, vehicle, uberEarnings, yangoEarnings, privateJobsEarnings, notes, photos, createdAt, updatedAt
+     *    - expenses/{expenseId}
+     *      - Fields: id, userId, type, amount, date, driver, car, notes, photos, createdAt, updatedAt
+     *    - drivers/{driverId}
+     *      - Fields: id, userId, name, isActive
+     *    - vehicles/{vehicleId}
+     *      - Fields: id, userId, make, model, year, licensePlate, isActive
      * 
      * 4. REQUIRED FIREBASE SERVICES:
      *    ✅ Authentication (already configured)
@@ -191,6 +214,7 @@ class FirestoreService @Inject constructor(
      *    Each expense document will contain:
      *    {
      *      "id": "uuid-string",
+     *      "userId": "firebase-user-id",
      *      "type": "FUEL" | "MAINTENANCE" | "SERVICE" | "CAR_WASH" | "FINE" | "OTHER",
      *      "amount": 50.75,
      *      "date": Timestamp,
@@ -207,9 +231,11 @@ class FirestoreService @Inject constructor(
         val userId = requireAuth()
         Log.d(TAG, "Saving expense to Firestore for user $userId: ${expense.id}")
         try {
-            getUserCollection("expenses")
+            // Add userId field to the expense
+            val expenseWithUserId = expense.copy(userId = userId)
+            getCollection("expenses")
                 .document(expense.id)
-                .set(expense)
+                .set(expenseWithUserId)
                 .await()
             Log.d(TAG, "Successfully saved expense to Firestore: ${expense.id}")
         } catch (e: Exception) {
@@ -221,7 +247,9 @@ class FirestoreService @Inject constructor(
     }
     
     suspend fun getExpenses(): List<Expense> {
-        return getUserCollection("expenses")
+        val userId = requireAuth()
+        return getCollection("expenses")
+            .whereEqualTo("userId", userId)
             .get()
             .await()
             .documents
@@ -229,7 +257,9 @@ class FirestoreService @Inject constructor(
     }
     
     fun getExpensesFlow(): Flow<List<Expense>> {
-        return getUserCollection("expenses")
+        val userId = authService.getCurrentUserId() ?: ""
+        return getCollection("expenses")
+            .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { it.toObject<Expense>() }
@@ -237,7 +267,7 @@ class FirestoreService @Inject constructor(
     }
     
     suspend fun deleteExpense(expenseId: String) {
-        getUserCollection("expenses")
+        getCollection("expenses")
             .document(expenseId)
             .delete()
             .await()

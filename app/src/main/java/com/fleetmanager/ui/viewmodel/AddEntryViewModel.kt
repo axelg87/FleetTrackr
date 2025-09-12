@@ -78,17 +78,17 @@ class AddEntryViewModel @Inject constructor(
     
     private fun getSampleDrivers(): List<Driver> {
         return listOf(
-            Driver("sample_driver_1", "Usman"),
-            Driver("sample_driver_2", "Ahmed"),
-            Driver("sample_driver_3", "Rashid")
+            Driver("sample_driver_1", "", "Usman"),
+            Driver("sample_driver_2", "", "Ahmed"),
+            Driver("sample_driver_3", "", "Rashid")
         )
     }
     
     private fun getSampleVehicles(): List<Vehicle> {
         return listOf(
-            Vehicle("sample_vehicle_1", "Mitsubishi", "Outlander 1", 2020, "ABC-123"),
-            Vehicle("sample_vehicle_2", "Mitsubishi", "Outlander 2", 2021, "XYZ-789"),
-            Vehicle("sample_vehicle_3", "Mitsubishi", "Outlander 3", 2022, "DEF-456")
+            Vehicle("sample_vehicle_1", "", "Mitsubishi", "Outlander 1", 2020, "ABC-123"),
+            Vehicle("sample_vehicle_2", "", "Mitsubishi", "Outlander 2", 2021, "XYZ-789"),
+            Vehicle("sample_vehicle_3", "", "Mitsubishi", "Outlander 3", 2022, "DEF-456")
         )
     }
     
@@ -117,15 +117,15 @@ class AddEntryViewModel @Inject constructor(
     private suspend fun addSampleData() {
         // Add some sample drivers and vehicles for demo
         val sampleDrivers = listOf(
-            Driver("driver_1", "John Smith"),
-            Driver("driver_2", "Maria Garcia"),
-            Driver("driver_3", "Ahmed Hassan")
+            Driver("driver_1", "", "John Smith"),
+            Driver("driver_2", "", "Maria Garcia"),
+            Driver("driver_3", "", "Ahmed Hassan")
         )
         
         val sampleVehicles = listOf(
-            Vehicle("vehicle_1", "Toyota", "Camry", 2020, "ABC-123"),
-            Vehicle("vehicle_2", "Honda", "Accord", 2019, "XYZ-789"),
-            Vehicle("vehicle_3", "Hyundai", "Elantra", 2021, "DEF-456")
+            Vehicle("vehicle_1", "", "Toyota", "Camry", 2020, "ABC-123"),
+            Vehicle("vehicle_2", "", "Honda", "Accord", 2019, "XYZ-789"),
+            Vehicle("vehicle_3", "", "Hyundai", "Elantra", 2021, "DEF-456")
         )
         
         sampleDrivers.forEach { saveDriverUseCase(it) }

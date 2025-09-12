@@ -11,6 +11,7 @@ import androidx.room.PrimaryKey
 data class VehicleDto(
     @PrimaryKey
     val id: String,
+    val userId: String = "",
     val make: String,
     val model: String,
     val year: Int,

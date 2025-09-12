@@ -14,6 +14,9 @@ data class Expense(
     @get:PropertyName("id")
     val id: String = "",
     
+    @get:PropertyName("userId")
+    val userId: String = "",
+    
     @get:PropertyName("type")
     val type: ExpenseType = ExpenseType.FUEL,
     
