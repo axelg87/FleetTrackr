@@ -57,10 +57,18 @@ class SignInViewModel @Inject constructor(
             val result = authRepository.signInWithGoogle(idToken)
             result.fold(
                 onSuccess = {
-                    // Create user document immediately after successful sign-in
-                    firestoreService.saveUserIfMissing()
-                    
                     updateState { it.copy(isLoading = false) }
+                    
+                    // Create user document after a short delay to ensure Firebase Auth is ready
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(500) // Wait 500ms for auth to stabilize
+                        try {
+                            firestoreService.saveUserIfMissing()
+                        } catch (e: Exception) {
+                            android.util.Log.e("SignInViewModel", "User creation failed", e)
+                        }
+                    }
+                    
                     // Trigger initial sync
                     syncManager.triggerManualSync()
                 },
