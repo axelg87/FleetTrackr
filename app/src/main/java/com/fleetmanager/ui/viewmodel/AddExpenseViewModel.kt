@@ -11,6 +11,7 @@ import com.fleetmanager.domain.usecase.SaveExpenseUseCase
 import com.fleetmanager.domain.usecase.SaveDriverUseCase
 import com.fleetmanager.domain.usecase.SaveVehicleUseCase
 import com.fleetmanager.domain.validation.InputValidator
+import com.fleetmanager.ui.utils.PhotoUploadDiagnostic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -59,7 +60,8 @@ class AddExpenseViewModel @Inject constructor(
     private val saveExpenseUseCase: SaveExpenseUseCase,
     private val saveDriverUseCase: SaveDriverUseCase,
     private val saveVehicleUseCase: SaveVehicleUseCase,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val photoUploadDiagnostic: PhotoUploadDiagnostic
 ) : BaseViewModel<AddExpenseUiState>() {
     
     override fun getInitialState() = AddExpenseUiState(

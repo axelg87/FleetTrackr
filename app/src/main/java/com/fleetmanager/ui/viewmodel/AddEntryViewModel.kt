@@ -10,6 +10,7 @@ import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.usecase.SaveDriverUseCase
 import com.fleetmanager.domain.usecase.SaveVehicleUseCase
 import com.fleetmanager.domain.validation.InputValidator
+import com.fleetmanager.ui.utils.PhotoUploadDiagnostic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -64,7 +65,8 @@ class AddEntryViewModel @Inject constructor(
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
     private val saveDriverUseCase: SaveDriverUseCase,
     private val saveVehicleUseCase: SaveVehicleUseCase,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val photoUploadDiagnostic: PhotoUploadDiagnostic
 ) : BaseViewModel<AddEntryUiState>() {
     
     override fun getInitialState() = AddEntryUiState(
@@ -269,6 +271,11 @@ class AddEntryViewModel @Inject constructor(
                     updateState { it.copy(isSaving = false, isSaved = true) }
                 },
                 onFailure = { error ->
+                    // If the error is photo-related, run diagnostics
+                    if (isPhotoUploadError(error) && (currentState.photoUri != null || currentState.photoUris.isNotEmpty())) {
+                        runPhotoDiagnostics(currentState.photoUri)
+                    }
+                    
                     updateState { 
                         it.copy(
                             isSaving = false, 
@@ -277,6 +284,40 @@ class AddEntryViewModel @Inject constructor(
                     }
                 }
             )
+        }
+    }
+    
+    /**
+     * Check if the error is related to photo upload
+     */
+    private fun isPhotoUploadError(error: Throwable): Boolean {
+        val message = error.message?.lowercase() ?: ""
+        return message.contains("photo") ||
+               message.contains("upload") ||
+               message.contains("storage") ||
+               message.contains("object does not exist") ||
+               message.contains("object doesn't exist") ||
+               message.contains("firebase storage")
+    }
+    
+    /**
+     * Run photo upload diagnostics when upload fails
+     */
+    private fun runPhotoDiagnostics(photoUri: Uri?) {
+        executeAsync {
+            val diagnosticResult = photoUploadDiagnostic.runDiagnostics(photoUri)
+            photoUploadDiagnostic.logDiagnosticResults(diagnosticResult)
+            
+            // Provide more specific error message based on diagnostics
+            val specificError = if (diagnosticResult.recommendations.isNotEmpty()) {
+                "Photo upload failed. ${diagnosticResult.recommendations.first().removePrefix("• ")}"
+            } else {
+                "Photo upload failed. Please check your internet connection and try again."
+            }
+            
+            updateState { currentState ->
+                currentState.copy(errorMessage = specificError)
+            }
         }
     }
 }

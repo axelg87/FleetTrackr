@@ -60,6 +60,31 @@ class StorageService @Inject constructor(
         private const val TAG = "StorageService"
     }
     
+    /**
+     * Verify Firebase Storage configuration and connectivity
+     */
+    suspend fun verifyStorageConfiguration(): Boolean {
+        return try {
+            val userId = requireAuth()
+            val testRef = storage.reference.child("users").child(userId).child("photos")
+            // Try to get metadata to verify connectivity
+            testRef.metadata.await()
+            Log.d(TAG, "Firebase Storage configuration verified successfully")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Firebase Storage configuration verification failed", e)
+            when {
+                e.message?.contains("storage", ignoreCase = true) == true -> {
+                    Log.e(TAG, "Firebase Storage might not be properly configured in Firebase Console")
+                }
+                e.message?.contains("permission", ignoreCase = true) == true -> {
+                    Log.e(TAG, "Storage security rules might be preventing access")
+                }
+            }
+            false
+        }
+    }
+    
     private fun getUserStorage() = 
         storage.reference
             .child("users")
@@ -78,13 +103,42 @@ class StorageService @Inject constructor(
     
     suspend fun uploadPhoto(uri: Uri, entryId: String): String {
         try {
+            // Verify authentication first
+            val userId = requireAuth()
+            
             val fileName = "${entryId}_${UUID.randomUUID()}.jpg"
             val photoRef = getUserStorage().child(fileName)
+            val storagePath = "users/$userId/photos/$fileName"
             
-            Log.d(TAG, "Starting photo upload: $fileName")
-            photoRef.putFile(uri).await()
+            Log.d(TAG, "Starting photo upload:")
+            Log.d(TAG, "  - File name: $fileName")
+            Log.d(TAG, "  - Storage path: $storagePath")
+            Log.d(TAG, "  - Source URI: $uri")
+            Log.d(TAG, "  - User ID: $userId")
+            
+            // Verify the source URI exists and is accessible
+            try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val bytesAvailable = inputStream.available()
+                    Log.d(TAG, "Source file size: $bytesAvailable bytes")
+                    if (bytesAvailable == 0) {
+                        throw IllegalArgumentException("Selected file is empty or not accessible")
+                    }
+                }
+            } catch (e: SecurityException) {
+                Log.e(TAG, "Security exception accessing photo URI: $uri", e)
+                throw IllegalArgumentException("Permission denied to access selected photo. Please grant storage permissions and try again.", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error accessing photo URI: $uri", e)
+                throw IllegalArgumentException("Cannot access selected photo. Please try selecting the photo again.", e)
+            }
+            
+            val uploadTask = photoRef.putFile(uri).await()
+            Log.d(TAG, "Upload task completed successfully")
+            
             val downloadUrl = photoRef.downloadUrl.await().toString()
             Log.d(TAG, "Successfully uploaded photo: $fileName")
+            Log.d(TAG, "Download URL: $downloadUrl")
             return downloadUrl
         } catch (e: IllegalStateException) {
             // Authentication error - user not signed in
@@ -92,17 +146,27 @@ class StorageService @Inject constructor(
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
+        } catch (e: IllegalArgumentException) {
+            // File access error
+            Log.e(TAG, "File access error: ${e.message}", e)
+            toastHelper.showError(context, e.message ?: "Cannot access selected photo")
+            throw e
         } catch (e: Exception) {
             val errorMessage = when {
                 e.message?.contains("object doesn't exist", ignoreCase = true) == true -> 
-                    "Storage location not accessible. Please check your internet connection and try again."
+                    "Selected photo no longer exists. Please try selecting the photo again."
+                e.message?.contains("Object does not exist at location", ignoreCase = true) == true ->
+                    "Selected photo cannot be found. Please try selecting the photo again."
                 e.message?.contains("permission", ignoreCase = true) == true -> 
-                    "Permission denied. Please make sure you're signed in."
+                    "Permission denied. Please make sure you're signed in and try again."
                 e.message?.contains("network", ignoreCase = true) == true -> 
-                    "Network error. Please check your internet connection."
+                    "Network error. Please check your internet connection and try again."
+                e.message?.contains("storage", ignoreCase = true) == true -> 
+                    "Storage service unavailable. Please try again later."
                 else -> "Failed to upload photo: ${e.message}"
             }
-            Log.e(TAG, errorMessage, e)
+            Log.e(TAG, "Photo upload failed: $errorMessage", e)
+            Log.e(TAG, "Exception details: ${e.javaClass.simpleName}")
             toastHelper.showError(context, errorMessage)
             throw e
         }

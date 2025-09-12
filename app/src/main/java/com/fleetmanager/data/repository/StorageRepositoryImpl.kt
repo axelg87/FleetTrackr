@@ -22,7 +22,7 @@ class StorageRepositoryImpl @Inject constructor(
     
     override suspend fun deletePhoto(url: String): Result<Unit> {
         return try {
-            // TODO: Implement delete functionality in StorageService
+            storageService.deletePhoto(url)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
