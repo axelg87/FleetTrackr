@@ -51,6 +51,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -132,6 +133,12 @@ dependencies {
     
     // Date picker for Compose
     implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
+    
+    // Calendar View for Analytics
+    implementation("com.kizitonwose.calendar:compose:2.4.1")
+    
+    // Core library desugaring for Java 8+ APIs
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     
     // Testing
     testImplementation("junit:junit:4.13.2")
