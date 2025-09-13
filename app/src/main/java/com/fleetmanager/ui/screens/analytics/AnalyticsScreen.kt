@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.time.DayOfWeek
 import com.fleetmanager.ui.screens.analytics.components.*
+import com.fleetmanager.ui.screens.analytics.model.AnalyticsData
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsPanel
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsAdapters
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
@@ -46,17 +47,17 @@ fun AnalyticsScreen(
         )
         
         // GENERALIZATION: Conditional panel rendering based on selection
-        if (selectedPanel == null) {
-            // Show all panels (default view)
-            ShowAllPanels(
+        selectedPanel?.let { panel ->
+            // Show selected panel only
+            ShowSelectedPanel(
+                panel = panel,
                 uiState = uiState,
                 analyticsData = analyticsData,
                 viewModel = viewModel
             )
-        } else {
-            // Show selected panel only
-            ShowSelectedPanel(
-                panel = selectedPanel,
+        } ?: run {
+            // Show all panels (default view)
+            ShowAllPanels(
                 uiState = uiState,
                 analyticsData = analyticsData,
                 viewModel = viewModel
