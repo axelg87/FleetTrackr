@@ -18,7 +18,7 @@ data class Expense(
     val userId: String = "",
     
     @get:PropertyName("type")
-    val type: ExpenseType = ExpenseType.FUEL,
+    val type: ExpenseType = ExpenseType.OTHER,
     
     @get:PropertyName("amount")
     val amount: Double = 0.0,
