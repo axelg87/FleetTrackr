@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.kizitonwose.calendar.compose.CalendarState
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
@@ -101,6 +102,7 @@ private fun CalendarHeader(
     modifier: Modifier = Modifier
 ) {
     val visibleMonth = rememberUpdatedState(state.firstVisibleMonth)
+    val coroutineScope = rememberCoroutineScope()
     
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -109,7 +111,9 @@ private fun CalendarHeader(
     ) {
         IconButton(
             onClick = {
-                state.animateScrollToMonth(visibleMonth.value.yearMonth.previousMonth)
+                coroutineScope.launch {
+                    state.animateScrollToMonth(visibleMonth.value.yearMonth.previousMonth)
+                }
             }
         ) {
             Icon(
@@ -126,7 +130,9 @@ private fun CalendarHeader(
         
         IconButton(
             onClick = {
-                state.animateScrollToMonth(visibleMonth.value.yearMonth.nextMonth)
+                coroutineScope.launch {
+                    state.animateScrollToMonth(visibleMonth.value.yearMonth.nextMonth)
+                }
             }
         ) {
             Icon(
