@@ -28,6 +28,7 @@ import com.kizitonwose.calendar.core.nextMonth
 import com.kizitonwose.calendar.core.previousMonth
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.ui.screens.analytics.IncomeLevel
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -240,14 +241,15 @@ private fun getIncomeLevel(entries: List<DailyEntry>): IncomeLevel {
 }
 
 /**
+ * REFACTOR: Moved color logic to AnalyticsUtils for consistency
  * Get color for income level
  */
 @Composable
 private fun getIncomeColor(incomeLevel: IncomeLevel): Color {
     return when (incomeLevel) {
-        IncomeLevel.HIGH -> Color(0xFF4CAF50) // Green
-        IncomeLevel.MEDIUM -> Color(0xFFFF9800) // Orange  
-        IncomeLevel.LOW -> Color(0xFFF44336) // Red
+        IncomeLevel.HIGH -> AnalyticsUtils.Colors.SUCCESS
+        IncomeLevel.MEDIUM -> AnalyticsUtils.Colors.WARNING
+        IncomeLevel.LOW -> AnalyticsUtils.Colors.ERROR
         IncomeLevel.NONE -> Color.Transparent
     }
 }

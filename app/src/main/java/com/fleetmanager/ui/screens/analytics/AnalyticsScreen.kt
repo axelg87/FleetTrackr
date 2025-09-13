@@ -10,12 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.fleetmanager.ui.screens.analytics.components.CalendarView
+import com.fleetmanager.ui.screens.analytics.components.*
 
 /**
- * Analytics Screen with modular structure for future expansion.
- * Currently contains only CalendarView but designed to be scalable
- * for adding graphs, stats cards, tabs, etc.
+ * Analytics Screen with comprehensive analytics features including trends, 
+ * comparisons, ROI analysis, and performance insights.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +22,7 @@ fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val analyticsData by viewModel.analyticsData.collectAsState()
     
     Column(
         modifier = Modifier
@@ -32,16 +32,80 @@ fun AnalyticsScreen(
     ) {
         // Header
         Text(
-            text = "Analytics",
+            text = "Analytics Dashboard",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 24.dp)
         )
         
-        // Future: This is where we can add tabs for different analytics views
-        // TabRow or segmented buttons can go here
+        // 1. Trends Over Time
+        TrendsChart(
+            trendData = analyticsData.trendData,
+            isLoading = analyticsData.isLoading,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
         
-        // Calendar Section
+        // 2. Monthly Comparison
+        if (analyticsData.monthlyComparison != null) {
+            MonthlyComparisonCard(
+                monthlyComparison = analyticsData.monthlyComparison,
+                isLoading = analyticsData.isLoading,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+        
+        // 3. Projection/Estimation
+        if (analyticsData.projection != null) {
+            ProjectionEstimation(
+                projectionData = analyticsData.projection,
+                isLoading = analyticsData.isLoading,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+        
+        // 4. Driver Performance Comparison
+        DriverComparison(
+            driverPerformance = analyticsData.driverPerformance,
+            isLoading = analyticsData.isLoading,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // 5. Top Drivers Leaderboard
+        TopDriversLeaderboard(
+            driverPerformance = analyticsData.driverPerformance,
+            isLoading = analyticsData.isLoading,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // 6. Vehicle ROI Analysis
+        VehicleROIAnalysis(
+            vehicleROI = analyticsData.vehicleROI,
+            isLoading = analyticsData.isLoading,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // 7. Day of Week Analysis
+        DayOfWeekChart(
+            dayOfWeekAnalysis = analyticsData.dayOfWeekAnalysis,
+            isLoading = analyticsData.isLoading,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // 8. Expense Deep Dive
+        ExpenseDeepDive(
+            expenseBreakdown = analyticsData.expenseBreakdown,
+            isLoading = analyticsData.isLoading,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // 9. Anomaly Detection
+        AnomalyDetection(
+            anomalies = analyticsData.anomalies,
+            isLoading = analyticsData.isLoading,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // 10. Calendar Overview (moved to bottom as requested)
         AnalyticsSection(
             title = "Calendar Overview",
             description = "Daily earnings visualization"
@@ -54,11 +118,6 @@ fun AnalyticsScreen(
                 }
             )
         }
-        
-        // Future sections can be added here:
-        // - Stats Cards Section
-        // - Charts Section (earnings trends, driver performance, etc.)
-        // - Insights Section
         
         Spacer(modifier = Modifier.height(16.dp))
     }
