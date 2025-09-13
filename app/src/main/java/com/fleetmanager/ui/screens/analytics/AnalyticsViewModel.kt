@@ -6,9 +6,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.repository.FleetRepository
+import com.fleetmanager.ui.screens.analytics.model.AnalyticsData
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.MockDataProvider
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -17,7 +22,7 @@ import javax.inject.Inject
 
 /**
  * ViewModel for Analytics Screen.
- * Manages calendar data, day selections, and future analytics features.
+ * Manages comprehensive analytics data including trends, comparisons, and projections.
  */
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
@@ -27,11 +32,15 @@ class AnalyticsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AnalyticsUiState())
     val uiState: StateFlow<AnalyticsUiState> = _uiState.asStateFlow()
     
+    private val _analyticsData = MutableStateFlow(AnalyticsData())
+    val analyticsData: StateFlow<AnalyticsData> = _analyticsData.asStateFlow()
+    
     private val _currentMonth = MutableStateFlow(YearMonth.now())
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
     
     init {
         loadEntriesForMonth(_currentMonth.value)
+        loadAnalyticsData()
     }
     
     fun loadEntriesForMonth(yearMonth: YearMonth) {
@@ -79,6 +88,120 @@ class AnalyticsViewModel @Inject constructor(
     fun onMonthChanged(yearMonth: YearMonth) {
         _currentMonth.value = yearMonth
         loadEntriesForMonth(yearMonth)
+        loadAnalyticsData()
+    }
+    
+    /**
+     * Load comprehensive analytics data
+     */
+    private fun loadAnalyticsData() {
+        viewModelScope.launch {
+            _analyticsData.value = _analyticsData.value.copy(isLoading = true)
+            
+            try {
+                // Calculate date ranges
+                val currentDate = LocalDate.now()
+                val startDate = currentDate.minusDays(90) // Last 90 days
+                val endDate = currentDate
+                
+                val startDateAsDate = Date.from(startDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                val endDateAsDate = Date.from(endDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                
+                // Fetch data from repository
+                combine(
+                    fleetRepository.getDailyEntriesByDateRange(startDateAsDate, endDateAsDate),
+                    fleetRepository.getExpensesByDateRange(startDateAsDate, endDateAsDate)
+                ) { entries, expenses ->
+                    Pair(entries, expenses)
+                }.collect { (entries, expenses) ->
+                    
+                    // If no data available, use mock data for demonstration
+                    val analyticsData = if (entries.isEmpty() && expenses.isEmpty()) {
+                        MockDataProvider.generateMockAnalyticsData()
+                    } else {
+                        calculateAnalyticsData(entries, expenses, startDate, endDate)
+                    }
+                    
+                    _analyticsData.value = analyticsData.copy(
+                        isLoading = false,
+                        error = null
+                    )
+                }
+                
+            } catch (e: Exception) {
+                _analyticsData.value = _analyticsData.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to load analytics data"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Calculate analytics data from raw entries and expenses
+     */
+    private fun calculateAnalyticsData(
+        entries: List<DailyEntry>,
+        expenses: List<Expense>,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): AnalyticsData {
+        // Calculate trends
+        val trendData = AnalyticsCalculator.calculateTrendData(entries, expenses, startDate, endDate)
+        
+        // Calculate driver performance
+        val driverPerformance = AnalyticsCalculator.calculateDriverPerformance(entries)
+        
+        // Calculate vehicle ROI
+        val vehicleROI = AnalyticsCalculator.calculateVehicleROI(entries, expenses)
+        
+        // Calculate day of week analysis
+        val dayOfWeekAnalysis = AnalyticsCalculator.calculateDayOfWeekAnalysis(entries)
+        
+        // Calculate expense breakdown
+        val expenseBreakdown = AnalyticsCalculator.calculateExpenseBreakdown(expenses)
+        
+        // Detect anomalies
+        val anomalies = AnalyticsCalculator.detectAnomalies(entries, expenses)
+        
+        // Calculate monthly comparison
+        val currentMonth = LocalDate.now().withDayOfMonth(1)
+        val previousMonth = currentMonth.minusMonths(1)
+        
+        val currentMonthEntries = entries.filter { entry ->
+            val entryDate = entry.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            entryDate.month == currentMonth.month && entryDate.year == currentMonth.year
+        }
+        
+        val previousMonthEntries = entries.filter { entry ->
+            val entryDate = entry.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            entryDate.month == previousMonth.month && entryDate.year == previousMonth.year
+        }
+        
+        val monthlyComparison = if (previousMonthEntries.isNotEmpty()) {
+            AnalyticsCalculator.calculateMonthlyComparison(
+                currentMonthEntries,
+                previousMonthEntries,
+                currentMonth.month.name,
+                previousMonth.month.name
+            )
+        } else null
+        
+        // Calculate projection
+        val projection = if (currentMonthEntries.isNotEmpty()) {
+            AnalyticsCalculator.calculateProjection(currentMonthEntries, LocalDate.now())
+        } else null
+        
+        return AnalyticsData(
+            trendData = trendData,
+            driverPerformance = driverPerformance,
+            vehicleROI = vehicleROI,
+            dayOfWeekAnalysis = dayOfWeekAnalysis,
+            expenseBreakdown = expenseBreakdown,
+            anomalies = anomalies,
+            monthlyComparison = monthlyComparison,
+            projection = projection
+        )
     }
     
     fun onDaySelected(date: LocalDate, entries: List<DailyEntry>) {
