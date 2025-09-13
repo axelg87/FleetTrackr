@@ -265,7 +265,7 @@ private fun DriverPerformanceCard(
                 )
                 StatItem(
                     label = "Performance",
-                    value = AnalyticsUtils.formatWholeNumber(progressPercentage * 100) + "%"
+                    value = AnalyticsUtils.formatWholeNumber((progressPercentage * 100).toDouble()) + "%"
                 )
             }
         }

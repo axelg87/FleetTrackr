@@ -206,7 +206,7 @@ private fun DayOfWeekBar(
             }
             
             Text(
-                text = AnalyticsUtils.formatWholeNumber(progressPercentage * 100) + "%",
+                text = AnalyticsUtils.formatWholeNumber((progressPercentage * 100).toDouble()) + "%",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color = dayColor,

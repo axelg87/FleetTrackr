@@ -252,7 +252,7 @@ private fun VehicleROICard(vehicle: VehicleROI) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsUtils.formatDecimal(profitPercentage * 100) + "%",
+                        text = AnalyticsUtils.formatDecimal((profitPercentage * 100).toDouble()) + "%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = roiColor

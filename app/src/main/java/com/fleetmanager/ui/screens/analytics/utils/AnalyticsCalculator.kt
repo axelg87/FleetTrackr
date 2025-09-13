@@ -4,6 +4,7 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.ExpenseType
 import com.fleetmanager.ui.screens.analytics.model.*
+import com.fleetmanager.ui.screens.analytics.IncomeLevel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId

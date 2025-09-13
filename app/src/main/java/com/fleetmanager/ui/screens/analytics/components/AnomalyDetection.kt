@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
@@ -74,13 +75,21 @@ fun AnomalyDetection(
                 
                 // Anomaly count badge
                 if (anomalies.isNotEmpty()) {
-                    Badge(
-                        containerColor = AnalyticsUtils.Colors.WARNING
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = AnalyticsUtils.Colors.WARNING,
+                                shape = CircleShape
+                            )
+                            .padding(6.dp)
+                            .size(24.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = anomalies.size.toString(),
                             color = Color.White,
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -234,13 +243,19 @@ private fun AnomalyCard(anomaly: AnomalyData) {
                 }
                 
                 // Severity badge
-                Badge(
-                    containerColor = AnalyticsUtils.getSeverityColor(severityLevel)
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = AnalyticsUtils.getSeverityColor(severityLevel),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = severityLevel,
                         color = Color.White,
-                        style = MaterialTheme.typography.labelSmall
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -303,7 +318,7 @@ private fun AnomalyCard(anomaly: AnomalyData) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsUtils.formatDecimal(anomaly.deviation * 100) + "%",
+                        text = AnalyticsUtils.formatDecimal((anomaly.deviation * 100)) + "%",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = color
