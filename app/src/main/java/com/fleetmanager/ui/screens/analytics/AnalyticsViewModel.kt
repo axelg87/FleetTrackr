@@ -12,6 +12,7 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsData
+import com.fleetmanager.ui.screens.analytics.model.AnalyticsPanel
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import com.fleetmanager.ui.screens.analytics.utils.MockDataProvider
@@ -38,6 +39,9 @@ class AnalyticsViewModel @Inject constructor(
     
     private val _currentMonth = MutableStateFlow(YearMonth.now())
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
+    
+    private val _selectedPanel = MutableStateFlow<AnalyticsPanel?>(null)
+    val selectedPanel: StateFlow<AnalyticsPanel?> = _selectedPanel.asStateFlow()
     
     init {
         loadEntriesForMonth(_currentMonth.value)
@@ -215,6 +219,21 @@ class AnalyticsViewModel @Inject constructor(
             selectedDate = null,
             selectedDayEntries = null
         )
+    }
+    
+    /**
+     * GENERALIZATION: Panel selection for menu navigation
+     */
+    fun selectPanel(panel: AnalyticsPanel) {
+        _selectedPanel.value = panel
+    }
+    
+    fun showAllPanels() {
+        _selectedPanel.value = null
+    }
+    
+    fun isShowingAllPanels(): Boolean {
+        return _selectedPanel.value == null
     }
     
     /**
