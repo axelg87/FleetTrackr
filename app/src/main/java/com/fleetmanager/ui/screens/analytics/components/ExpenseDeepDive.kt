@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.fleetmanager.domain.model.ExpenseType
 import com.fleetmanager.ui.screens.analytics.model.ExpenseBreakdown
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import kotlin.math.*
 
 /**
@@ -198,7 +199,7 @@ private fun DrawScope.drawPieChart(
             ((expense.totalAmount / totalAmount) * 360).toFloat()
         } else 0f
         
-        val color = getExpenseTypeColor(expense.expenseType)
+        val color = AnalyticsUtils.getExpenseTypeColor(expense.expenseType)
         
         drawArc(
             color = color,
@@ -259,7 +260,7 @@ private fun ExpenseBar(
         label = "expense_progress"
     )
     
-    val expenseColor = getExpenseTypeColor(expense.expenseType)
+    val expenseColor = AnalyticsUtils.getExpenseTypeColor(expense.expenseType)
     
     Column {
         Row(
@@ -300,7 +301,7 @@ private fun ExpenseBar(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(expense.totalAmount),
+                        text = AnalyticsUtils.formatCurrency(expense.totalAmount),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -309,7 +310,7 @@ private fun ExpenseBar(
             }
             
             Text(
-                text = AnalyticsCalculator.formatPercentage(expense.percentage),
+                text = AnalyticsUtils.formatPercentage(expense.percentage),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color = expenseColor,
@@ -340,7 +341,7 @@ private fun ExpenseListView(expenseBreakdown: List<ExpenseBreakdown>) {
 
 @Composable
 private fun ExpenseListItem(expense: ExpenseBreakdown) {
-    val expenseColor = getExpenseTypeColor(expense.expenseType)
+    val expenseColor = AnalyticsUtils.getExpenseTypeColor(expense.expenseType)
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -376,13 +377,13 @@ private fun ExpenseListItem(expense: ExpenseBreakdown) {
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = AnalyticsCalculator.formatCurrency(expense.totalAmount),
+                    text = AnalyticsUtils.formatCurrency(expense.totalAmount),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = expenseColor
                 )
                 Text(
-                    text = "${AnalyticsCalculator.formatPercentage(expense.percentage)} • ${expense.count} transactions",
+                    text = "${AnalyticsUtils.formatPercentage(expense.percentage)} • ${expense.count} transactions",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -410,7 +411,7 @@ private fun ExpenseLegend(expenseBreakdown: List<ExpenseBreakdown>) {
                     Box(
                         modifier = Modifier
                             .size(12.dp)
-                            .background(getExpenseTypeColor(expense.expenseType), CircleShape)
+                            .background(AnalyticsUtils.getExpenseTypeColor(expense.expenseType), CircleShape)
                     )
                     
                     Text(
@@ -421,7 +422,7 @@ private fun ExpenseLegend(expenseBreakdown: List<ExpenseBreakdown>) {
                 }
                 
                 Text(
-                    text = "${AnalyticsCalculator.formatPercentage(expense.percentage)} (${AnalyticsCalculator.formatCurrency(expense.totalAmount)})",
+                    text = "${AnalyticsUtils.formatPercentage(expense.percentage)} (${AnalyticsUtils.formatCurrency(expense.totalAmount)})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -465,10 +466,10 @@ private fun ExpenseSummary(expenseBreakdown: List<ExpenseBreakdown>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(totalAmount),
+                        text = AnalyticsUtils.formatCurrency(totalAmount),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF44336)
+                        color = AnalyticsUtils.Colors.ERROR
                     )
                 }
                 
@@ -492,7 +493,7 @@ private fun ExpenseSummary(expenseBreakdown: List<ExpenseBreakdown>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(averageTransaction),
+                        text = AnalyticsUtils.formatCurrency(averageTransaction),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -518,9 +519,9 @@ private fun ExpenseSummary(expenseBreakdown: List<ExpenseBreakdown>) {
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = AnalyticsCalculator.formatCurrency(mostExpensiveCategory.totalAmount),
+                            text = AnalyticsUtils.formatCurrency(mostExpensiveCategory.totalAmount),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFF44336)
+                            color = AnalyticsUtils.Colors.ERROR
                         )
                     }
                     
@@ -579,16 +580,7 @@ private fun EmptyExpenseState() {
     }
 }
 
-private fun getExpenseTypeColor(expenseType: ExpenseType): Color {
-    return when (expenseType) {
-        ExpenseType.FUEL -> Color(0xFF2196F3) // Blue
-        ExpenseType.SERVICE -> Color(0xFF4CAF50) // Green
-        ExpenseType.CAR_WASH -> Color(0xFF00BCD4) // Cyan
-        ExpenseType.FINE -> Color(0xFFF44336) // Red
-        ExpenseType.MAINTENANCE -> Color(0xFFFF9800) // Orange
-        ExpenseType.OTHER -> Color(0xFF9C27B0) // Purple
-    }
-}
+// REFACTOR: getExpenseTypeColor moved to AnalyticsUtils.getExpenseTypeColor
 
 enum class ExpenseViewMode(val displayName: String) {
     PIE_CHART("Pie Chart"),

@@ -85,8 +85,8 @@ object MockDataProvider {
             monthlyComparison = generateMockMonthlyComparison(),
             projection = AnalyticsCalculator.calculateProjection(
                 entries.filter { 
-                    val entryDate = it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                    entryDate.month == LocalDate.now().month && entryDate.year == LocalDate.now().year
+                    val entryDate = AnalyticsUtils.dateToLocalDate(it.date)
+                    AnalyticsUtils.isCurrentMonth(entryDate)
                 },
                 LocalDate.now()
             )
@@ -145,8 +145,8 @@ object MockDataProvider {
     }
 
     private fun generateMockMonthlyComparison(): MonthlyComparison {
-        val currentMonth = LocalDate.now().month.name
-        val previousMonth = LocalDate.now().minusMonths(1).month.name
+        val currentMonth = AnalyticsUtils.getCurrentMonthName()
+        val previousMonth = AnalyticsUtils.getPreviousMonthName()
         
         val previousTotal = Random.nextDouble() * 8000 + 5000 // 5000-13000 AED
         val growthRate = Random.nextDouble() * 0.4 - 0.2 // -20% to +20%

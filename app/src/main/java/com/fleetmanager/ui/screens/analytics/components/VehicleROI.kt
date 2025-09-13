@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.VehicleROI
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 
 /**
  * Vehicle ROI component showing profitability analysis for each vehicle
@@ -158,11 +159,7 @@ private fun VehicleROISortSelector(
 @Composable
 private fun VehicleROICard(vehicle: VehicleROI) {
     val isProfit = vehicle.netProfit >= 0
-    val roiColor = when {
-        vehicle.roi > 20 -> Color(0xFF4CAF50) // Green - Great ROI
-        vehicle.roi > 0 -> Color(0xFFFF9800) // Orange - Positive ROI
-        else -> Color(0xFFF44336) // Red - Negative ROI
-    }
+    val roiColor = AnalyticsUtils.getROIColor(vehicle.roi)
     
     val profitPercentage = if (vehicle.totalIncome > 0) {
         (vehicle.netProfit / vehicle.totalIncome).toFloat()
@@ -178,7 +175,7 @@ private fun VehicleROICard(vehicle: VehicleROI) {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (vehicle.roi > 50) {
-                Color(0xFF4CAF50).copy(alpha = 0.1f) // Highlight best performers
+                AnalyticsUtils.getAlphaColor(AnalyticsUtils.Colors.SUCCESS)
             } else MaterialTheme.colorScheme.surface
         )
     ) {
@@ -209,7 +206,7 @@ private fun VehicleROICard(vehicle: VehicleROI) {
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "${String.format("%.1f", vehicle.roi)}%",
+                        text = AnalyticsUtils.formatDecimal(vehicle.roi) + "%",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = roiColor
@@ -226,18 +223,18 @@ private fun VehicleROICard(vehicle: VehicleROI) {
             ) {
                 FinancialMetric(
                     label = "Income",
-                    value = AnalyticsCalculator.formatCurrency(vehicle.totalIncome),
-                    color = Color(0xFF4CAF50)
+                    value = AnalyticsUtils.formatCurrency(vehicle.totalIncome),
+                    color = AnalyticsUtils.Colors.SUCCESS
                 )
                 FinancialMetric(
                     label = "Expenses",
-                    value = AnalyticsCalculator.formatCurrency(vehicle.totalExpenses),
-                    color = Color(0xFFF44336)
+                    value = AnalyticsUtils.formatCurrency(vehicle.totalExpenses),
+                    color = AnalyticsUtils.Colors.ERROR
                 )
                 FinancialMetric(
                     label = "Net Profit",
-                    value = AnalyticsCalculator.formatCurrency(vehicle.netProfit),
-                    color = if (isProfit) Color(0xFF4CAF50) else Color(0xFFF44336)
+                    value = AnalyticsUtils.formatCurrency(vehicle.netProfit),
+                    color = if (isProfit) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
                 )
             }
             
@@ -255,7 +252,7 @@ private fun VehicleROICard(vehicle: VehicleROI) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${String.format("%.1f", profitPercentage * 100)}%",
+                        text = AnalyticsUtils.formatDecimal(profitPercentage * 100) + "%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = roiColor
@@ -298,7 +295,7 @@ private fun VehicleROICard(vehicle: VehicleROI) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = getROIInterpretation(vehicle.roi),
+                        text = AnalyticsUtils.getROIInterpretation(vehicle.roi),
                         style = MaterialTheme.typography.bodySmall,
                         color = roiColor,
                         modifier = Modifier.padding(8.dp)
@@ -371,10 +368,10 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(totalIncome),
+                        text = AnalyticsUtils.formatCurrency(totalIncome),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)
+                        color = AnalyticsUtils.Colors.SUCCESS
                     )
                 }
                 
@@ -385,10 +382,10 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(totalExpenses),
+                        text = AnalyticsUtils.formatCurrency(totalExpenses),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF44336)
+                        color = AnalyticsUtils.Colors.ERROR
                     )
                 }
             }
@@ -406,10 +403,10 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(totalProfit),
+                        text = AnalyticsUtils.formatCurrency(totalProfit),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (totalProfit >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                        color = if (totalProfit >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
                     )
                 }
                 
@@ -420,14 +417,10 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${String.format("%.1f", averageROI)}%",
+                        text = AnalyticsUtils.formatDecimal(averageROI) + "%",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = when {
-                            averageROI > 20 -> Color(0xFF4CAF50)
-                            averageROI > 0 -> Color(0xFFFF9800)
-                            else -> Color(0xFFF44336)
-                        }
+                        color = AnalyticsUtils.getROIColor(averageROI)
                     )
                 }
             }
@@ -451,9 +444,9 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "${String.format("%.1f", bestPerformer.roi)}% ROI",
+                            text = AnalyticsUtils.formatDecimal(bestPerformer.roi) + "% ROI",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF4CAF50)
+                            color = AnalyticsUtils.Colors.SUCCESS
                         )
                     }
                     
@@ -469,9 +462,9 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "${String.format("%.1f", worstPerformer.roi)}% ROI",
+                            text = AnalyticsUtils.formatDecimal(worstPerformer.roi) + "% ROI",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFF44336)
+                            color = AnalyticsUtils.Colors.ERROR
                         )
                     }
                 }
@@ -512,15 +505,7 @@ private fun EmptyVehicleROIState() {
     }
 }
 
-private fun getROIInterpretation(roi: Double): String {
-    return when {
-        roi > 50 -> "Excellent performance! This vehicle is highly profitable."
-        roi > 20 -> "Good performance. Strong return on investment."
-        roi > 0 -> "Positive ROI but room for improvement."
-        roi == 0.0 -> "Breaking even. Consider optimizing operations."
-        else -> "Losing money. Immediate attention needed."
-    }
-}
+// REFACTOR: getROIInterpretation moved to AnalyticsUtils.getROIInterpretation
 
 enum class VehicleROISortOption(val displayName: String) {
     ROI("ROI %"),

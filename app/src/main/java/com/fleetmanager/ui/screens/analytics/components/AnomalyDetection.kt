@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.fleetmanager.ui.screens.analytics.model.AnomalyData
 import com.fleetmanager.ui.screens.analytics.model.AnomalyType
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import java.time.format.DateTimeFormatter
 
 /**
@@ -55,7 +56,7 @@ fun AnomalyDetection(
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = Color(0xFFFF9800), // Orange
+                            tint = AnalyticsUtils.Colors.WARNING,
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
@@ -74,7 +75,7 @@ fun AnomalyDetection(
                 // Anomaly count badge
                 if (anomalies.isNotEmpty()) {
                     Badge(
-                        containerColor = Color(0xFFFF9800)
+                        containerColor = AnalyticsUtils.Colors.WARNING
                     ) {
                         Text(
                             text = anomalies.size.toString(),
@@ -145,12 +146,12 @@ private fun AnomalySummary(anomalies: List<AnomalyData>) {
                 AnomalyStat(
                     label = "Low Income",
                     count = anomalyCounts[AnomalyType.LOW_INCOME] ?: 0,
-                    color = Color(0xFFF44336)
+                    color = AnalyticsUtils.Colors.ERROR
                 )
                 AnomalyStat(
                     label = "High Expenses",
                     count = anomalyCounts[AnomalyType.HIGH_EXPENSES] ?: 0,
-                    color = Color(0xFFFF9800)
+                    color = AnalyticsUtils.Colors.WARNING
                 )
                 AnomalyStat(
                     label = "Zero Income",
@@ -193,7 +194,8 @@ private fun AnomalyStat(
 @Composable
 private fun AnomalyCard(anomaly: AnomalyData) {
     val (icon, color) = getAnomalyIconAndColor(anomaly.type)
-    val severityLevel = getSeverityLevel(anomaly.deviation)
+    val anomalyColor = AnalyticsUtils.getAnomalyColor(anomaly.type)
+    val severityLevel = AnalyticsUtils.getSeverityLevel(anomaly.deviation)
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -233,7 +235,7 @@ private fun AnomalyCard(anomaly: AnomalyData) {
                 
                 // Severity badge
                 Badge(
-                    containerColor = getSeverityColor(severityLevel)
+                    containerColor = AnalyticsUtils.getSeverityColor(severityLevel)
                 ) {
                     Text(
                         text = severityLevel,
@@ -274,7 +276,7 @@ private fun AnomalyCard(anomaly: AnomalyData) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(anomaly.actualValue),
+                        text = AnalyticsUtils.formatCurrency(anomaly.actualValue),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = color
@@ -288,7 +290,7 @@ private fun AnomalyCard(anomaly: AnomalyData) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(anomaly.expectedValue),
+                        text = AnalyticsUtils.formatCurrency(anomaly.expectedValue),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -301,7 +303,7 @@ private fun AnomalyCard(anomaly: AnomalyData) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${String.format("%.1f", anomaly.deviation * 100)}%",
+                        text = AnalyticsUtils.formatDecimal(anomaly.deviation * 100) + "%",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = color
@@ -394,24 +396,7 @@ private fun getAnomalyTypeDescription(type: AnomalyType): String {
     }
 }
 
-private fun getSeverityLevel(deviation: Double): String {
-    return when {
-        deviation > 0.8 -> "Critical"
-        deviation > 0.5 -> "High"
-        deviation > 0.3 -> "Medium"
-        else -> "Low"
-    }
-}
-
-private fun getSeverityColor(severity: String): Color {
-    return when (severity) {
-        "Critical" -> Color(0xFFD32F2F)
-        "High" -> Color(0xFFFF5722)
-        "Medium" -> Color(0xFFFF9800)
-        "Low" -> Color(0xFFFFC107)
-        else -> Color(0xFF9E9E9E)
-    }
-}
+// REFACTOR: getSeverityLevel and getSeverityColor moved to AnalyticsUtils
 
 private fun getRecommendation(anomaly: AnomalyData): String {
     return when (anomaly.type) {

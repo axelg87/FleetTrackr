@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.DriverPerformance
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 
 /**
  * Top Drivers Leaderboard component showcasing the best performing drivers
@@ -54,7 +55,7 @@ fun TopDriversLeaderboard(
                         Icon(
                             imageVector = Icons.Default.EmojiEvents,
                             contentDescription = null,
-                            tint = Color(0xFFFFD700), // Gold
+                            tint = AnalyticsUtils.Colors.GOLD,
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
@@ -140,7 +141,7 @@ private fun PodiumDisplay(topDrivers: List<DriverPerformance>) {
                 driver = topDrivers[1],
                 rank = 2,
                 height = 80.dp,
-                color = Color(0xFFC0C0C0) // Silver
+                color = AnalyticsUtils.Colors.SILVER
             )
         }
         
@@ -150,7 +151,7 @@ private fun PodiumDisplay(topDrivers: List<DriverPerformance>) {
                 driver = topDrivers[0],
                 rank = 1,
                 height = 100.dp,
-                color = Color(0xFFFFD700) // Gold
+                color = AnalyticsUtils.Colors.GOLD
             )
         }
         
@@ -160,7 +161,7 @@ private fun PodiumDisplay(topDrivers: List<DriverPerformance>) {
                 driver = topDrivers[2],
                 rank = 3,
                 height = 60.dp,
-                color = Color(0xFFCD7F32) // Bronze
+                color = AnalyticsUtils.Colors.BRONZE
             )
         }
     }
@@ -188,7 +189,7 @@ private fun PodiumPosition(
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = Color(0xFFFFD700),
+                tint = AnalyticsUtils.Colors.GOLD,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -224,7 +225,7 @@ private fun PodiumPosition(
         
         // Revenue
         Text(
-            text = AnalyticsCalculator.formatCurrency(driver.totalRevenue),
+            text = AnalyticsUtils.formatCurrency(driver.totalRevenue),
             style = MaterialTheme.typography.labelSmall,
             color = color,
             fontWeight = FontWeight.Bold
@@ -321,7 +322,7 @@ private fun LeaderboardRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${AnalyticsCalculator.formatCurrency(driver.averageRevenuePerDay)}/day",
+                        text = "${AnalyticsUtils.formatCurrency(driver.averageRevenuePerDay)}/day",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -333,7 +334,7 @@ private fun LeaderboardRow(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = AnalyticsCalculator.formatCurrency(driver.totalRevenue),
+                    text = AnalyticsUtils.formatCurrency(driver.totalRevenue),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -402,7 +403,7 @@ private fun LeaderboardStats(topDrivers: List<DriverPerformance>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(totalRevenue),
+                        text = AnalyticsUtils.formatCurrency(totalRevenue),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -416,7 +417,7 @@ private fun LeaderboardStats(topDrivers: List<DriverPerformance>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(averageRevenue),
+                        text = AnalyticsUtils.formatCurrency(averageRevenue),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -437,10 +438,10 @@ private fun LeaderboardStats(topDrivers: List<DriverPerformance>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${String.format("%.1f", topPerformerAdvantage)}% ahead",
+                            text = "${AnalyticsUtils.formatDecimal(topPerformerAdvantage)}% ahead",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4CAF50)
+                            color = AnalyticsUtils.Colors.SUCCESS
                         )
                     }
                     
@@ -454,7 +455,7 @@ private fun LeaderboardStats(topDrivers: List<DriverPerformance>) {
                             text = topDrivers[0].driverName.split(" ").firstOrNull() ?: topDrivers[0].driverName,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFD700)
+                            color = AnalyticsUtils.Colors.GOLD
                         )
                     }
                 }

@@ -13,6 +13,7 @@ import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsData
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import com.fleetmanager.ui.screens.analytics.utils.MockDataProvider
 import java.time.LocalDate
 import java.time.YearMonth
@@ -65,9 +66,7 @@ class AnalyticsViewModel @Inject constructor(
                     .collect { entries ->
                         // Group entries by date for easy calendar lookup
                         val entriesData = entries.groupBy { entry ->
-                            entry.date.toInstant()
-                                .atZone(ZoneId.systemDefault())
-                                .toLocalDate()
+                            AnalyticsUtils.dateToLocalDate(entry.date)
                         }
                         
                         _uiState.value = _uiState.value.copy(
@@ -169,21 +168,21 @@ class AnalyticsViewModel @Inject constructor(
         val previousMonth = currentMonth.minusMonths(1)
         
         val currentMonthEntries = entries.filter { entry ->
-            val entryDate = entry.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-            entryDate.month == currentMonth.month && entryDate.year == currentMonth.year
+            val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
+            AnalyticsUtils.isCurrentMonth(entryDate)
         }
         
         val previousMonthEntries = entries.filter { entry ->
-            val entryDate = entry.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-            entryDate.month == previousMonth.month && entryDate.year == previousMonth.year
+            val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
+            AnalyticsUtils.isPreviousMonth(entryDate)
         }
         
         val monthlyComparison = if (previousMonthEntries.isNotEmpty()) {
             AnalyticsCalculator.calculateMonthlyComparison(
                 currentMonthEntries,
                 previousMonthEntries,
-                currentMonth.month.name,
-                previousMonth.month.name
+                AnalyticsUtils.getCurrentMonthName(),
+                AnalyticsUtils.getPreviousMonthName()
             )
         } else null
         

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.DriverPerformance
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 
 /**
  * Driver Comparison component showing performance metrics for all drivers
@@ -174,12 +175,7 @@ private fun DriverPerformanceCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (rank <= 3) {
-                when (rank) {
-                    1 -> Color(0xFFFFD700).copy(alpha = 0.1f) // Gold
-                    2 -> Color(0xFFC0C0C0).copy(alpha = 0.1f) // Silver
-                    3 -> Color(0xFFCD7F32).copy(alpha = 0.1f) // Bronze
-                    else -> MaterialTheme.colorScheme.surface
-                }
+                AnalyticsUtils.getRankingBackgroundColor(rank)
             } else MaterialTheme.colorScheme.surface
         )
     ) {
@@ -200,12 +196,7 @@ private fun DriverPerformanceCard(
                         modifier = Modifier
                             .size(24.dp)
                             .background(
-                                color = when (rank) {
-                                    1 -> Color(0xFFFFD700) // Gold
-                                    2 -> Color(0xFFC0C0C0) // Silver
-                                    3 -> Color(0xFFCD7F32) // Bronze
-                                    else -> MaterialTheme.colorScheme.primary
-                                },
+                                color = AnalyticsUtils.getRankingColor(rank),
                                 shape = RoundedCornerShape(12.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -227,7 +218,7 @@ private fun DriverPerformanceCard(
                 }
                 
                 Text(
-                    text = AnalyticsCalculator.formatCurrency(driver.totalRevenue),
+                    text = AnalyticsUtils.formatCurrency(driver.totalRevenue),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -266,7 +257,7 @@ private fun DriverPerformanceCard(
             ) {
                 StatItem(
                     label = "Avg/Day",
-                    value = AnalyticsCalculator.formatCurrency(driver.averageRevenuePerDay)
+                    value = AnalyticsUtils.formatCurrency(driver.averageRevenuePerDay)
                 )
                 StatItem(
                     label = "Active Days",
@@ -274,7 +265,7 @@ private fun DriverPerformanceCard(
                 )
                 StatItem(
                     label = "Performance",
-                    value = "${(progressPercentage * 100).toInt()}%"
+                    value = AnalyticsUtils.formatWholeNumber(progressPercentage * 100) + "%"
                 )
             }
         }
@@ -350,7 +341,7 @@ private fun DriverSummary(driverPerformance: List<DriverPerformance>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(totalRevenue),
+                        text = AnalyticsUtils.formatCurrency(totalRevenue),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -364,7 +355,7 @@ private fun DriverSummary(driverPerformance: List<DriverPerformance>) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(averageRevenue),
+                        text = AnalyticsUtils.formatCurrency(averageRevenue),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )

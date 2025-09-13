@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.TrendData
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
 import kotlin.math.min
@@ -147,15 +148,15 @@ private fun TrendLegend() {
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         LegendItem(
-            color = Color(0xFF4CAF50),
+            color = AnalyticsUtils.ChartColors.INCOME,
             label = "Income"
         )
         LegendItem(
-            color = Color(0xFFF44336),
+            color = AnalyticsUtils.ChartColors.EXPENSES,
             label = "Expenses"
         )
         LegendItem(
-            color = Color(0xFF2196F3),
+            color = AnalyticsUtils.ChartColors.PROFIT,
             label = "Net Profit"
         )
     }
@@ -224,10 +225,10 @@ private fun DrawScope.drawTrendChart(
     
     val stepX = chartWidth / (data.size - 1).coerceAtLeast(1)
     
-    // Colors
-    val incomeColor = Color(0xFF4CAF50)
-    val expenseColor = Color(0xFFF44336)
-    val profitColor = Color(0xFF2196F3)
+    // REFACTOR: Use standardized chart colors from AnalyticsUtils
+    val incomeColor = AnalyticsUtils.ChartColors.INCOME
+    val expenseColor = AnalyticsUtils.ChartColors.EXPENSES
+    val profitColor = AnalyticsUtils.ChartColors.PROFIT
     
     // Draw income line
     val incomePath = Path()
@@ -359,13 +360,13 @@ private fun TrendSummary(trendData: List<TrendData>) {
             ) {
                 SummaryItem(
                     label = "Total Income",
-                    value = AnalyticsCalculator.formatCurrency(totalIncome),
-                    color = Color(0xFF4CAF50)
+                    value = AnalyticsUtils.formatCurrency(totalIncome),
+                    color = AnalyticsUtils.Colors.SUCCESS
                 )
                 SummaryItem(
                     label = "Total Expenses",
-                    value = AnalyticsCalculator.formatCurrency(totalExpenses),
-                    color = Color(0xFFF44336)
+                    value = AnalyticsUtils.formatCurrency(totalExpenses),
+                    color = AnalyticsUtils.Colors.ERROR
                 )
             }
             
@@ -377,13 +378,13 @@ private fun TrendSummary(trendData: List<TrendData>) {
             ) {
                 SummaryItem(
                     label = "Net Profit",
-                    value = AnalyticsCalculator.formatCurrency(totalProfit),
-                    color = if (totalProfit >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                    value = AnalyticsUtils.formatCurrency(totalProfit),
+                    color = if (totalProfit >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
                 )
                 SummaryItem(
                     label = "Avg Daily Income",
-                    value = AnalyticsCalculator.formatCurrency(averageIncome),
-                    color = Color(0xFF2196F3)
+                    value = AnalyticsUtils.formatCurrency(averageIncome),
+                    color = AnalyticsUtils.Colors.INFO
                 )
             }
         }

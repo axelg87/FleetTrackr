@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.MonthlyComparison
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import kotlin.math.abs
 
 /**
@@ -95,11 +96,7 @@ fun MonthlyComparisonCard(
 
 @Composable
 private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
-    val growthColor = when {
-        monthlyComparison.growthPercentage > 0 -> Color(0xFF4CAF50) // Green for positive growth
-        monthlyComparison.growthPercentage < 0 -> Color(0xFFF44336) // Red for negative growth
-        else -> Color(0xFF607D8B) // Gray for no change
-    }
+    val growthColor = AnalyticsUtils.getGrowthColor(monthlyComparison.growthPercentage)
     
     val growthIcon = when {
         monthlyComparison.growthPercentage > 5 -> Icons.Default.TrendingUp
@@ -136,7 +133,7 @@ private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "${if (monthlyComparison.growthPercentage > 0) "+" else ""}${String.format("%.1f", monthlyComparison.growthPercentage)}%",
+                        text = "${if (monthlyComparison.growthPercentage > 0) "+" else ""}${AnalyticsUtils.formatDecimal(monthlyComparison.growthPercentage)}%",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = growthColor
@@ -146,7 +143,7 @@ private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = getGrowthDescription(monthlyComparison.growthPercentage),
+                    text = AnalyticsUtils.getGrowthDescription(monthlyComparison.growthPercentage),
                     style = MaterialTheme.typography.bodyMedium,
                     color = growthColor,
                     modifier = Modifier.fillMaxWidth()
@@ -160,7 +157,7 @@ private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "${if (monthlyComparison.growthAmount > 0) "+" else ""}${AnalyticsCalculator.formatCurrency(monthlyComparison.growthAmount)}",
+                        text = "${if (monthlyComparison.growthAmount > 0) "+" else ""}${AnalyticsUtils.formatCurrency(monthlyComparison.growthAmount)}",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = growthColor
@@ -242,7 +239,7 @@ private fun MonthCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = AnalyticsCalculator.formatCurrency(amount),
+                text = AnalyticsUtils.formatCurrency(amount),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (isPrimary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -413,19 +410,7 @@ private fun EmptyMonthlyComparisonState() {
     }
 }
 
-private fun getGrowthDescription(growthPercentage: Double): String {
-    return when {
-        growthPercentage > 20 -> "Exceptional growth this month!"
-        growthPercentage > 10 -> "Strong performance improvement"
-        growthPercentage > 5 -> "Steady growth trend"
-        growthPercentage > 0 -> "Slight improvement"
-        growthPercentage == 0.0 -> "Performance unchanged"
-        growthPercentage > -5 -> "Minor decline"
-        growthPercentage > -10 -> "Noticeable decrease"
-        growthPercentage > -20 -> "Significant decline"
-        else -> "Major performance drop"
-    }
-}
+// REFACTOR: getGrowthDescription moved to AnalyticsUtils.getGrowthDescription
 
 private fun generateMonthlyInsight(monthlyComparison: MonthlyComparison): String {
     val absGrowth = abs(monthlyComparison.growthPercentage)

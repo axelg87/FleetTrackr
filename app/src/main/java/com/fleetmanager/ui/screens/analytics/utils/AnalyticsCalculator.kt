@@ -31,10 +31,10 @@ object AnalyticsCalculator {
         endDate: LocalDate
     ): List<TrendData> {
         val entriesByDate = entries.groupBy { 
-            it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            AnalyticsUtils.dateToLocalDate(it.date)
         }
         val expensesByDate = expenses.groupBy { 
-            it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            AnalyticsUtils.dateToLocalDate(it.date)
         }
 
         val trendData = mutableListOf<TrendData>()
@@ -70,7 +70,7 @@ object AnalyticsCalculator {
             .map { (driverName, driverEntries) ->
                 val totalRevenue = driverEntries.sumOf { it.totalEarnings }
                 val uniqueDates = driverEntries.map { 
-                    it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    AnalyticsUtils.dateToLocalDate(it.date)
                 }.toSet()
                 val activeDays = uniqueDates.size
                 val averageRevenuePerDay = if (activeDays > 0) totalRevenue / activeDays else 0.0
@@ -121,14 +121,14 @@ object AnalyticsCalculator {
      */
     fun calculateDayOfWeekAnalysis(entries: List<DailyEntry>): List<DayOfWeekAnalysis> {
         val entriesByDayOfWeek = entries.groupBy { 
-            it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().dayOfWeek
+            AnalyticsUtils.dateToLocalDate(it.date).dayOfWeek
         }
 
         return DayOfWeek.values().map { dayOfWeek ->
             val dayEntries = entriesByDayOfWeek[dayOfWeek] ?: emptyList()
             val totalIncome = dayEntries.sumOf { it.totalEarnings }
             val uniqueDates = dayEntries.map { 
-                it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                AnalyticsUtils.dateToLocalDate(it.date)
             }.toSet().size
             val averageIncome = if (uniqueDates > 0) totalIncome / uniqueDates else 0.0
 
@@ -177,7 +177,7 @@ object AnalyticsCalculator {
         
         // Check income anomalies
         val incomeByDate = entries.groupBy { 
-            it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            AnalyticsUtils.dateToLocalDate(it.date)
         }.mapValues { (_, entries) -> entries.sumOf { it.totalEarnings } }
         
         incomeByDate.forEach { (date, income) ->
@@ -213,7 +213,7 @@ object AnalyticsCalculator {
         
         // Check expense anomalies
         val expensesByDate = expenses.groupBy { 
-            it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            AnalyticsUtils.dateToLocalDate(it.date)
         }.mapValues { (_, expenses) -> expenses.sumOf { it.amount } }
         
         expensesByDate.forEach { (date, expenseTotal) ->
@@ -297,22 +297,15 @@ object AnalyticsCalculator {
     }
 
     /**
-     * Format currency values consistently
+     * REFACTOR: Formatting functions moved to AnalyticsUtils for better organization
+     * These are kept as delegates for backward compatibility during refactor
      */
-    fun formatCurrency(amount: Double): String {
-        return "AED ${String.format("%.2f", amount)}"
-    }
-
-    /**
-     * Format percentage values
-     */
-    fun formatPercentage(percentage: Double): String {
-        return "${String.format("%.1f", percentage)}%"
-    }
+    fun formatCurrency(amount: Double): String = AnalyticsUtils.formatCurrency(amount)
+    fun formatPercentage(percentage: Double): String = AnalyticsUtils.formatPercentage(percentage)
 
     private fun calculateAverageIncome(entries: List<DailyEntry>): Double {
         val incomeByDate = entries.groupBy { 
-            it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            AnalyticsUtils.dateToLocalDate(it.date)
         }.mapValues { (_, entries) -> entries.sumOf { it.totalEarnings } }
         
         return if (incomeByDate.isNotEmpty()) {
@@ -322,7 +315,7 @@ object AnalyticsCalculator {
 
     private fun calculateAverageExpenses(expenses: List<Expense>): Double {
         val expensesByDate = expenses.groupBy { 
-            it.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            AnalyticsUtils.dateToLocalDate(it.date)
         }.mapValues { (_, expenses) -> expenses.sumOf { it.amount } }
         
         return if (expensesByDate.isNotEmpty()) {

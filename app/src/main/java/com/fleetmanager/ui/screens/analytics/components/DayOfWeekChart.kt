@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.DayOfWeekAnalysis
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
@@ -153,7 +154,7 @@ private fun DayOfWeekBar(
         label = "day_progress"
     )
     
-    val dayColor = getDayColor(dayData.dayOfWeek)
+    val dayColor = AnalyticsUtils.getDayOfWeekColor(dayData.dayOfWeek)
     
     Column {
         Row(
@@ -162,7 +163,7 @@ private fun DayOfWeekBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = dayData.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                text = AnalyticsUtils.getDayDisplayName(dayData.dayOfWeek),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(0.3f)
@@ -196,7 +197,7 @@ private fun DayOfWeekBar(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = AnalyticsCalculator.formatCurrency(dayData.averageIncome),
+                        text = AnalyticsUtils.formatCurrency(dayData.averageIncome),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -205,7 +206,7 @@ private fun DayOfWeekBar(
             }
             
             Text(
-                text = "${(progressPercentage * 100).toInt()}%",
+                text = AnalyticsUtils.formatWholeNumber(progressPercentage * 100) + "%",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color = dayColor,
@@ -228,11 +229,11 @@ private fun DayOfWeekBar(
                 )
                 DetailItem(
                     label = "Total Income",
-                    value = AnalyticsCalculator.formatCurrency(dayData.totalIncome)
+                    value = AnalyticsUtils.formatCurrency(dayData.totalIncome)
                 )
                 DetailItem(
                     label = "Performance",
-                    value = getPerformanceLevel(dayData.averageIncome)
+                    value = AnalyticsUtils.getPerformanceLevel(dayData.averageIncome)
                 )
             }
         }
@@ -302,13 +303,13 @@ private fun DayOfWeekInsights(dayOfWeekAnalysis: List<DayOfWeekAnalysis>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = bestDay.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                            text = AnalyticsUtils.getDayDisplayName(bestDay.dayOfWeek),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4CAF50)
+                            color = AnalyticsUtils.Colors.SUCCESS
                         )
                         Text(
-                            text = AnalyticsCalculator.formatCurrency(bestDay.averageIncome),
+                            text = AnalyticsUtils.formatCurrency(bestDay.averageIncome),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -321,13 +322,13 @@ private fun DayOfWeekInsights(dayOfWeekAnalysis: List<DayOfWeekAnalysis>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = worstDay.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                            text = AnalyticsUtils.getDayDisplayName(worstDay.dayOfWeek),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF44336)
+                            color = AnalyticsUtils.Colors.ERROR
                         )
                         Text(
-                            text = AnalyticsCalculator.formatCurrency(worstDay.averageIncome),
+                            text = AnalyticsUtils.formatCurrency(worstDay.averageIncome),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -348,7 +349,7 @@ private fun DayOfWeekInsights(dayOfWeekAnalysis: List<DayOfWeekAnalysis>) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = AnalyticsCalculator.formatCurrency(weekendAverage),
+                                text = AnalyticsUtils.formatCurrency(weekendAverage),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -361,7 +362,7 @@ private fun DayOfWeekInsights(dayOfWeekAnalysis: List<DayOfWeekAnalysis>) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = AnalyticsCalculator.formatCurrency(weekdayAverage),
+                                text = AnalyticsUtils.formatCurrency(weekdayAverage),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -377,10 +378,10 @@ private fun DayOfWeekInsights(dayOfWeekAnalysis: List<DayOfWeekAnalysis>) {
                                 ((weekendAverage - weekdayAverage) / weekdayAverage) * 100
                             } else 0.0
                             Text(
-                                text = "${if (comparison > 0) "+" else ""}${String.format("%.1f", comparison)}%",
+                                text = "${if (comparison > 0) "+" else ""}${AnalyticsUtils.formatDecimal(comparison)}%",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (comparison > 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                                color = if (comparison > 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
                             )
                         }
                     }
@@ -430,27 +431,7 @@ private fun EmptyDayOfWeekState() {
     }
 }
 
-private fun getDayColor(dayOfWeek: DayOfWeek): Color {
-    return when (dayOfWeek) {
-        DayOfWeek.MONDAY -> Color(0xFF2196F3)
-        DayOfWeek.TUESDAY -> Color(0xFF4CAF50)
-        DayOfWeek.WEDNESDAY -> Color(0xFFFF9800)
-        DayOfWeek.THURSDAY -> Color(0xFF9C27B0)
-        DayOfWeek.FRIDAY -> Color(0xFFF44336)
-        DayOfWeek.SATURDAY -> Color(0xFF607D8B)
-        DayOfWeek.SUNDAY -> Color(0xFF795548)
-    }
-}
-
-private fun getPerformanceLevel(averageIncome: Double): String {
-    return when {
-        averageIncome >= 300 -> "Excellent"
-        averageIncome >= 200 -> "Good"
-        averageIncome >= 100 -> "Average"
-        averageIncome > 0 -> "Below Avg"
-        else -> "No Data"
-    }
-}
+// REFACTOR: getDayColor and getPerformanceLevel moved to AnalyticsUtils
 
 private fun generateInsightText(dayOfWeekAnalysis: List<DayOfWeekAnalysis>): String {
     val bestDay = dayOfWeekAnalysis.maxByOrNull { it.averageIncome }
@@ -464,8 +445,8 @@ private fun generateInsightText(dayOfWeekAnalysis: List<DayOfWeekAnalysis>): Str
     } else 100.0
     
     return when {
-        percentageDiff > 50 -> "${bestDay.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())} significantly outperforms other days. Consider focusing marketing efforts on high-performing days."
-        percentageDiff > 25 -> "There's a notable difference between your best and worst performing days. Analyze what makes ${bestDay.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())} successful."
+        percentageDiff > 50 -> "${AnalyticsUtils.getDayDisplayName(bestDay.dayOfWeek)} significantly outperforms other days. Consider focusing marketing efforts on high-performing days."
+        percentageDiff > 25 -> "There's a notable difference between your best and worst performing days. Analyze what makes ${AnalyticsUtils.getDayDisplayName(bestDay.dayOfWeek, TextStyle.SHORT)} successful."
         percentageDiff > 10 -> "Your income is fairly consistent across the week with slight variations."
         else -> "Very consistent performance across all days of the week."
     }
