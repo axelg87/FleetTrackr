@@ -4,11 +4,10 @@ import android.net.Uri
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
-import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
-import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
+import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
-import com.fleetmanager.domain.usecase.SaveDriverUseCase
-import com.fleetmanager.domain.usecase.SaveVehicleUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,7 +16,7 @@ import java.util.*
 import javax.inject.Inject
 
 data class AddEntryUiState(
-    val drivers: List<Driver> = emptyList(),
+    val driverUsers: List<UserDto> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val selectedDriver: Driver? = null,
     val selectedVehicle: Vehicle? = null,
@@ -55,82 +54,53 @@ data class AddEntryUiState(
                 yangoEarningsError != null || 
                 privateJobsEarningsError != null || 
                 notesError != null
+    
+    // Driver names from Firestore only
+    val allDriverNames: List<String>
+        get() = driverUsers.map { it.name }.sorted()
+    
+    // Vehicle names from Firestore only
+    val allVehicleNames: List<String>
+        get() = vehicles.map { it.displayName }.sorted()
 }
 
 @HiltViewModel
 class AddEntryViewModel @Inject constructor(
-    private val getActiveDriversUseCase: GetActiveDriversUseCase,
-    private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
+    private val userFirestoreService: UserFirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService,
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
-    private val saveDriverUseCase: SaveDriverUseCase,
-    private val saveVehicleUseCase: SaveVehicleUseCase,
     private val validator: InputValidator
 ) : BaseViewModel<AddEntryUiState>() {
     
-    override fun getInitialState() = AddEntryUiState(
-        drivers = getSampleDrivers(),
-        vehicles = getSampleVehicles()
-    )
+    override fun getInitialState() = AddEntryUiState()
     
     init {
-        loadInitialData()
+        loadFirestoreData()
     }
     
-    private fun getSampleDrivers(): List<Driver> {
-        return listOf(
-            Driver("sample_driver_1", "", "Usman"),
-            Driver("sample_driver_2", "", "Ahmed"),
-            Driver("sample_driver_3", "", "Rashid")
-        )
-    }
     
-    private fun getSampleVehicles(): List<Vehicle> {
-        return listOf(
-            Vehicle("sample_vehicle_1", "", "Mitsubishi", "Outlander 1", 2020, "ABC-123"),
-            Vehicle("sample_vehicle_2", "", "Mitsubishi", "Outlander 2", 2021, "XYZ-789"),
-            Vehicle("sample_vehicle_3", "", "Mitsubishi", "Outlander 3", 2022, "DEF-456")
-        )
-    }
-    
-    private fun loadInitialData() {
-        executeAsync {
-            // Load drivers from database and merge with sample data
-            getActiveDriversUseCase()
-                .catch { }
-                .collect { dbDrivers ->
-                    val allDrivers = (getSampleDrivers() + dbDrivers).distinctBy { it.name }
-                    updateState { it.copy(drivers = allDrivers) }
+    private fun loadFirestoreData() {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(errorMessage = "Failed to load data: $error") }
+            }
+        ) {
+            combine(
+                userFirestoreService.getDriverUsersFlow(),
+                vehicleFirestoreService.getVehiclesFlow()
+            ) { driverUsers, vehicles ->
+                Pair(driverUsers, vehicles)
+            }.collect { (driverUsers, vehicles) ->
+                updateState { currentState ->
+                    currentState.copy(
+                        driverUsers = driverUsers,
+                        vehicles = vehicles
+                    )
                 }
-        }
-        
-        executeAsync {
-            // Load vehicles from database and merge with sample data
-            getActiveVehiclesUseCase()
-                .catch { }
-                .collect { dbVehicles ->
-                    val allVehicles = (getSampleVehicles() + dbVehicles).distinctBy { it.displayName }
-                    updateState { it.copy(vehicles = allVehicles) }
-                }
+            }
         }
     }
     
-    private suspend fun addSampleData() {
-        // Add some sample drivers and vehicles for demo
-        val sampleDrivers = listOf(
-            Driver("driver_1", "", "John Smith"),
-            Driver("driver_2", "", "Maria Garcia"),
-            Driver("driver_3", "", "Ahmed Hassan")
-        )
-        
-        val sampleVehicles = listOf(
-            Vehicle("vehicle_1", "", "Toyota", "Camry", 2020, "ABC-123"),
-            Vehicle("vehicle_2", "", "Honda", "Accord", 2019, "XYZ-789"),
-            Vehicle("vehicle_3", "", "Hyundai", "Elantra", 2021, "DEF-456")
-        )
-        
-        sampleDrivers.forEach { saveDriverUseCase(it) }
-        sampleVehicles.forEach { saveVehicleUseCase(it) }
-    }
     
     fun selectDriver(driver: Driver) {
         updateState { it.copy(selectedDriver = driver, driverInput = driver.name) }
@@ -144,7 +114,7 @@ class AddEntryViewModel @Inject constructor(
         updateState { 
             it.copy(
                 driverInput = input,
-                selectedDriver = it.drivers.find { driver -> driver.name == input }
+                selectedDriver = null // We no longer maintain selectedDriver state
             ) 
         }
     }

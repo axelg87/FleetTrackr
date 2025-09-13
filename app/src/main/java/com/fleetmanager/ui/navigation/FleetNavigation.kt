@@ -27,6 +27,11 @@ import com.fleetmanager.ui.screens.entry.EntryListScreen
 import com.fleetmanager.ui.screens.entry.NewExpenseEntryScreen
 import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
+import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.ui.viewmodel.NavigationViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 sealed class Screen(val route: String) {
     object SignIn : Screen("sign_in")
@@ -47,12 +52,21 @@ data class BottomNavItem(
     val icon: ImageVector
 )
 
-val bottomNavItems = listOf(
+val allBottomNavItems = listOf(
     BottomNavItem(Screen.Dashboard, "Dashboard", Icons.Default.Dashboard),
     BottomNavItem(Screen.History, "History", Icons.Default.History),
     BottomNavItem(Screen.Reports, "Reports", Icons.Default.Assessment),
     BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings)
 )
+
+fun getBottomNavItemsForRole(userRole: UserRole): List<BottomNavItem> {
+    return allBottomNavItems.filter { navItem ->
+        when (navItem.screen) {
+            Screen.Reports -> PermissionManager.canAccessReports(userRole)
+            else -> true // Dashboard, History, Settings are available to all roles
+        }
+    }
+}
 
 
 @Composable
@@ -79,11 +93,18 @@ fun MainScreenWithBottomNav(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
+    // Create a ViewModel to get user role
+    val navigationViewModel: NavigationViewModel = hiltViewModel()
+    val userRole by navigationViewModel.userRole.collectAsState()
+    
+    val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
+    
     Scaffold(
         bottomBar = {
-            if (shouldShowBottomNav(currentRoute)) {
+            if (shouldShowBottomNav(currentRoute, bottomNavItems)) {
                 BottomNavigationBar(
                     currentRoute = currentRoute,
+                    bottomNavItems = bottomNavItems,
                     onNavigate = { route ->
                         navigateToBottomNavDestination(navController, route)
                     }
@@ -102,6 +123,7 @@ fun MainScreenWithBottomNav(
 @Composable
 private fun BottomNavigationBar(
     currentRoute: String?,
+    bottomNavItems: List<BottomNavItem>,
     onNavigate: (String) -> Unit
 ) {
     NavigationBar {
@@ -121,7 +143,7 @@ private fun BottomNavigationBar(
     }
 }
 
-private fun shouldShowBottomNav(currentRoute: String?): Boolean {
+private fun shouldShowBottomNav(currentRoute: String?, bottomNavItems: List<BottomNavItem>): Boolean {
     return currentRoute in bottomNavItems.map { it.screen.route }
 }
 

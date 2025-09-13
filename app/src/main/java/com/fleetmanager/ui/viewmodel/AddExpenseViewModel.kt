@@ -3,13 +3,14 @@ package com.fleetmanager.ui.viewmodel
 import android.net.Uri
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.ExpenseType
+import com.fleetmanager.domain.model.ExpenseTypeItem
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
-import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
-import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
+import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
+import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.usecase.SaveExpenseUseCase
-import com.fleetmanager.domain.usecase.SaveDriverUseCase
-import com.fleetmanager.domain.usecase.SaveVehicleUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -18,8 +19,9 @@ import java.util.*
 import javax.inject.Inject
 
 data class AddExpenseUiState(
-    val drivers: List<Driver> = emptyList(),
+    val driverUsers: List<UserDto> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
+    val expenseTypes: List<ExpenseTypeItem> = emptyList(),
     val selectedDriver: Driver? = null,
     val selectedVehicle: Vehicle? = null,
     val driverInput: String = "",
@@ -50,62 +52,57 @@ data class AddExpenseUiState(
     
     val hasValidationErrors: Boolean
         get() = amountError != null || notesError != null
+    
+    // Driver names from Firestore only
+    val allDriverNames: List<String>
+        get() = driverUsers.map { it.name }.sorted()
+    
+    // Vehicle names from Firestore only
+    val allVehicleNames: List<String>
+        get() = vehicles.map { it.displayName }.sorted()
+    
+    // Expense types from Firestore only
+    val allExpenseTypes: List<String>
+        get() = expenseTypes.map { it.displayName }.sorted()
 }
 
 @HiltViewModel
 class AddExpenseViewModel @Inject constructor(
-    private val getActiveDriversUseCase: GetActiveDriversUseCase,
-    private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
+    private val userFirestoreService: UserFirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService,
+    private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val saveExpenseUseCase: SaveExpenseUseCase,
-    private val saveDriverUseCase: SaveDriverUseCase,
-    private val saveVehicleUseCase: SaveVehicleUseCase,
     private val validator: InputValidator
 ) : BaseViewModel<AddExpenseUiState>() {
     
-    override fun getInitialState() = AddExpenseUiState(
-        drivers = getSampleDrivers(),
-        vehicles = getSampleVehicles()
-    )
+    override fun getInitialState() = AddExpenseUiState()
     
     init {
-        loadInitialData()
+        loadFirestoreData()
     }
     
-    private fun getSampleDrivers(): List<Driver> {
-        return listOf(
-            Driver("sample_driver_1", "", "Usman"),
-            Driver("sample_driver_2", "", "Ahmed"),
-            Driver("sample_driver_3", "", "Rashid")
-        )
-    }
     
-    private fun getSampleVehicles(): List<Vehicle> {
-        return listOf(
-            Vehicle("sample_vehicle_1", "", "Mitsubishi", "Outlander 1", 2020, "ABC-123"),
-            Vehicle("sample_vehicle_2", "", "Mitsubishi", "Outlander 2", 2021, "XYZ-789"),
-            Vehicle("sample_vehicle_3", "", "Mitsubishi", "Outlander 3", 2022, "DEF-456")
-        )
-    }
-    
-    private fun loadInitialData() {
-        executeAsync {
-            // Load drivers from database and merge with sample data
-            getActiveDriversUseCase()
-                .catch { }
-                .collect { dbDrivers ->
-                    val allDrivers = (getSampleDrivers() + dbDrivers).distinctBy { it.name }
-                    updateState { it.copy(drivers = allDrivers) }
+    private fun loadFirestoreData() {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(errorMessage = "Failed to load data: $error") }
+            }
+        ) {
+            combine(
+                userFirestoreService.getDriverUsersFlow(),
+                vehicleFirestoreService.getVehiclesFlow(),
+                expenseTypeFirestoreService.getExpenseTypesFlow()
+            ) { driverUsers, vehicles, expenseTypes ->
+                Triple(driverUsers, vehicles, expenseTypes)
+            }.collect { (driverUsers, vehicles, expenseTypes) ->
+                updateState { currentState ->
+                    currentState.copy(
+                        driverUsers = driverUsers,
+                        vehicles = vehicles,
+                        expenseTypes = expenseTypes
+                    )
                 }
-        }
-        
-        executeAsync {
-            // Load vehicles from database and merge with sample data
-            getActiveVehiclesUseCase()
-                .catch { }
-                .collect { dbVehicles ->
-                    val allVehicles = (getSampleVehicles() + dbVehicles).distinctBy { it.displayName }
-                    updateState { it.copy(vehicles = allVehicles) }
-                }
+            }
         }
     }
     
@@ -121,7 +118,7 @@ class AddExpenseViewModel @Inject constructor(
         updateState { 
             it.copy(
                 driverInput = input,
-                selectedDriver = it.drivers.find { driver -> driver.name == input }
+                selectedDriver = null // We no longer maintain selectedDriver state
             ) 
         }
     }

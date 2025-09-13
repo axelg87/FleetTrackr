@@ -24,6 +24,14 @@
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
 
+# Keep Firestore model classes and their constructors
+-keep class com.fleetmanager.domain.model.** { *; }
+-keep class com.fleetmanager.data.dto.** { *; }
+-keepclassmembers class com.fleetmanager.domain.model.** {
+    <init>();
+    <init>(...);
+}
+
 # Keep Hilt generated classes
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
