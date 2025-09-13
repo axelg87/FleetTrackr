@@ -26,7 +26,7 @@ data class AddExpenseUiState(
     val selectedVehicle: Vehicle? = null,
     val driverInput: String = "",
     val vehicleInput: String = "",
-    val selectedExpenseType: ExpenseType = ExpenseType.FUEL,
+    val selectedExpenseType: ExpenseType = ExpenseType.OTHER,
     val date: Date = Date(),
     val amount: String = "",
     val notes: String = "",
@@ -96,10 +96,19 @@ class AddExpenseViewModel @Inject constructor(
                 Triple(driverUsers, vehicles, expenseTypes)
             }.collect { (driverUsers, vehicles, expenseTypes) ->
                 updateState { currentState ->
+                    // If this is the first load and we have expense types, select the first one
+                    val selectedExpenseType = if (currentState.expenseTypes.isEmpty() && expenseTypes.isNotEmpty()) {
+                        // Find the matching ExpenseType enum for the first expense type, or use OTHER as fallback
+                        ExpenseType.values().find { it.displayName == expenseTypes.first().displayName } ?: ExpenseType.OTHER
+                    } else {
+                        currentState.selectedExpenseType
+                    }
+                    
                     currentState.copy(
                         driverUsers = driverUsers,
                         vehicles = vehicles,
-                        expenseTypes = expenseTypes
+                        expenseTypes = expenseTypes,
+                        selectedExpenseType = selectedExpenseType
                     )
                 }
             }
