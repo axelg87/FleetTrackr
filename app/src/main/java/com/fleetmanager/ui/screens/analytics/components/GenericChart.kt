@@ -570,7 +570,7 @@ private fun DrawScope.drawPieChart(
 ) {
     if (data.isEmpty() || totalValue == 0.0) return
     
-    val center = canvasSize.center
+    val center = Offset(canvasSize.width / 2, canvasSize.height / 2)
     val radius = minOf(canvasSize.width, canvasSize.height) / 2 * 0.8f
     
     var startAngle = -90f // Start from top

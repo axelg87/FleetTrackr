@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
@@ -113,13 +114,13 @@ fun AnalyticsMenu(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Panel grid
-                if (selectedCategory != null) {
+                selectedCategory?.let { category ->
                     PanelGrid(
-                        category = selectedCategory,
+                        category = category,
                         selectedPanel = selectedPanel,
                         onPanelSelected = onPanelSelected
                     )
-                } else {
+                } ?: run {
                     AllPanelsOverview(
                         selectedPanel = selectedPanel,
                         onPanelSelected = onPanelSelected

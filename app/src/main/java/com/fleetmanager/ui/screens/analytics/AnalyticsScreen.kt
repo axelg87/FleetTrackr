@@ -12,9 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.time.DayOfWeek
 import com.fleetmanager.ui.screens.analytics.components.*
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsPanel
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsAdapters
+import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 
 /**
  * Analytics Screen with comprehensive analytics features including trends, 
@@ -492,13 +494,13 @@ private fun WeeklyInsightsCard(dayOfWeekAnalysis: List<com.fleetmanager.ui.scree
     val bestDay = dayOfWeekAnalysis.maxByOrNull { it.averageIncome }
     val worstDay = dayOfWeekAnalysis.minByOrNull { it.averageIncome }
     val weekendAverage = dayOfWeekAnalysis.filter { 
-        it.dayOfWeek == java.time.DayOfWeek.SATURDAY || it.dayOfWeek == java.time.DayOfWeek.SUNDAY 
+        it.dayOfWeek == DayOfWeek.SATURDAY || it.dayOfWeek == DayOfWeek.SUNDAY 
     }.takeIf { it.isNotEmpty() }?.let { weekend ->
         weekend.sumOf { it.averageIncome } / weekend.size
     } ?: 0.0
     
     val weekdayAverage = dayOfWeekAnalysis.filter { 
-        it.dayOfWeek !in listOf(java.time.DayOfWeek.SATURDAY, java.time.DayOfWeek.SUNDAY) 
+        it.dayOfWeek !in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) 
     }.takeIf { it.isNotEmpty() }?.let { weekdays ->
         weekdays.sumOf { it.averageIncome } / weekdays.size
     } ?: 0.0
