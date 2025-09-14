@@ -303,4 +303,8 @@ class SettingsViewModel @Inject constructor(
     fun clearImportProgress() {
         updateState { it.copy(importProgress = null) }
     }
+    
+    fun setError(error: String) {
+        updateState { it.copy(error = error) }
+    }
 }

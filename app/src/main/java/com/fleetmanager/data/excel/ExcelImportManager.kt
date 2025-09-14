@@ -99,7 +99,7 @@ class ExcelImportManager @Inject constructor(
             ))
 
             val existingDrivers = firestoreService.getDrivers().map { it.name.lowercase() }.toSet()
-            val existingVehicles = firestoreService.getVehicles().map { it.displayName.lowercase() }.toSet()
+            val existingVehicles = firestoreService.getVehicles().map { "${it.make} ${it.model}".trim().lowercase() }.toSet()
 
             // Step 3: Create missing drivers
             val driversToCreate = importResult.driversToCreate.filter { 
@@ -125,8 +125,8 @@ class ExcelImportManager @Inject constructor(
 
             // Step 4: Create missing vehicles
             val vehiclesToCreate = importResult.vehiclesToCreate.filter { 
-                !existingVehicles.contains(it.displayName.lowercase())
-            }.distinctBy { it.displayName.lowercase() }
+                !existingVehicles.contains("${it.make} ${it.model}".trim().lowercase())
+            }.distinctBy { "${it.make} ${it.model}".trim().lowercase() }
 
             if (vehiclesToCreate.isNotEmpty()) {
                 onProgress(ImportProgress(
@@ -138,9 +138,9 @@ class ExcelImportManager @Inject constructor(
                 vehiclesToCreate.forEach { vehicle ->
                     try {
                         firestoreService.saveVehicle(vehicle)
-                        Log.d(TAG, "Created vehicle: ${vehicle.displayName}")
+                        Log.d(TAG, "Created vehicle: ${vehicle.make} ${vehicle.model}")
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to create vehicle: ${vehicle.displayName}", e)
+                        Log.e(TAG, "Failed to create vehicle: ${vehicle.make} ${vehicle.model}", e)
                     }
                 }
             }
@@ -210,7 +210,3 @@ class ExcelImportManager @Inject constructor(
 private fun PermissionManager.canImportData(userRole: UserRole): Boolean {
     return canEdit(userRole) // Only admins can import
 }
-
-// Extension property for Vehicle display name
-private val Vehicle.displayName: String
-    get() = "$make $model".trim()

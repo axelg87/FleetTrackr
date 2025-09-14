@@ -32,12 +32,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.SettingsViewModel
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.data.excel.ImportProgress
+import com.fleetmanager.ui.utils.rememberExcelFilePicker
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // File picker for Excel import
+    val pickExcelFile = rememberExcelFilePicker(
+        onFileSelected = { uri -> viewModel.importExcelFromUri(uri) },
+        onError = { error -> viewModel.setError(error) }
+    )
 
     LazyColumn(
         modifier = Modifier
@@ -79,7 +86,7 @@ fun SettingsScreen(
                     onAddExpenseType = { name, displayName -> 
                         viewModel.addExpenseType(name, displayName) 
                     },
-                    onImportExcel = { viewModel.importExcelEntries() }
+                    onImportExcel = { pickExcelFile() }
                 )
             }
         }
