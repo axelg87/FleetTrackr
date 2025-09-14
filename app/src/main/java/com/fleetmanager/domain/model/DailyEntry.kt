@@ -34,6 +34,9 @@ data class DailyEntry(
     @get:PropertyName("privateJobsEarnings")
     val privateJobsEarnings: Double = 0.0,
     
+    @get:PropertyName("careemEarnings")
+    val careemEarnings: Double = 0.0,
+    
     @get:PropertyName("notes")
     val notes: String = "",
     
@@ -50,7 +53,7 @@ data class DailyEntry(
     val updatedAt: Date = Date()
 ) {
     val totalEarnings: Double
-        get() = uberEarnings + yangoEarnings + privateJobsEarnings
+        get() = uberEarnings + yangoEarnings + privateJobsEarnings + careemEarnings
 
     fun isValid(): Boolean {
         return id.isNotBlank() &&
@@ -59,9 +62,11 @@ data class DailyEntry(
                 uberEarnings >= 0 &&
                 yangoEarnings >= 0 &&
                 privateJobsEarnings >= 0 &&
+                careemEarnings >= 0 &&
                 uberEarnings <= 999999.99 &&
                 yangoEarnings <= 999999.99 &&
                 privateJobsEarnings <= 999999.99 &&
+                careemEarnings <= 999999.99 &&
                 notes.length <= 5000
     }
     
@@ -74,9 +79,11 @@ data class DailyEntry(
         if (uberEarnings < 0) errors.add("Uber earnings cannot be negative")
         if (yangoEarnings < 0) errors.add("Yango earnings cannot be negative")
         if (privateJobsEarnings < 0) errors.add("Private jobs earnings cannot be negative")
+        if (careemEarnings < 0) errors.add("Careem earnings cannot be negative")
         if (uberEarnings > 999999.99) errors.add("Uber earnings is too large")
         if (yangoEarnings > 999999.99) errors.add("Yango earnings is too large")
         if (privateJobsEarnings > 999999.99) errors.add("Private jobs earnings is too large")
+        if (careemEarnings > 999999.99) errors.add("Careem earnings is too large")
         if (notes.length > 5000) errors.add("Notes too long (max 5000 characters)")
         
         return errors

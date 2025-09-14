@@ -1,10 +1,17 @@
 package com.fleetmanager.ui.viewmodel
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import com.fleetmanager.domain.repository.AuthRepository
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
+import com.fleetmanager.data.excel.ExcelImportManager
+import com.fleetmanager.data.excel.ImportProgress
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.sync.SyncManager
@@ -24,7 +31,9 @@ data class SettingsUiState(
     val error: String? = null,
     val isSignedIn: Boolean = false,
     val message: String? = null,
-    val currentUserRole: UserRole? = null
+    val currentUserRole: UserRole? = null,
+    val isImporting: Boolean = false,
+    val importProgress: ImportProgress? = null
 ) {
     val canSeeAdminControls: Boolean
         get() = currentUserRole?.let { PermissionManager.canSeeAdminControls(it) } ?: false
@@ -36,7 +45,8 @@ class SettingsViewModel @Inject constructor(
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val excelImportManager: ExcelImportManager
 ) : BaseViewModel<SettingsUiState>() {
 
     override fun getInitialState() = SettingsUiState()
@@ -221,5 +231,76 @@ class SettingsViewModel @Inject constructor(
     private fun getCurrentTime(): String {
         return java.text.SimpleDateFormat("MMM dd, HH:mm", java.util.Locale.getDefault())
             .format(java.util.Date())
+    }
+    
+    // Excel Import functionality
+    private var pendingExcelImport: Uri? = null
+    
+    fun importExcelEntries() {
+        val currentRole = _uiState.value.currentUserRole
+        if (currentRole == null || !PermissionManager.canEdit(currentRole)) {
+            updateState { it.copy(error = "You don't have permission to import Excel files") }
+            return
+        }
+        
+        // This would trigger file picker in the UI
+        // For now, we'll show a message that file picker is needed
+        updateState { 
+            it.copy(message = "Please select an Excel file to import. This feature requires file picker integration.") 
+        }
+    }
+    
+    fun importExcelFromUri(uri: Uri) {
+        val currentRole = _uiState.value.currentUserRole
+        if (currentRole == null || !PermissionManager.canEdit(currentRole)) {
+            updateState { it.copy(error = "You don't have permission to import Excel files") }
+            return
+        }
+        
+        executeAsync(
+            onLoading = { isLoading ->
+                updateState { 
+                    it.copy(
+                        isImporting = isLoading,
+                        error = null,
+                        importProgress = if (isLoading) ImportProgress(
+                            currentStep = "Starting import...",
+                            progress = 0
+                        ) else null
+                    ) 
+                }
+            },
+            onError = { error ->
+                updateState { 
+                    it.copy(
+                        isImporting = false,
+                        importProgress = null,
+                        error = "Import failed: $error"
+                    ) 
+                }
+            }
+        ) {
+            val finalProgress = excelImportManager.importExcelEntries(uri) { progress ->
+                updateState { 
+                    it.copy(importProgress = progress) 
+                }
+            }
+            
+            updateState { 
+                it.copy(
+                    isImporting = false,
+                    importProgress = finalProgress,
+                    message = if (finalProgress.errors.isEmpty()) {
+                        "✅ Successfully imported ${finalProgress.processedEntries} entries"
+                    } else {
+                        "⚠️ Import completed with ${finalProgress.errors.size} errors"
+                    }
+                ) 
+            }
+        }
+    }
+    
+    fun clearImportProgress() {
+        updateState { it.copy(importProgress = null) }
     }
 }
