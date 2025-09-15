@@ -70,7 +70,7 @@ fun SplashScreen(
         ) {
             // Company Logo
             Icon(
-                painter = painterResource(id = R.drawable.ic_company_logo),
+                painter = painterResource(id = R.drawable.ag_motion_logo),
                 contentDescription = "AG Motion Logo",
                 modifier = Modifier
                     .size(200.dp)

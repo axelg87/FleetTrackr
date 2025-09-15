@@ -39,7 +39,7 @@ fun ScreenHeader(
         ) {
             if (showLogo) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_company_logo),
+                    painter = painterResource(id = R.drawable.ag_motion_logo),
                     contentDescription = "AG Motion Logo",
                     modifier = Modifier.size(40.dp),
                     tint = androidx.compose.ui.graphics.Color.Unspecified
