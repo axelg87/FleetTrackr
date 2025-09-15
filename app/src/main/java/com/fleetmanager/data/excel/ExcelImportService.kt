@@ -133,7 +133,7 @@ class ExcelImportService @Inject constructor(
             }
 
             // Find column indices from header row
-            val columnMapping = findColumnMapping(allRows[0], errors)
+            val columnMapping = findColumnMapping(allRows[0], errors, warnings)
             Log.d(TAG, "Column mapping result: $columnMapping")
             
             if (columnMapping.isEmpty()) {
@@ -232,7 +232,7 @@ class ExcelImportService @Inject constructor(
         )
     }
 
-    private fun findColumnMapping(headerRow: Array<String>, errors: MutableList<String>): Map<String, Int> {
+    private fun findColumnMapping(headerRow: Array<String>, errors: MutableList<String>, warnings: MutableList<String>): Map<String, Int> {
         val columnMapping = mutableMapOf<String, Int>()
         
         Log.d(TAG, "Smart column detection for headers: ${headerRow.joinToString(", ")}")
