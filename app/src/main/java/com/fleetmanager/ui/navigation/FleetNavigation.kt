@@ -29,6 +29,7 @@ import com.fleetmanager.ui.screens.entry.EntryListScreen
 import com.fleetmanager.ui.screens.entry.NewExpenseEntryScreen
 import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
+import com.fleetmanager.ui.screens.splash.SplashScreen
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
@@ -36,6 +37,7 @@ import com.fleetmanager.ui.viewmodel.NavigationViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 
 sealed class Screen(val route: String) {
+    object Splash : Screen("splash")
     object SignIn : Screen("sign_in")
     object Dashboard : Screen("dashboard")
     object History : Screen("history") // This will be the EntryList screen
@@ -78,15 +80,23 @@ fun AppNavigation(
     navController: NavHostController,
     isSignedIn: Boolean
 ) {
-    if (isSignedIn) {
-        MainScreenWithBottomNav(navController = navController)
-    } else {
-        // Show only the sign-in screen when not authenticated
-        FleetNavigation(
-            navController = navController,
-            startDestination = Screen.SignIn.route,
-            modifier = Modifier
+    var showSplash by remember { mutableStateOf(true) }
+    
+    if (showSplash) {
+        SplashScreen(
+            onSplashComplete = { showSplash = false }
         )
+    } else {
+        if (isSignedIn) {
+            MainScreenWithBottomNav(navController = navController)
+        } else {
+            // Show only the sign-in screen when not authenticated
+            FleetNavigation(
+                navController = navController,
+                startDestination = Screen.SignIn.route,
+                modifier = Modifier
+            )
+        }
     }
 }
 

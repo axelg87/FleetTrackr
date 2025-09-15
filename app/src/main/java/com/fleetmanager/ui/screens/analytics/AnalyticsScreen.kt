@@ -40,6 +40,12 @@ fun AnalyticsScreen(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        // Screen Header
+        com.fleetmanager.ui.components.ScreenHeader(
+            title = "Analytics",
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
         // Time Filter
         TimeFilterRow(
             selectedFilter = timeFilter,
