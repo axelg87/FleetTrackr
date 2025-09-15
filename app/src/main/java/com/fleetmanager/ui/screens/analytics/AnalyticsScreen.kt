@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +32,7 @@ fun AnalyticsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val analyticsData by viewModel.analyticsData.collectAsState()
     val selectedPanel by viewModel.selectedPanel.collectAsState()
+    val timeFilter by viewModel.timeFilter.collectAsState()
     
     Column(
         modifier = Modifier
@@ -38,6 +40,13 @@ fun AnalyticsScreen(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        // Time Filter
+        TimeFilterRow(
+            selectedFilter = timeFilter,
+            onFilterSelected = { filter -> viewModel.setTimeFilter(filter) },
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
         // GENERALIZATION: Analytics menu for panel selection
         AnalyticsMenu(
             selectedPanel = selectedPanel,
@@ -598,6 +607,68 @@ private fun AnalyticsSection(
             }
             
             content()
+        }
+    }
+}
+
+/**
+ * Time filter row component
+ */
+@Composable
+private fun TimeFilterRow(
+    selectedFilter: TimeFilter,
+    onFilterSelected: (TimeFilter) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = "Time Filter",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Time Period",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TimeFilter.values().forEach { filter ->
+                    FilterChip(
+                        selected = selectedFilter == filter,
+                        onClick = { onFilterSelected(filter) },
+                        label = { 
+                            Text(
+                                text = when (filter) {
+                                    TimeFilter.ALL_TIME -> "All Time"
+                                    TimeFilter.LAST_3_MONTHS -> "Last 3 Months"
+                                    TimeFilter.THIS_MONTH -> "This Month"
+                                },
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
     }
 }

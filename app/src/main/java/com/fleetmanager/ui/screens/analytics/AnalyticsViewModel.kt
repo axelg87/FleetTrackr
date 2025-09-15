@@ -20,7 +20,27 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.util.Date
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+
+/**
+ * Time filter options for analytics
+ */
+enum class TimeFilter {
+    ALL_TIME,
+    LAST_3_MONTHS,
+    THIS_MONTH
+}
+
+/**
+ * Data class to hold filtered analytics data
+ */
+data class FilteredData(
+    val entries: List<DailyEntry>,
+    val expenses: List<Expense>,
+    val startDate: LocalDate,
+    val endDate: LocalDate
+)
 
 /**
  * ViewModel for Analytics Screen.
@@ -42,6 +62,9 @@ class AnalyticsViewModel @Inject constructor(
     
     private val _selectedPanel = MutableStateFlow<AnalyticsPanel?>(null)
     val selectedPanel: StateFlow<AnalyticsPanel?> = _selectedPanel.asStateFlow()
+    
+    private val _timeFilter = MutableStateFlow(TimeFilter.LAST_3_MONTHS)
+    val timeFilter: StateFlow<TimeFilter> = _timeFilter.asStateFlow()
     
     init {
         loadEntriesForMonth(_currentMonth.value)
@@ -65,11 +88,16 @@ class AnalyticsViewModel @Inject constructor(
                     .toInstant()
                     .let { Date.from(it) }
                 
-                // Fetch entries for the month
-                fleetRepository.getDailyEntriesByDateRange(startDate, endDate)
-                    .collect { entries ->
+                // Use realtime data source for calendar as well
+                fleetRepository.getAllDailyEntriesRealtime()
+                    .collect { allEntries ->
+                        // Filter entries for the specific month
+                        val monthEntries = allEntries.filter { entry ->
+                            entry.date >= startDate && entry.date <= endDate
+                        }
+                        
                         // Group entries by date for easy calendar lookup
-                        val entriesData = entries.groupBy { entry ->
+                        val entriesData = monthEntries.groupBy { entry ->
                             AnalyticsUtils.dateToLocalDate(entry.date)
                         }
                         
@@ -95,34 +123,30 @@ class AnalyticsViewModel @Inject constructor(
     }
     
     /**
-     * Load comprehensive analytics data
+     * Load comprehensive analytics data with realtime updates
      */
     private fun loadAnalyticsData() {
         viewModelScope.launch {
             _analyticsData.value = _analyticsData.value.copy(isLoading = true)
             
             try {
-                // Calculate date ranges
-                val currentDate = LocalDate.now()
-                val startDate = currentDate.minusDays(90) // Last 90 days
-                val endDate = currentDate
-                
-                val startDateAsDate = Date.from(startDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
-                val endDateAsDate = Date.from(endDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
-                
-                // Fetch data from repository
+                // Use realtime data sources like dashboard
                 combine(
-                    fleetRepository.getDailyEntriesByDateRange(startDateAsDate, endDateAsDate),
-                    fleetRepository.getExpensesByDateRange(startDateAsDate, endDateAsDate)
-                ) { entries, expenses ->
-                    Pair(entries, expenses)
-                }.collect { (entries, expenses) ->
+                    fleetRepository.getAllDailyEntriesRealtime(),
+                    fleetRepository.getAllExpensesRealtime(),
+                    _timeFilter
+                ) { entries, expenses, timeFilter ->
+                    Triple(entries, expenses, timeFilter)
+                }.collect { (allEntries, allExpenses, timeFilter) ->
+                    
+                    // Filter data based on selected time filter
+                    val (filteredEntries, filteredExpenses, startDate, endDate) = filterDataByTimeRange(allEntries, allExpenses, timeFilter)
                     
                     // If no data available, use mock data for demonstration
-                    val analyticsData = if (entries.isEmpty() && expenses.isEmpty()) {
+                    val analyticsData = if (filteredEntries.isEmpty() && filteredExpenses.isEmpty()) {
                         MockDataProvider.generateMockAnalyticsData()
                     } else {
-                        calculateAnalyticsData(entries, expenses, startDate, endDate)
+                        calculateAnalyticsData(filteredEntries, filteredExpenses, startDate, endDate)
                     }
                     
                     _analyticsData.value = analyticsData.copy(
@@ -138,6 +162,40 @@ class AnalyticsViewModel @Inject constructor(
                 )
             }
         }
+    }
+    
+    /**
+     * Filter data based on selected time filter
+     */
+    private fun filterDataByTimeRange(
+        entries: List<DailyEntry>,
+        expenses: List<Expense>,
+        timeFilter: TimeFilter
+    ): FilteredData {
+        val currentDate = LocalDate.now()
+        val (startDate, endDate) = when (timeFilter) {
+            TimeFilter.ALL_TIME -> {
+                // For all time, use earliest entry date or 1 year ago as fallback
+                val earliestDate = entries.minByOrNull { it.date }?.let { 
+                    AnalyticsUtils.dateToLocalDate(it.date) 
+                } ?: currentDate.minusYears(1)
+                earliestDate to currentDate
+            }
+            TimeFilter.LAST_3_MONTHS -> {
+                currentDate.minusMonths(3) to currentDate
+            }
+            TimeFilter.THIS_MONTH -> {
+                currentDate.withDayOfMonth(1) to currentDate
+            }
+        }
+        
+        val startDateAsDate = Date.from(startDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+        val endDateAsDate = Date.from(endDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant())
+        
+        val filteredEntries = entries.filter { it.date >= startDateAsDate && it.date <= endDateAsDate }
+        val filteredExpenses = expenses.filter { it.date >= startDateAsDate && it.date <= endDateAsDate }
+        
+        return FilteredData(filteredEntries, filteredExpenses, startDate, endDate)
     }
     
     /**
@@ -234,6 +292,13 @@ class AnalyticsViewModel @Inject constructor(
     
     fun isShowingAllPanels(): Boolean {
         return _selectedPanel.value == null
+    }
+    
+    /**
+     * Change time filter for analytics data
+     */
+    fun setTimeFilter(filter: TimeFilter) {
+        _timeFilter.value = filter
     }
     
     /**
