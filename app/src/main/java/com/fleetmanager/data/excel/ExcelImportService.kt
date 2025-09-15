@@ -39,14 +39,52 @@ class ExcelImportService @Inject constructor(
     companion object {
         private const val TAG = "ExcelImportService"
         
-        // Expected column names (case-insensitive)
-        private val DATE_COLUMNS = listOf("date", "fecha", "تاريخ")
-        private val CAREEM_COLUMNS = listOf("careem", "كريم")
-        private val UBER_COLUMNS = listOf("uber", "اوبر")
-        private val YANGO_COLUMNS = listOf("yango", "يانجو")
-        private val PRIVATE_COLUMNS = listOf("private", "خاص", "private jobs", "private job")
-        private val DRIVER_COLUMNS = listOf("driver", "سائق", "conductor")
-        private val VEHICLE_COLUMNS = listOf("vehicle", "car", "مركبة", "سيارة", "vehiculo")
+        // Expected column names (case-insensitive) - much more flexible
+        private val DATE_COLUMNS = listOf(
+            "date", "fecha", "تاريخ", "datum", "data", "tanggal", "날짜",
+            // Common variations
+            "date_", "date ", " date", "date-", "date/", "date:",
+            "day", "jour", "dia", "giorno", "tag", "hari"
+        )
+        private val CAREEM_COLUMNS = listOf(
+            "careem", "كريم", "cream", "kareem", "carim", "cariem",
+            // Common variations and misspellings
+            "careem_", "careem ", " careem", "careem-", "careem:",
+            "careem earnings", "careem_earnings", "careemearnings"
+        )
+        private val UBER_COLUMNS = listOf(
+            "uber", "اوبر", "ober", "ubr", "ubar",
+            // Common variations
+            "uber_", "uber ", " uber", "uber-", "uber:",
+            "uber earnings", "uber_earnings", "uberearnings"
+        )
+        private val YANGO_COLUMNS = listOf(
+            "yango", "يانجو", "yango_", "yango ", " yango", "yango-", "yango:",
+            "yango earnings", "yango_earnings", "yangoearnings"
+        )
+        private val PRIVATE_COLUMNS = listOf(
+            "private", "خاص", "private jobs", "private job", "private_jobs", "private_job",
+            "privado", "privé", "privat", "pribadi", "개인", "私人",
+            // Common variations
+            "private_", "private ", " private", "private-", "private:",
+            "private earnings", "private_earnings", "privateearnings",
+            "personal", "own", "individual", "freelance"
+        )
+        private val DRIVER_COLUMNS = listOf(
+            "driver", "سائق", "conductor", "chauffeur", "fahrer", "supir", "운전자", "司机",
+            // Common variations
+            "driver_", "driver ", " driver", "driver-", "driver:",
+            "driver name", "driver_name", "drivername", "name", "full name", "fullname",
+            "employee", "person", "worker", "staff"
+        )
+        private val VEHICLE_COLUMNS = listOf(
+            "vehicle", "car", "مركبة", "سيارة", "vehiculo", "voiture", "fahrzeug", "kendaraan", "차량", "车辆",
+            // Common variations
+            "vehicle_", "vehicle ", " vehicle", "vehicle-", "vehicle:",
+            "car_", "car ", " car", "car-", "car:",
+            "auto", "automobile", "coche", "voiture", "wagen", "mobil",
+            "vehicle name", "vehicle_name", "vehiclename", "car name", "car_name", "carname"
+        )
     }
 
     /**
@@ -196,43 +234,76 @@ class ExcelImportService @Inject constructor(
 
     private fun findColumnMapping(headerRow: Array<String>, errors: MutableList<String>): Map<String, Int> {
         val columnMapping = mutableMapOf<String, Int>()
+        
+        Log.d(TAG, "Smart column detection for headers: ${headerRow.joinToString(", ")}")
 
         for (cellIndex in headerRow.indices) {
             val headerValue = headerRow[cellIndex].lowercase().trim()
+            Log.d(TAG, "Analyzing header[$cellIndex]: '$headerValue'")
 
             when {
-                DATE_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
+                // Smart matching - check if header contains any of the expected terms
+                DATE_COLUMNS.any { headerValue.contains(it.lowercase()) || it.lowercase().contains(headerValue) } -> {
                     columnMapping["date"] = cellIndex
-                CAREEM_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
+                    Log.d(TAG, "  -> Mapped as DATE column")
+                }
+                CAREEM_COLUMNS.any { headerValue.contains(it.lowercase()) || it.lowercase().contains(headerValue) } -> {
                     columnMapping["careem"] = cellIndex
-                UBER_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
+                    Log.d(TAG, "  -> Mapped as CAREEM column")
+                }
+                UBER_COLUMNS.any { headerValue.contains(it.lowercase()) || it.lowercase().contains(headerValue) } -> {
                     columnMapping["uber"] = cellIndex
-                YANGO_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
+                    Log.d(TAG, "  -> Mapped as UBER column")
+                }
+                YANGO_COLUMNS.any { headerValue.contains(it.lowercase()) || it.lowercase().contains(headerValue) } -> {
                     columnMapping["yango"] = cellIndex
-                PRIVATE_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
+                    Log.d(TAG, "  -> Mapped as YANGO column")
+                }
+                PRIVATE_COLUMNS.any { headerValue.contains(it.lowercase()) || it.lowercase().contains(headerValue) } -> {
                     columnMapping["private"] = cellIndex
-                DRIVER_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
+                    Log.d(TAG, "  -> Mapped as PRIVATE column")
+                }
+                DRIVER_COLUMNS.any { headerValue.contains(it.lowercase()) || it.lowercase().contains(headerValue) } -> {
                     columnMapping["driver"] = cellIndex
-                VEHICLE_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
+                    Log.d(TAG, "  -> Mapped as DRIVER column")
+                }
+                VEHICLE_COLUMNS.any { headerValue.contains(it.lowercase()) || it.lowercase().contains(headerValue) } -> {
                     columnMapping["vehicle"] = cellIndex
+                    Log.d(TAG, "  -> Mapped as VEHICLE column")
+                }
+                else -> {
+                    Log.d(TAG, "  -> No mapping found for '$headerValue'")
+                }
             }
         }
 
-        // Validate required columns
-        val requiredColumns = listOf("date", "driver", "vehicle")
-        val missingColumns = requiredColumns.filter { !columnMapping.containsKey(it) }
-        if (missingColumns.isNotEmpty()) {
-            val errorMsg = "Missing required columns: ${missingColumns.joinToString(", ")}"
+        Log.d(TAG, "Final column mapping: $columnMapping")
+        
+        // Smart validation - be more flexible about requirements
+        val criticalColumns = listOf("date")  // Only date is absolutely critical
+        val missingCritical = criticalColumns.filter { !columnMapping.containsKey(it) }
+        
+        if (missingCritical.isNotEmpty()) {
+            val errorMsg = "Missing critical columns: ${missingCritical.joinToString(", ")}"
             Log.e(TAG, "$errorMsg. Available columns: ${headerRow.joinToString(", ")}")
-            Log.e(TAG, "Expected column names (case-insensitive):")
-            Log.e(TAG, "  - Date: ${DATE_COLUMNS.joinToString(", ")}")
-            Log.e(TAG, "  - Driver: ${DRIVER_COLUMNS.joinToString(", ")}")
-            Log.e(TAG, "  - Vehicle: ${VEHICLE_COLUMNS.joinToString(", ")}")
-            Log.e(TAG, "  - Optional - Careem: ${CAREEM_COLUMNS.joinToString(", ")}")
-            Log.e(TAG, "  - Optional - Uber: ${UBER_COLUMNS.joinToString(", ")}")
-            Log.e(TAG, "  - Optional - Yango: ${YANGO_COLUMNS.joinToString(", ")}")
-            Log.e(TAG, "  - Optional - Private: ${PRIVATE_COLUMNS.joinToString(", ")}")
             errors.add("$errorMsg. Available: ${headerRow.joinToString(", ")}")
+        }
+        
+        // Warn about missing recommended columns but don't fail
+        val recommendedColumns = listOf("driver", "vehicle")
+        val missingRecommended = recommendedColumns.filter { !columnMapping.containsKey(it) }
+        if (missingRecommended.isNotEmpty()) {
+            val warningMsg = "Missing recommended columns: ${missingRecommended.joinToString(", ")} - will use placeholder values"
+            Log.w(TAG, warningMsg)
+            warnings.add(warningMsg)
+        }
+        
+        // If we have at least one earnings column, we're good
+        val earningsColumns = listOf("careem", "uber", "yango", "private")
+        val hasEarnings = earningsColumns.any { columnMapping.containsKey(it) }
+        if (!hasEarnings) {
+            Log.w(TAG, "No earnings columns found - will use zero values")
+            warnings.add("No earnings columns found - all entries will have zero earnings")
         }
 
         return columnMapping
@@ -284,21 +355,22 @@ class ExcelImportService @Inject constructor(
                 if (colIndex < row.size) row[colIndex].trim() else null
             }
 
-            // Validate required fields
+            // Validate critical fields
             if (date == null) {
                 errors.add("Row $rowNumber: Invalid or missing date")
                 return null
             }
 
-            if (driver.isNullOrBlank()) {
-                errors.add("Row $rowNumber: Missing driver name")
-                return null
-            }
+            // Use placeholder values for missing driver/vehicle instead of failing
+            val finalDriver = if (driver.isNullOrBlank()) {
+                warnings.add("Row $rowNumber: Missing driver name, using 'Unknown Driver'")
+                "Unknown Driver"
+            } else driver
 
-            if (vehicle.isNullOrBlank()) {
-                errors.add("Row $rowNumber: Missing vehicle name")
-                return null
-            }
+            val finalVehicle = if (vehicle.isNullOrBlank()) {
+                warnings.add("Row $rowNumber: Missing vehicle name, using 'Unknown Vehicle'")
+                "Unknown Vehicle"
+            } else vehicle
 
             // Check if all earnings are zero
             if (careem == 0.0 && uber == 0.0 && yango == 0.0 && private == 0.0) {
@@ -312,8 +384,8 @@ class ExcelImportService @Inject constructor(
                 uber = uber,
                 yango = yango,
                 private = private,
-                driver = driver,
-                vehicle = vehicle
+                driver = finalDriver,
+                vehicle = finalVehicle
             )
 
         } catch (e: Exception) {
@@ -364,16 +436,54 @@ class ExcelImportService @Inject constructor(
     private fun parseDate(dateString: String, rowNumber: Int, errors: MutableList<String>): Date? {
         if (dateString.isBlank()) return null
 
-        // Force European date format parsing (dd/MM/yyyy or dd-MM-yyyy)
+        // Extremely flexible date parsing - try all common formats
         val dateFormats = listOf(
+            // European formats (preferred)
             SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
             SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()),
-            SimpleDateFormat("dd/M/yyyy", Locale.getDefault()),   // Single digit month
-            SimpleDateFormat("d/MM/yyyy", Locale.getDefault()),   // Single digit day
-            SimpleDateFormat("d/M/yyyy", Locale.getDefault()),    // Both single digits
-            SimpleDateFormat("dd-M-yyyy", Locale.getDefault()),   // Single digit month with dashes
-            SimpleDateFormat("d-MM-yyyy", Locale.getDefault()),   // Single digit day with dashes
-            SimpleDateFormat("d-M-yyyy", Locale.getDefault())     // Both single digits with dashes
+            SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()),
+            SimpleDateFormat("dd/M/yyyy", Locale.getDefault()),
+            SimpleDateFormat("d/MM/yyyy", Locale.getDefault()),
+            SimpleDateFormat("d/M/yyyy", Locale.getDefault()),
+            SimpleDateFormat("dd-M-yyyy", Locale.getDefault()),
+            SimpleDateFormat("d-MM-yyyy", Locale.getDefault()),
+            SimpleDateFormat("d-M-yyyy", Locale.getDefault()),
+            SimpleDateFormat("dd.M.yyyy", Locale.getDefault()),
+            SimpleDateFormat("d.MM.yyyy", Locale.getDefault()),
+            SimpleDateFormat("d.M.yyyy", Locale.getDefault()),
+            
+            // American formats
+            SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()),
+            SimpleDateFormat("MM-dd-yyyy", Locale.getDefault()),
+            SimpleDateFormat("MM.dd.yyyy", Locale.getDefault()),
+            SimpleDateFormat("M/dd/yyyy", Locale.getDefault()),
+            SimpleDateFormat("MM/d/yyyy", Locale.getDefault()),
+            SimpleDateFormat("M/d/yyyy", Locale.getDefault()),
+            SimpleDateFormat("M-dd-yyyy", Locale.getDefault()),
+            SimpleDateFormat("MM-d-yyyy", Locale.getDefault()),
+            SimpleDateFormat("M-d-yyyy", Locale.getDefault()),
+            
+            // ISO formats
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+            SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()),
+            SimpleDateFormat("yyyy.MM.dd", Locale.getDefault()),
+            SimpleDateFormat("yyyy-M-dd", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-d", Locale.getDefault()),
+            SimpleDateFormat("yyyy-M-d", Locale.getDefault()),
+            
+            // Short year formats
+            SimpleDateFormat("dd/MM/yy", Locale.getDefault()),
+            SimpleDateFormat("dd-MM-yy", Locale.getDefault()),
+            SimpleDateFormat("MM/dd/yy", Locale.getDefault()),
+            SimpleDateFormat("MM-dd-yy", Locale.getDefault()),
+            SimpleDateFormat("yy-MM-dd", Locale.getDefault()),
+            SimpleDateFormat("yy/MM/dd", Locale.getDefault()),
+            
+            // Other common formats
+            SimpleDateFormat("dd MMM yyyy", Locale.getDefault()),
+            SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault()),
+            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()),
+            SimpleDateFormat("MMM dd yyyy", Locale.getDefault())
         )
 
         for (format in dateFormats) {
