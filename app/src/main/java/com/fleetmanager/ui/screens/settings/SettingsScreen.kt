@@ -20,19 +20,31 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.SettingsViewModel
 import com.fleetmanager.ui.components.*
+import com.fleetmanager.data.excel.ImportProgress
+import com.fleetmanager.ui.utils.rememberExcelFilePicker
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // File picker for Excel import
+    val pickExcelFile = rememberExcelFilePicker(
+        onFileSelected = { uri -> viewModel.importExcelFromUri(uri) },
+        onError = { error -> viewModel.setError(error) }
+    )
 
     LazyColumn(
         modifier = Modifier
@@ -73,7 +85,8 @@ fun SettingsScreen(
                     },
                     onAddExpenseType = { name, displayName -> 
                         viewModel.addExpenseType(name, displayName) 
-                    }
+                    },
+                    onImportExcel = { pickExcelFile() }
                 )
             }
         }
@@ -197,6 +210,16 @@ fun SettingsScreen(
                 )
             }
         }
+        
+        // Show import progress if importing
+        if (uiState.isImporting || uiState.importProgress != null) {
+            item {
+                ImportProgressCard(
+                    progress = uiState.importProgress,
+                    onDismiss = { viewModel.clearImportProgress() }
+                )
+            }
+        }
     }
 }
 
@@ -205,7 +228,8 @@ fun SettingsScreen(
 private fun AdminSection(
     onAddDriver: (String, String) -> Unit,
     onAddVehicle: (String, String, Int, String) -> Unit,
-    onAddExpenseType: (String, String) -> Unit
+    onAddExpenseType: (String, String) -> Unit,
+    onImportExcel: () -> Unit
 ) {
     var showAddDriverDialog by remember { mutableStateOf(false) }
     var showAddVehicleDialog by remember { mutableStateOf(false) }
@@ -231,6 +255,13 @@ private fun AdminSection(
             title = "Add Expense Type",
             subtitle = "Create a new expense category",
             onClick = { showAddExpenseTypeDialog = true }
+        )
+        
+        SettingsItem(
+            icon = Icons.Default.Upload,
+            title = "Import CSV Entries",
+            subtitle = "Import past income data from CSV file (exported from Excel)",
+            onClick = onImportExcel
         )
     }
 
@@ -431,4 +462,105 @@ private fun AddExpenseTypeDialog(
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImportProgressCard(
+    progress: ImportProgress?,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "CSV Import",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                
+                if (progress?.progress == 100) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            progress?.let { prog ->
+                Text(
+                    text = prog.currentStep,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                LinearProgressIndicator(
+                    progress = prog.progress / 100f,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${prog.progress}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    
+                    if (prog.totalEntries > 0) {
+                        Text(
+                            text = "${prog.processedEntries}/${prog.totalEntries} entries",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                
+                // Show errors and warnings if any
+                if (prog.errors.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "⚠️ ${prog.errors.size} errors occurred",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                if (prog.warnings.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "⚠️ ${prog.warnings.size} warnings",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+        }
+    }
 }
