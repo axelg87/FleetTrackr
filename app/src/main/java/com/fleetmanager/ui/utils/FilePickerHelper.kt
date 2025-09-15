@@ -22,19 +22,18 @@ fun rememberExcelFilePicker(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            // Validate that it's an Excel file
+            // Validate that it's a CSV file (exported from Excel)
             val mimeType = context.contentResolver.getType(uri)
             val fileName = uri.lastPathSegment?.lowercase() ?: ""
             
             when {
-                mimeType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-                mimeType == "application/vnd.ms-excel" ||
-                fileName.endsWith(".xlsx") ||
-                fileName.endsWith(".xls") -> {
+                mimeType == "text/csv" ||
+                mimeType == "text/comma-separated-values" ||
+                fileName.endsWith(".csv") -> {
                     onFileSelected(uri)
                 }
                 else -> {
-                    onError("Please select a valid Excel file (.xlsx or .xls)")
+                    onError("Please select a valid CSV file (.csv). Export your Excel file as CSV first.")
                 }
             }
         } else {
@@ -44,7 +43,7 @@ fun rememberExcelFilePicker(
     
     return {
         try {
-            launcher.launch("application/*")
+            launcher.launch("text/*")
         } catch (e: Exception) {
             onError("Failed to open file picker: ${e.message}")
         }
@@ -52,30 +51,29 @@ fun rememberExcelFilePicker(
 }
 
 /**
- * Creates an intent for picking Excel files
+ * Creates an intent for picking CSV files
  */
 fun createExcelFilePickerIntent(): Intent {
     val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-        type = "*/*"
+        type = "text/*"
         putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-            "application/vnd.ms-excel" // .xls
+            "text/csv",
+            "text/comma-separated-values"
         ))
         addCategory(Intent.CATEGORY_OPENABLE)
     }
     
-    return Intent.createChooser(intent, "Select Excel File")
+    return Intent.createChooser(intent, "Select CSV File")
 }
 
 /**
- * Validates if a URI points to an Excel file
+ * Validates if a URI points to a CSV file
  */
 fun isExcelFile(uri: Uri, context: android.content.Context): Boolean {
     val mimeType = context.contentResolver.getType(uri)
     val fileName = uri.lastPathSegment?.lowercase() ?: ""
     
-    return mimeType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-           mimeType == "application/vnd.ms-excel" ||
-           fileName.endsWith(".xlsx") ||
-           fileName.endsWith(".xls")
+    return mimeType == "text/csv" ||
+           mimeType == "text/comma-separated-values" ||
+           fileName.endsWith(".csv")
 }

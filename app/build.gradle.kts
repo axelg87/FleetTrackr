@@ -137,9 +137,8 @@ dependencies {
     // Calendar View for Analytics
     implementation("com.kizitonwose.calendar:compose:2.4.1")
     
-    // Excel parsing
-    implementation("org.apache.poi:poi:5.2.4")
-    implementation("org.apache.poi:poi-ooxml:5.2.4")
+    // CSV parsing for Excel import (more Android-compatible)
+    implementation("com.opencsv:opencsv:5.8")
     
     // Core library desugaring for Java 8+ APIs
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")

@@ -1,16 +1,18 @@
-# Excel Import Feature Implementation
+# CSV Import Feature Implementation
 
 ## Overview
-The Excel import feature allows administrators to import past income data from Excel files (.xlsx or .xls) into the Fleet Manager app. This feature includes automatic creation of drivers and vehicles, support for legacy Careem earnings, and comprehensive error handling.
+The CSV import feature allows administrators to import past income data from CSV files (exported from Excel) into the Fleet Manager app. This feature includes automatic creation of drivers and vehicles, support for legacy Careem earnings, and comprehensive error handling.
+
+**Note**: Due to Android compatibility requirements (minSdk 24), this implementation uses CSV files instead of direct Excel parsing. Users need to export their Excel files as CSV before importing.
 
 ## Implementation Summary
 
 ### 1. Core Components Added
 
 #### ExcelImportService (`/data/excel/ExcelImportService.kt`)
-- **Purpose**: Handles Excel file parsing and data extraction
+- **Purpose**: Handles CSV file parsing and data extraction
 - **Features**:
-  - Supports both .xlsx and .xls formats using Apache POI
+  - Supports CSV format using OpenCSV library (Android-compatible)
   - Multi-language column detection (English, Arabic, Spanish)
   - Flexible date format parsing (dd/mm/yyyy, yyyy-mm-dd, etc.)
   - Comprehensive validation and error reporting
@@ -28,7 +30,7 @@ The Excel import feature allows administrators to import past income data from E
 #### FilePickerHelper (`/ui/utils/FilePickerHelper.kt`)
 - **Purpose**: Provides file selection utilities for Compose UI
 - **Features**:
-  - Excel file validation
+  - CSV file validation
   - Error handling for invalid file types
   - Compose-friendly file picker integration
 
@@ -50,7 +52,7 @@ val totalEarnings: Double
 ### 3. UI Components
 
 #### Admin Control Section
-- Added "Import Excel Entries" button in Settings screen
+- Added "Import CSV Entries" button in Settings screen
 - Only visible to users with ADMIN role
 - Integrated with file picker for seamless user experience
 
@@ -60,9 +62,9 @@ val totalEarnings: Double
 - Dismissible when complete
 - Professional Material 3 design
 
-### 4. Expected Excel File Format
+### 4. Expected CSV File Format
 
-The import supports Excel files with the following columns (case-insensitive):
+The import supports CSV files with the following columns (case-insensitive):
 
 | Column | Alternative Names | Required | Type | Description |
 |--------|------------------|----------|------|-------------|
@@ -76,7 +78,7 @@ The import supports Excel files with the following columns (case-insensitive):
 
 ### 5. Import Process Flow
 
-1. **File Selection**: User selects Excel file through file picker
+1. **File Selection**: User selects CSV file through file picker
 2. **Validation**: File format and structure validation
 3. **Parsing**: Extract data with comprehensive error checking
 4. **Entity Creation**: Automatically create missing drivers/vehicles
@@ -88,7 +90,7 @@ The import supports Excel files with the following columns (case-insensitive):
 #### File-Level Errors
 - Invalid file format
 - Missing required columns
-- Corrupted Excel files
+- Corrupted CSV files
 
 #### Row-Level Errors  
 - Invalid date formats
@@ -126,19 +128,19 @@ The import supports Excel files with the following columns (case-insensitive):
 ### 8. Dependencies Added
 
 ```kotlin
-// Excel parsing
-implementation("org.apache.poi:poi:5.2.4")
-implementation("org.apache.poi:poi-ooxml:5.2.4")
+// CSV parsing for Excel import (more Android-compatible)
+implementation("com.opencsv:opencsv:5.8")
 ```
 
 ### 9. Usage Instructions
 
 1. **Admin Access**: Ensure user has ADMIN role
-2. **Navigate**: Go to Settings > Admin Controls
-3. **Import**: Tap "Import Excel Entries" button
-4. **Select File**: Choose Excel file (.xlsx or .xls)
-5. **Monitor**: Watch progress dialog for real-time updates
-6. **Review**: Check completion status and any errors/warnings
+2. **Prepare Data**: Export Excel file as CSV format
+3. **Navigate**: Go to Settings > Admin Controls
+4. **Import**: Tap "Import CSV Entries" button
+5. **Select File**: Choose CSV file (.csv)
+6. **Monitor**: Watch progress dialog for real-time updates
+7. **Review**: Check completion status and any errors/warnings
 
 ### 10. Technical Notes
 
@@ -159,4 +161,12 @@ implementation("org.apache.poi:poi-ooxml:5.2.4")
 
 ## Implementation Complete
 
-The Excel import feature is now fully implemented and ready for use. The system provides a robust, user-friendly way to import historical income data while maintaining data integrity and providing comprehensive error handling.
+The CSV import feature is now fully implemented and ready for use. The system provides a robust, user-friendly way to import historical income data while maintaining data integrity and providing comprehensive error handling.
+
+### Migration from Excel to CSV
+Users can easily export their Excel files to CSV format:
+1. Open Excel file
+2. File > Save As > CSV (Comma delimited) (*.csv)
+3. Use the exported CSV file with the import feature
+
+This approach ensures compatibility with Android API 24+ while maintaining all the functionality of the original Excel import requirements.

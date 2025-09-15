@@ -6,10 +6,8 @@ import android.util.Log
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
-import org.apache.poi.ss.usermodel.*
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.poi.hssf.usermodel.HSSFWorkbook
-import java.io.InputStream
+import com.opencsv.CSVReader
+import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -52,8 +50,8 @@ class ExcelImportService @Inject constructor(
     }
 
     /**
-     * Import Excel file and parse it into DailyEntry objects
-     * @param uri The URI of the Excel file
+     * Import CSV file and parse it into DailyEntry objects
+     * @param uri The URI of the CSV file
      * @param userId The current user ID
      * @return ExcelImportResult containing entries, entities to create, and errors
      */
@@ -74,34 +72,35 @@ class ExcelImportService @Inject constructor(
                     warnings = emptyList()
                 )
 
-            val workbook = createWorkbook(inputStream, uri)
-            val sheet = workbook.getSheetAt(0) // Use first sheet
+            val csvReader = CSVReader(InputStreamReader(inputStream))
+            val allRows = csvReader.readAll()
+            
+            if (allRows.isEmpty()) {
+                return ExcelImportResult(
+                    entries = emptyList(),
+                    driversToCreate = emptyList(),
+                    vehiclesToCreate = emptyList(),
+                    errors = listOf("CSV file is empty"),
+                    warnings = warnings
+                )
+            }
 
-            // Find column indices
-            val columnMapping = findColumnMapping(sheet, errors)
+            // Find column indices from header row
+            val columnMapping = findColumnMapping(allRows[0], errors)
             if (columnMapping.isEmpty()) {
                 return ExcelImportResult(
                     entries = emptyList(),
                     driversToCreate = emptyList(),
                     vehiclesToCreate = emptyList(),
-                    errors = errors + "Could not find required columns in Excel file",
+                    errors = errors + "Could not find required columns in CSV file",
                     warnings = warnings
                 )
             }
 
-            // Process data rows
-            val rowIterator = sheet.iterator()
-            var rowNumber = 0
-            
-            // Skip header row
-            if (rowIterator.hasNext()) {
-                rowIterator.next()
-                rowNumber++
-            }
-
-            while (rowIterator.hasNext()) {
-                val row = rowIterator.next()
-                rowNumber++
+            // Process data rows (skip header)
+            for (rowIndex in 1 until allRows.size) {
+                val row = allRows[rowIndex]
+                val rowNumber = rowIndex + 1
 
                 // Skip empty rows
                 if (isEmptyRow(row)) {
@@ -147,7 +146,7 @@ class ExcelImportService @Inject constructor(
                 }
             }
 
-            workbook.close()
+            csvReader.close()
             inputStream.close()
 
         } catch (e: Exception) {
@@ -164,29 +163,11 @@ class ExcelImportService @Inject constructor(
         )
     }
 
-    private fun createWorkbook(inputStream: InputStream, uri: Uri): Workbook {
-        return try {
-            // Try XLSX first (newer format)
-            XSSFWorkbook(inputStream)
-        } catch (e: Exception) {
-            try {
-                // Fallback to XLS (older format)
-                inputStream.close()
-                val newInputStream = context.contentResolver.openInputStream(uri)!!
-                HSSFWorkbook(newInputStream)
-            } catch (e2: Exception) {
-                throw IllegalArgumentException("Unsupported Excel file format. Please use .xlsx or .xls files.")
-            }
-        }
-    }
-
-    private fun findColumnMapping(sheet: Sheet, errors: MutableList<String>): Map<String, Int> {
-        val headerRow = sheet.getRow(0) ?: return emptyMap()
+    private fun findColumnMapping(headerRow: Array<String>, errors: MutableList<String>): Map<String, Int> {
         val columnMapping = mutableMapOf<String, Int>()
 
-        for (cellIndex in 0 until headerRow.lastCellNum) {
-            val cell = headerRow.getCell(cellIndex)
-            val headerValue = getCellValueAsString(cell).lowercase().trim()
+        for (cellIndex in headerRow.indices) {
+            val headerValue = headerRow[cellIndex].lowercase().trim()
 
             when {
                 DATE_COLUMNS.any { it.equals(headerValue, ignoreCase = true) } -> 
@@ -217,7 +198,7 @@ class ExcelImportService @Inject constructor(
     }
 
     private fun parseRow(
-        row: Row,
+        row: Array<String>,
         columnMapping: Map<String, Int>,
         rowNumber: Int,
         errors: MutableList<String>,
@@ -225,31 +206,41 @@ class ExcelImportService @Inject constructor(
     ): ExcelRowData? {
         try {
             val date = columnMapping["date"]?.let { colIndex ->
-                parseDate(getCellValueAsString(row.getCell(colIndex)), rowNumber, errors)
+                if (colIndex < row.size) {
+                    parseDate(row[colIndex], rowNumber, errors)
+                } else null
             }
 
             val careem = columnMapping["careem"]?.let { colIndex ->
-                parseDouble(getCellValueAsString(row.getCell(colIndex)), "Careem", rowNumber, errors)
+                if (colIndex < row.size) {
+                    parseDouble(row[colIndex], "Careem", rowNumber, errors)
+                } else 0.0
             } ?: 0.0
 
             val uber = columnMapping["uber"]?.let { colIndex ->
-                parseDouble(getCellValueAsString(row.getCell(colIndex)), "Uber", rowNumber, errors)
+                if (colIndex < row.size) {
+                    parseDouble(row[colIndex], "Uber", rowNumber, errors)
+                } else 0.0
             } ?: 0.0
 
             val yango = columnMapping["yango"]?.let { colIndex ->
-                parseDouble(getCellValueAsString(row.getCell(colIndex)), "Yango", rowNumber, errors)
+                if (colIndex < row.size) {
+                    parseDouble(row[colIndex], "Yango", rowNumber, errors)
+                } else 0.0
             } ?: 0.0
 
             val private = columnMapping["private"]?.let { colIndex ->
-                parseDouble(getCellValueAsString(row.getCell(colIndex)), "Private", rowNumber, errors)
+                if (colIndex < row.size) {
+                    parseDouble(row[colIndex], "Private", rowNumber, errors)
+                } else 0.0
             } ?: 0.0
 
             val driver = columnMapping["driver"]?.let { colIndex ->
-                getCellValueAsString(row.getCell(colIndex)).trim()
+                if (colIndex < row.size) row[colIndex].trim() else null
             }
 
             val vehicle = columnMapping["vehicle"]?.let { colIndex ->
-                getCellValueAsString(row.getCell(colIndex)).trim()
+                if (colIndex < row.size) row[colIndex].trim() else null
             }
 
             // Validate required fields
@@ -378,47 +369,7 @@ class ExcelImportService @Inject constructor(
         }
     }
 
-    private fun getCellValueAsString(cell: Cell?): String {
-        if (cell == null) return ""
-
-        return when (cell.cellType) {
-            CellType.STRING -> cell.stringCellValue
-            CellType.NUMERIC -> {
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(cell.dateCellValue)
-                } else {
-                    // Format as integer if it's a whole number, otherwise as decimal
-                    val numValue = cell.numericCellValue
-                    if (numValue == numValue.toInt().toDouble()) {
-                        numValue.toInt().toString()
-                    } else {
-                        numValue.toString()
-                    }
-                }
-            }
-            CellType.BOOLEAN -> cell.booleanCellValue.toString()
-            CellType.FORMULA -> {
-                try {
-                    cell.stringCellValue
-                } catch (e: Exception) {
-                    try {
-                        cell.numericCellValue.toString()
-                    } catch (e2: Exception) {
-                        ""
-                    }
-                }
-            }
-            else -> ""
-        }
-    }
-
-    private fun isEmptyRow(row: Row): Boolean {
-        for (cellIndex in 0 until row.lastCellNum) {
-            val cell = row.getCell(cellIndex)
-            if (cell != null && getCellValueAsString(cell).isNotBlank()) {
-                return false
-            }
-        }
-        return true
+    private fun isEmptyRow(row: Array<String>): Boolean {
+        return row.all { it.isBlank() }
     }
 }

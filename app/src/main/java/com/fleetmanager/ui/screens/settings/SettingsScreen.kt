@@ -259,8 +259,8 @@ private fun AdminSection(
         
         SettingsItem(
             icon = Icons.Default.Upload,
-            title = "Import Excel Entries",
-            subtitle = "Import past income data from Excel file",
+            title = "Import CSV Entries",
+            subtitle = "Import past income data from CSV file (exported from Excel)",
             onClick = onImportExcel
         )
     }
@@ -485,7 +485,7 @@ private fun ImportProgressCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Excel Import",
+                    text = "CSV Import",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
