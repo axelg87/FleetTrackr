@@ -181,6 +181,7 @@ private fun CalendarDay(
     val incomeLevel = getIncomeLevel(entries)
     val isCurrentMonth = day.position == DayPosition.MonthDate
     val isToday = day.date == LocalDate.now()
+    val isYesterday = day.date == LocalDate.now().minusDays(1) // d-1 logic: highlight yesterday instead
     
     Box(
         modifier = modifier
@@ -189,11 +190,12 @@ private fun CalendarDay(
             .clip(CircleShape)
             .background(
                 color = when {
-                    isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    isYesterday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) // Highlight yesterday (d-1)
+                    isToday -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f) // Dim today (excluded from analysis)
                     else -> Color.Transparent
                 }
             )
-            .clickable(enabled = entries.isNotEmpty()) {
+            .clickable(enabled = entries.isNotEmpty() && !isToday) { // Disable clicking on today
                 onClick(day.date, entries)
             },
         contentAlignment = Alignment.Center
@@ -205,15 +207,16 @@ private fun CalendarDay(
                 text = day.date.dayOfMonth.toString(),
                 color = when {
                     !isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    isToday -> MaterialTheme.colorScheme.primary
+                    isToday -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) // Dim today
+                    isYesterday -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.onSurface
                 },
                 fontSize = 14.sp,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (isYesterday) FontWeight.Bold else FontWeight.Normal
             )
             
-            // Income indicator dot
-            if (entries.isNotEmpty() && isCurrentMonth) {
+            // Income indicator dot (don't show for today since it's excluded from d-1 analysis)
+            if (entries.isNotEmpty() && isCurrentMonth && !isToday) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Box(
                     modifier = Modifier
