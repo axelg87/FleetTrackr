@@ -17,12 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
+import com.fleetmanager.R
 
-// Screen Header Component
+// Screen Header Component with Company Logo
 @Composable
 fun ScreenHeader(
     title: String,
     modifier: Modifier = Modifier,
+    showLogo: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
@@ -30,11 +33,24 @@ fun ScreenHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (showLogo) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_company_logo),
+                    contentDescription = "AG Motion Logo",
+                    modifier = Modifier.size(40.dp),
+                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
         
         Row(content = actions)
     }

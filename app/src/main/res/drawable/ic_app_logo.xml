@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Background circle -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M54,54 m-54,0 a54,54 0,1 1,108 0 a54,54 0,1 1,-108 0" />
+    
+    <!-- AG Letters -->
+    <group
+        android:translateX="54"
+        android:translateY="54">
+        
+        <!-- A -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M-35,-15 L-25,-15 L-20,0 L-15,-15 L-5,-15 L0,15 L-8,15 L-10,-5 L-15,15 L-25,15 L-30,-5 L-32,15 L-40,15 Z" />
+        
+        <!-- G -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M10,-15 Q25,-15 30,-8 Q35,-1 35,8 Q35,17 30,20 L15,20 L15,13 L27,13 Q30,8 30,5 Q30,2 27,-3 Q25,-8 15,-8 L12,-8 Q10,-3 10,2 L10,13 Q12,18 15,18 L27,18 L27,8 L32,8 L32,23 Q30,25 25,25 L10,25 Q5,23 2,18 L2,2 Q5,-8 10,-15 Z" />
+    </group>
+</vector>
