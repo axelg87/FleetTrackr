@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- Black background circle -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M100,100 m-100,0 a100,100 0,1 1,200 0 a100,100 0,1 1,-200 0" />
+    
+    <!-- AG Letters in white -->
+    <group>
+        <!-- Letter A -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M45,60 L65,60 L75,90 L85,60 L105,60 L110,140 L95,140 L92,100 L82,140 L68,140 L58,100 L55,140 L40,140 Z" />
+        
+        <!-- Letter G -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M120,60 Q150,60 160,75 Q170,90 170,105 Q170,120 160,130 L135,130 L135,115 L155,115 Q160,105 160,100 Q160,95 155,85 Q150,75 135,75 L130,75 Q120,85 120,95 L120,125 Q130,135 135,135 L155,135 L155,105 L170,105 L170,145 Q160,155 150,155 L120,155 Q105,145 100,125 L100,95 Q105,75 120,60 Z" />
+    </group>
+    
+    <!-- MOTION text at bottom -->
+    <group android:translateY="165">
+        <!-- M -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M40,10 L48,10 L52,20 L56,10 L64,10 L64,35 L58,35 L58,18 L54,35 L50,35 L46,18 L46,35 L40,35 Z" />
+        
+        <!-- O -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M70,10 Q78,10 82,15 Q86,20 86,22.5 Q86,25 82,30 Q78,35 70,35 Q62,35 58,30 Q54,25 54,22.5 Q54,20 58,15 Q62,10 70,10 Z M70,16 Q66,16 64,18 Q62,20 62,22.5 Q62,25 64,27 Q66,29 70,29 Q74,29 76,27 Q78,25 78,22.5 Q78,20 76,18 Q74,16 70,16 Z" />
+        
+        <!-- T -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M92,16 L92,35 L86,35 L86,16 L80,16 L80,10 L98,10 L98,16 Z" />
+        
+        <!-- I -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M104,10 L110,10 L110,35 L104,35 Z" />
+        
+        <!-- O -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M116,10 Q124,10 128,15 Q132,20 132,22.5 Q132,25 128,30 Q124,35 116,35 Q108,35 104,30 Q100,25 100,22.5 Q100,20 104,15 Q108,10 116,10 Z M116,16 Q112,16 110,18 Q108,20 108,22.5 Q108,25 110,27 Q112,29 116,29 Q120,29 122,27 Q124,25 124,22.5 Q124,20 122,18 Q120,16 116,16 Z" />
+        
+        <!-- N -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M138,10 L144,10 L152,25 L152,10 L158,10 L158,35 L152,35 L144,20 L144,35 L138,35 Z" />
+    </group>
+</vector>
