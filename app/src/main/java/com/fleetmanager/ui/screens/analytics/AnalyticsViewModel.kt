@@ -243,10 +243,10 @@ class AnalyticsViewModel @Inject constructor(
         val today = LocalDate.now()
         val yesterday = today.minusDays(1) // d-1 logic
         val currentMonth = today.withDayOfMonth(1)
-        val previousMonth = currentMonth.minusMonths(1)
+        val previousMonthYearMonth = YearMonth.from(currentMonth.minusMonths(1))
         
         // Smart date comparison: use same day of month or last day of previous month if day doesn't exist
-        val comparisonDayInPreviousMonth = getSmartComparisonDate(yesterday, previousMonth)
+        val comparisonDayInPreviousMonth = getSmartComparisonDate(yesterday, previousMonthYearMonth)
         
         val currentMonthEntries = entries.filter { entry ->
             val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
@@ -255,7 +255,7 @@ class AnalyticsViewModel @Inject constructor(
         
         val previousMonthEntries = entries.filter { entry ->
             val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
-            entryDate.month == previousMonth.month && entryDate.year == previousMonth.year && entryDate <= comparisonDayInPreviousMonth
+            entryDate.month == previousMonthYearMonth.month && entryDate.year == previousMonthYearMonth.year && entryDate <= comparisonDayInPreviousMonth
         }
         
         val monthlyComparison = if (previousMonthEntries.isNotEmpty()) {
