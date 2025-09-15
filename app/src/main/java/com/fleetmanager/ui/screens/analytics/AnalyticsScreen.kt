@@ -614,6 +614,7 @@ private fun AnalyticsSection(
 /**
  * Time filter row component
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeFilterRow(
     selectedFilter: TimeFilter,
