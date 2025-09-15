@@ -109,8 +109,20 @@ class ExcelImportManager @Inject constructor(
             
             if (importResult.errors.isNotEmpty()) {
                 val errorMsg = "CSV parsing failed with ${importResult.errors.size} errors"
-                Log.e(TAG, "$errorMsg: ${importResult.errors.joinToString("; ")}")
-                toastHelper.showError(context, "❌ $errorMsg. Check details in progress dialog.")
+                Log.e(TAG, "$errorMsg:")
+                
+                // Log first 10 errors for debugging
+                importResult.errors.take(10).forEach { error ->
+                    Log.e(TAG, "  - $error")
+                }
+                if (importResult.errors.size > 10) {
+                    Log.e(TAG, "  ... and ${importResult.errors.size - 10} more errors")
+                }
+                
+                // Show first few errors in toast for immediate feedback
+                val firstErrors = importResult.errors.take(3).joinToString("; ")
+                toastHelper.showError(context, "❌ $errorMsg. First errors: $firstErrors")
+                
                 return@withContext ImportProgress(
                     currentStep = "CSV parsing failed",
                     progress = 0,

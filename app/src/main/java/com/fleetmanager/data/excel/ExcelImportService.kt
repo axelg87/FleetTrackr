@@ -72,8 +72,11 @@ class ExcelImportService @Inject constructor(
                     warnings = emptyList()
                 )
 
+            Log.d(TAG, "Starting CSV file parsing...")
             val csvReader = CSVReader(InputStreamReader(inputStream))
             val allRows = csvReader.readAll()
+            
+            Log.d(TAG, "CSV file loaded with ${allRows.size} total rows")
             
             if (allRows.isEmpty()) {
                 return ExcelImportResult(
@@ -85,28 +88,46 @@ class ExcelImportService @Inject constructor(
                 )
             }
 
+            // Log header row for debugging
+            if (allRows.isNotEmpty()) {
+                Log.d(TAG, "Header row: ${allRows[0].joinToString(", ")}")
+                Log.d(TAG, "Header row has ${allRows[0].size} columns")
+            }
+
             // Find column indices from header row
             val columnMapping = findColumnMapping(allRows[0], errors)
+            Log.d(TAG, "Column mapping result: $columnMapping")
+            
             if (columnMapping.isEmpty()) {
+                errors.add("Could not find required columns in CSV file")
+                Log.e(TAG, "Column mapping failed. Available headers: ${allRows[0].joinToString(", ")}")
                 return ExcelImportResult(
                     entries = emptyList(),
                     driversToCreate = emptyList(),
                     vehiclesToCreate = emptyList(),
-                    errors = errors + "Could not find required columns in CSV file",
+                    errors = errors,
                     warnings = warnings
                 )
             }
 
             // Process data rows (skip header)
+            Log.d(TAG, "Processing ${allRows.size - 1} data rows...")
+            var processedRows = 0
+            var skippedEmptyRows = 0
+            
             for (rowIndex in 1 until allRows.size) {
                 val row = allRows[rowIndex]
                 val rowNumber = rowIndex + 1
 
                 // Skip empty rows
                 if (isEmptyRow(row)) {
+                    skippedEmptyRows++
                     continue
                 }
 
+                processedRows++
+                Log.d(TAG, "Processing row $rowNumber: ${row.joinToString(", ")}")
+                
                 val rowData = parseRow(row, columnMapping, rowNumber, errors, warnings)
                 if (rowData != null) {
                     val entry = createDailyEntry(rowData, userId, errors, warnings)
@@ -143,8 +164,18 @@ class ExcelImportService @Inject constructor(
                             }
                         }
                     }
+                } else {
+                    Log.w(TAG, "Failed to parse row $rowNumber")
                 }
             }
+            
+            Log.d(TAG, "CSV parsing summary:")
+            Log.d(TAG, "- Total rows: ${allRows.size}")
+            Log.d(TAG, "- Processed rows: $processedRows")
+            Log.d(TAG, "- Skipped empty rows: $skippedEmptyRows")
+            Log.d(TAG, "- Successfully created entries: ${entries.size}")
+            Log.d(TAG, "- Errors: ${errors.size}")
+            Log.d(TAG, "- Warnings: ${warnings.size}")
 
             csvReader.close()
             inputStream.close()
@@ -191,7 +222,17 @@ class ExcelImportService @Inject constructor(
         val requiredColumns = listOf("date", "driver", "vehicle")
         val missingColumns = requiredColumns.filter { !columnMapping.containsKey(it) }
         if (missingColumns.isNotEmpty()) {
-            errors.add("Missing required columns: ${missingColumns.joinToString(", ")}")
+            val errorMsg = "Missing required columns: ${missingColumns.joinToString(", ")}"
+            Log.e(TAG, "$errorMsg. Available columns: ${headerRow.joinToString(", ")}")
+            Log.e(TAG, "Expected column names (case-insensitive):")
+            Log.e(TAG, "  - Date: ${DATE_COLUMNS.joinToString(", ")}")
+            Log.e(TAG, "  - Driver: ${DRIVER_COLUMNS.joinToString(", ")}")
+            Log.e(TAG, "  - Vehicle: ${VEHICLE_COLUMNS.joinToString(", ")}")
+            Log.e(TAG, "  - Optional - Careem: ${CAREEM_COLUMNS.joinToString(", ")}")
+            Log.e(TAG, "  - Optional - Uber: ${UBER_COLUMNS.joinToString(", ")}")
+            Log.e(TAG, "  - Optional - Yango: ${YANGO_COLUMNS.joinToString(", ")}")
+            Log.e(TAG, "  - Optional - Private: ${PRIVATE_COLUMNS.joinToString(", ")}")
+            errors.add("$errorMsg. Available: ${headerRow.joinToString(", ")}")
         }
 
         return columnMapping
@@ -339,13 +380,17 @@ class ExcelImportService @Inject constructor(
             try {
                 format.isLenient = false
                 format.timeZone = TimeZone.getTimeZone("UTC") // Parse as UTC
-                return format.parse(dateString)
+                val parsedDate = format.parse(dateString)
+                Log.d(TAG, "Successfully parsed date '$dateString' using format '${format.toPattern()}'")
+                return parsedDate
             } catch (e: Exception) {
                 // Try next format
             }
         }
 
-        errors.add("Row $rowNumber: Invalid date format '$dateString'. Expected European format: dd/MM/yyyy or dd-MM-yyyy")
+        val errorMsg = "Row $rowNumber: Invalid date format '$dateString'. Expected European format: dd/MM/yyyy, dd-MM-yyyy, d/M/yyyy, etc."
+        Log.e(TAG, errorMsg)
+        errors.add(errorMsg)
         return null
     }
 
