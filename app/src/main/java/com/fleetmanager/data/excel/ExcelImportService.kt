@@ -401,10 +401,14 @@ class ExcelImportService @Inject constructor(
         warnings: MutableList<String>
     ): DailyEntry? {
         try {
+            // Ensure all dates are in UTC for consistency
+            val utcDate = rowData.date!!
+            val currentUtcTime = Date() // Current time in UTC
+            
             val entry = DailyEntry(
                 id = UUID.randomUUID().toString(),
                 userId = "PLACEHOLDER", // Will be corrected by ImportManager
-                date = rowData.date!!,
+                date = utcDate, // Parsed date from CSV (already in UTC)
                 driverName = rowData.driver!!,
                 vehicle = rowData.vehicle!!,
                 uberEarnings = rowData.uber ?: 0.0,
@@ -414,8 +418,8 @@ class ExcelImportService @Inject constructor(
                 notes = "Imported from CSV",
                 photoUrls = emptyList(),
                 isSynced = true,
-                createdAt = rowData.date!!,
-                updatedAt = rowData.date!!
+                createdAt = currentUtcTime, // Current time for audit trail
+                updatedAt = currentUtcTime  // Current time for audit trail
             )
 
             // Validate entry
@@ -436,69 +440,38 @@ class ExcelImportService @Inject constructor(
     private fun parseDate(dateString: String, rowNumber: Int, errors: MutableList<String>): Date? {
         if (dateString.isBlank()) return null
 
-        // Extremely flexible date parsing - try all common formats
+        // CSV file uses dd/MM/yyyy format - parse and convert to UTC consistently
         val dateFormats = listOf(
-            // European formats (preferred)
+            // Primary expected format from CSV
             SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
             SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()),
             SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()),
-            SimpleDateFormat("dd/M/yyyy", Locale.getDefault()),
-            SimpleDateFormat("d/MM/yyyy", Locale.getDefault()),
-            SimpleDateFormat("d/M/yyyy", Locale.getDefault()),
-            SimpleDateFormat("dd-M-yyyy", Locale.getDefault()),
-            SimpleDateFormat("d-MM-yyyy", Locale.getDefault()),
-            SimpleDateFormat("d-M-yyyy", Locale.getDefault()),
-            SimpleDateFormat("dd.M.yyyy", Locale.getDefault()),
-            SimpleDateFormat("d.MM.yyyy", Locale.getDefault()),
-            SimpleDateFormat("d.M.yyyy", Locale.getDefault()),
             
-            // American formats
-            SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()),
-            SimpleDateFormat("MM-dd-yyyy", Locale.getDefault()),
-            SimpleDateFormat("MM.dd.yyyy", Locale.getDefault()),
-            SimpleDateFormat("M/dd/yyyy", Locale.getDefault()),
-            SimpleDateFormat("MM/d/yyyy", Locale.getDefault()),
-            SimpleDateFormat("M/d/yyyy", Locale.getDefault()),
-            SimpleDateFormat("M-dd-yyyy", Locale.getDefault()),
-            SimpleDateFormat("MM-d-yyyy", Locale.getDefault()),
-            SimpleDateFormat("M-d-yyyy", Locale.getDefault()),
-            
-            // ISO formats
-            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
-            SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()),
-            SimpleDateFormat("yyyy.MM.dd", Locale.getDefault()),
-            SimpleDateFormat("yyyy-M-dd", Locale.getDefault()),
-            SimpleDateFormat("yyyy-MM-d", Locale.getDefault()),
-            SimpleDateFormat("yyyy-M-d", Locale.getDefault()),
-            
-            // Short year formats
-            SimpleDateFormat("dd/MM/yy", Locale.getDefault()),
-            SimpleDateFormat("dd-MM-yy", Locale.getDefault()),
-            SimpleDateFormat("MM/dd/yy", Locale.getDefault()),
-            SimpleDateFormat("MM-dd-yy", Locale.getDefault()),
-            SimpleDateFormat("yy-MM-dd", Locale.getDefault()),
-            SimpleDateFormat("yy/MM/dd", Locale.getDefault()),
-            
-            // Other common formats
-            SimpleDateFormat("dd MMM yyyy", Locale.getDefault()),
-            SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault()),
-            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()),
-            SimpleDateFormat("MMM dd yyyy", Locale.getDefault())
+            // Handle single digit variations
+            SimpleDateFormat("dd/M/yyyy", Locale.getDefault()),   // Single digit month
+            SimpleDateFormat("d/MM/yyyy", Locale.getDefault()),   // Single digit day
+            SimpleDateFormat("d/M/yyyy", Locale.getDefault()),    // Both single digits
+            SimpleDateFormat("dd-M-yyyy", Locale.getDefault()),   // Single digit month with dashes
+            SimpleDateFormat("d-MM-yyyy", Locale.getDefault()),   // Single digit day with dashes
+            SimpleDateFormat("d-M-yyyy", Locale.getDefault()),    // Both single digits with dashes
+            SimpleDateFormat("dd.M.yyyy", Locale.getDefault()),   // Single digit month with dots
+            SimpleDateFormat("d.MM.yyyy", Locale.getDefault()),   // Single digit day with dots
+            SimpleDateFormat("d.M.yyyy", Locale.getDefault())     // Both single digits with dots
         )
 
         for (format in dateFormats) {
             try {
                 format.isLenient = false
-                format.timeZone = TimeZone.getTimeZone("UTC") // Parse as UTC
+                format.timeZone = TimeZone.getTimeZone("UTC") // Parse as UTC to be consistent with app
                 val parsedDate = format.parse(dateString)
-                Log.d(TAG, "Successfully parsed date '$dateString' using format '${format.toPattern()}'")
+                Log.d(TAG, "Successfully parsed date '$dateString' using format '${format.toPattern()}' as UTC: $parsedDate")
                 return parsedDate
             } catch (e: Exception) {
                 // Try next format
             }
         }
 
-        val errorMsg = "Row $rowNumber: Invalid date format '$dateString'. Expected European format: dd/MM/yyyy, dd-MM-yyyy, d/M/yyyy, etc."
+        val errorMsg = "Row $rowNumber: Invalid date format '$dateString'. Expected dd/MM/yyyy format (e.g., 25/12/2023)"
         Log.e(TAG, errorMsg)
         errors.add(errorMsg)
         return null
