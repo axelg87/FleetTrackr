@@ -230,16 +230,17 @@ object AnalyticsUtils {
     
     /**
      * REFACTOR: Extracted from MockDataProvider.kt and AnalyticsViewModel.kt
-     * Check if date is in current month
+     * Check if date is in current month (d-1 logic: exclude today)
      */
     fun isCurrentMonth(date: LocalDate): Boolean {
         val now = LocalDate.now()
-        return date.month == now.month && date.year == now.year
+        val today = LocalDate.now()
+        return date.month == now.month && date.year == now.year && date.isBefore(today)
     }
     
     /**
      * REFACTOR: Extracted from MockDataProvider.kt and AnalyticsViewModel.kt
-     * Check if date is in previous month
+     * Check if date is in previous month (d-1 logic applied)
      */
     fun isPreviousMonth(date: LocalDate): Boolean {
         val previousMonth = LocalDate.now().minusMonths(1)

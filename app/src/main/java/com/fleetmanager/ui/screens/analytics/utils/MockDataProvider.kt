@@ -22,7 +22,7 @@ object MockDataProvider {
      */
     fun generateMockDailyEntries(): List<DailyEntry> {
         val entries = mutableListOf<DailyEntry>()
-        val endDate = LocalDate.now()
+        val endDate = LocalDate.now().minusDays(1) // d-1 logic: exclude today
         val startDate = endDate.minusDays(90)
 
         var currentDate = startDate
@@ -46,7 +46,7 @@ object MockDataProvider {
      */
     fun generateMockExpenses(): List<Expense> {
         val expenses = mutableListOf<Expense>()
-        val endDate = LocalDate.now()
+        val endDate = LocalDate.now().minusDays(1) // d-1 logic: exclude today
         val startDate = endDate.minusDays(90)
 
         var currentDate = startDate
@@ -72,7 +72,7 @@ object MockDataProvider {
         val entries = generateMockDailyEntries()
         val expenses = generateMockExpenses()
         
-        val endDate = LocalDate.now()
+        val endDate = LocalDate.now().minusDays(1) // d-1 logic: exclude today
         val startDate = endDate.minusDays(30)
 
         return AnalyticsData(
@@ -88,7 +88,7 @@ object MockDataProvider {
                     val entryDate = AnalyticsUtils.dateToLocalDate(it.date)
                     AnalyticsUtils.isCurrentMonth(entryDate)
                 },
-                LocalDate.now()
+                endDate // Use yesterday instead of today
             )
         )
     }

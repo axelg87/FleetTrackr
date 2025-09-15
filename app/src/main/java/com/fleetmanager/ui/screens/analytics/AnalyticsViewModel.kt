@@ -88,16 +88,18 @@ class AnalyticsViewModel @Inject constructor(
                     .toInstant()
                     .let { Date.from(it) }
                 
-                // Use realtime data source for calendar as well
+                // Use realtime data source for calendar - load ALL entries, not just current month
                 fleetRepository.getAllDailyEntriesRealtime()
                     .collect { allEntries ->
-                        // Filter entries for the specific month
-                        val monthEntries = allEntries.filter { entry ->
-                            entry.date >= startDate && entry.date <= endDate
+                        // Apply d-1 logic: exclude current day from all calculations
+                        val today = LocalDate.now()
+                        val filteredEntries = allEntries.filter { entry ->
+                            val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
+                            entryDate.isBefore(today) // Exclude current day (d-1 logic)
                         }
                         
-                        // Group entries by date for easy calendar lookup
-                        val entriesData = monthEntries.groupBy { entry ->
+                        // Group ALL entries by date for calendar overview (not just current month)
+                        val entriesData = filteredEntries.groupBy { entry ->
                             AnalyticsUtils.dateToLocalDate(entry.date)
                         }
                         
@@ -139,8 +141,19 @@ class AnalyticsViewModel @Inject constructor(
                     Triple(entries, expenses, timeFilter)
                 }.collect { (allEntries, allExpenses, timeFilter) ->
                     
+                    // Apply d-1 logic: exclude current day from all calculations
+                    val today = LocalDate.now()
+                    val entriesExcludingToday = allEntries.filter { entry ->
+                        val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
+                        entryDate.isBefore(today) // Exclude current day (d-1 logic)
+                    }
+                    val expensesExcludingToday = allExpenses.filter { expense ->
+                        val expenseDate = AnalyticsUtils.dateToLocalDate(expense.date)
+                        expenseDate.isBefore(today) // Exclude current day (d-1 logic)
+                    }
+                    
                     // Filter data based on selected time filter
-                    val (filteredEntries, filteredExpenses, startDate, endDate) = filterDataByTimeRange(allEntries, allExpenses, timeFilter)
+                    val (filteredEntries, filteredExpenses, startDate, endDate) = filterDataByTimeRange(entriesExcludingToday, expensesExcludingToday, timeFilter)
                     
                     // If no data available, use mock data for demonstration
                     val analyticsData = if (filteredEntries.isEmpty() && filteredExpenses.isEmpty()) {
@@ -173,19 +186,20 @@ class AnalyticsViewModel @Inject constructor(
         timeFilter: TimeFilter
     ): FilteredData {
         val currentDate = LocalDate.now()
+        val yesterdayDate = currentDate.minusDays(1) // d-1 logic: end date should be yesterday
         val (startDate, endDate) = when (timeFilter) {
             TimeFilter.ALL_TIME -> {
                 // For all time, use earliest entry date or 1 year ago as fallback
                 val earliestDate = entries.minByOrNull { it.date }?.let { 
                     AnalyticsUtils.dateToLocalDate(it.date) 
-                } ?: currentDate.minusYears(1)
-                earliestDate to currentDate
+                } ?: yesterdayDate.minusYears(1)
+                earliestDate to yesterdayDate
             }
             TimeFilter.LAST_3_MONTHS -> {
-                currentDate.minusMonths(3) to currentDate
+                yesterdayDate.minusMonths(3) to yesterdayDate
             }
             TimeFilter.THIS_MONTH -> {
-                currentDate.withDayOfMonth(1) to currentDate
+                currentDate.withDayOfMonth(1) to yesterdayDate
             }
         }
         
@@ -225,18 +239,23 @@ class AnalyticsViewModel @Inject constructor(
         // Detect anomalies
         val anomalies = AnalyticsCalculator.detectAnomalies(entries, expenses)
         
-        // Calculate monthly comparison
-        val currentMonth = LocalDate.now().withDayOfMonth(1)
+        // Calculate monthly comparison with smart date handling
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1) // d-1 logic
+        val currentMonth = today.withDayOfMonth(1)
         val previousMonth = currentMonth.minusMonths(1)
+        
+        // Smart date comparison: use same day of month or last day of previous month if day doesn't exist
+        val comparisonDayInPreviousMonth = getSmartComparisonDate(yesterday, previousMonth)
         
         val currentMonthEntries = entries.filter { entry ->
             val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
-            AnalyticsUtils.isCurrentMonth(entryDate)
+            entryDate.month == today.month && entryDate.year == today.year && entryDate <= yesterday
         }
         
         val previousMonthEntries = entries.filter { entry ->
             val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
-            AnalyticsUtils.isPreviousMonth(entryDate)
+            entryDate.month == previousMonth.month && entryDate.year == previousMonth.year && entryDate <= comparisonDayInPreviousMonth
         }
         
         val monthlyComparison = if (previousMonthEntries.isNotEmpty()) {
@@ -248,9 +267,9 @@ class AnalyticsViewModel @Inject constructor(
             )
         } else null
         
-        // Calculate projection
+        // Calculate projection using d-1 logic
         val projection = if (currentMonthEntries.isNotEmpty()) {
-            AnalyticsCalculator.calculateProjection(currentMonthEntries, LocalDate.now())
+            AnalyticsCalculator.calculateProjection(currentMonthEntries, yesterday)
         } else null
         
         return AnalyticsData(
@@ -313,6 +332,23 @@ class AnalyticsViewModel @Inject constructor(
             totalIncome >= MEDIUM_INCOME_THRESHOLD -> IncomeLevel.MEDIUM
             totalIncome > 0 -> IncomeLevel.LOW
             else -> IncomeLevel.NONE
+        }
+    }
+    
+    /**
+     * Smart date comparison for monthly analysis.
+     * Handles different month lengths intelligently (e.g., comparing Feb 28 to Jan 31)
+     */
+    private fun getSmartComparisonDate(currentDate: LocalDate, targetMonth: YearMonth): LocalDate {
+        val dayOfMonth = currentDate.dayOfMonth
+        val maxDayInTargetMonth = targetMonth.lengthOfMonth()
+        
+        return if (dayOfMonth <= maxDayInTargetMonth) {
+            // Same day exists in target month
+            targetMonth.atDay(dayOfMonth)
+        } else {
+            // Day doesn't exist in target month (e.g., Jan 31 -> Feb 28/29)
+            targetMonth.atEndOfMonth()
         }
     }
     
