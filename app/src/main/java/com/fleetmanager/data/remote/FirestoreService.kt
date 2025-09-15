@@ -528,7 +528,7 @@ class FirestoreService @Inject constructor(
                     try {
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown Driver",
+                            name = document.getString("name") ?: document.getString("displayName") ?: document.getString("fullName") ?: "Unknown Driver",
                             role = UserRole.DRIVER
                         )
                     } catch (e: Exception) {
@@ -551,7 +551,7 @@ class FirestoreService @Inject constructor(
                     try {
                         UserDto(
                             id = document.id,
-                            name = document.getString("name") ?: document.getString("displayName") ?: "Unknown Driver",
+                            name = document.getString("name") ?: document.getString("displayName") ?: document.getString("fullName") ?: "Unknown Driver",
                             role = UserRole.DRIVER
                         )
                     } catch (e: Exception) {

@@ -9,11 +9,14 @@ import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.ui.utils.ToastHelper
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 data class ImportProgress(
     val currentStep: String,
@@ -28,7 +31,9 @@ data class ImportProgress(
 class ExcelImportManager @Inject constructor(
     private val excelImportService: ExcelImportService,
     private val firestoreService: FirestoreService,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val toastHelper: ToastHelper,
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         private const val TAG = "ExcelImportManager"
@@ -48,34 +53,66 @@ class ExcelImportManager @Inject constructor(
         // Check permissions
         val userId = authService.getCurrentUserId()
         if (userId.isNullOrBlank()) {
+            val errorMsg = "User must be authenticated to import data"
+            Log.e(TAG, errorMsg)
+            toastHelper.showError(context, "❌ Authentication Error: $errorMsg")
             return@withContext ImportProgress(
                 currentStep = "Authentication failed",
                 progress = 0,
-                errors = listOf("User must be authenticated to import data")
+                errors = listOf(errorMsg)
             )
         }
 
-        val userRole = firestoreService.getCurrentUserRole()
+        val userRole = try {
+            firestoreService.getCurrentUserRole()
+        } catch (e: Exception) {
+            val errorMsg = "Failed to check user permissions: ${e.message}"
+            Log.e(TAG, errorMsg, e)
+            toastHelper.showError(context, "❌ Permission Error: $errorMsg")
+            return@withContext ImportProgress(
+                currentStep = "Permission check failed",
+                progress = 0,
+                errors = listOf(errorMsg)
+            )
+        }
+        
         if (!PermissionManager.canImportData(userRole)) {
+            val errorMsg = "Only admins can import CSV data. Your role: $userRole"
+            Log.e(TAG, errorMsg)
+            toastHelper.showError(context, "❌ Access Denied: $errorMsg")
             return@withContext ImportProgress(
                 currentStep = "Permission denied",
                 progress = 0,
-                errors = listOf("Only admins can import Excel data")
+                errors = listOf(errorMsg)
             )
         }
 
         try {
-            // Step 1: Parse Excel file
+            // Step 1: Parse CSV file
             onProgress(ImportProgress(
-                currentStep = "Parsing Excel file...",
+                currentStep = "Parsing CSV file...",
                 progress = 10
             ))
 
-            val importResult = excelImportService.importExcelFile(uri, userId)
+            val importResult = try {
+                excelImportService.importExcelFile(uri, userId)
+            } catch (e: Exception) {
+                val errorMsg = "Failed to parse CSV file: ${e.message}"
+                Log.e(TAG, errorMsg, e)
+                toastHelper.showError(context, "❌ File Parsing Error: $errorMsg")
+                return@withContext ImportProgress(
+                    currentStep = "CSV parsing failed",
+                    progress = 0,
+                    errors = listOf(errorMsg)
+                )
+            }
             
             if (importResult.errors.isNotEmpty()) {
+                val errorMsg = "CSV parsing failed with ${importResult.errors.size} errors"
+                Log.e(TAG, "$errorMsg: ${importResult.errors.joinToString("; ")}")
+                toastHelper.showError(context, "❌ $errorMsg. Check details in progress dialog.")
                 return@withContext ImportProgress(
-                    currentStep = "Excel parsing failed",
+                    currentStep = "CSV parsing failed",
                     progress = 0,
                     errors = importResult.errors,
                     warnings = importResult.warnings
@@ -99,15 +136,48 @@ class ExcelImportManager @Inject constructor(
                 totalEntries = totalEntries
             ))
 
-            val existingUsers = firestoreService.getDriverUsers().associateBy { it.name.lowercase() }
-            val existingVehicles = firestoreService.getVehicles().map { "${it.make} ${it.model}".trim().lowercase() }.toSet()
+            val existingUsers = try {
+                val users = firestoreService.getDriverUsers()
+                Log.d(TAG, "Found ${users.size} existing driver users")
+                users.forEach { user ->
+                    Log.d(TAG, "Existing user: name='${user.name}', id='${user.id}'")
+                }
+                // Use 'name' field (which should map to fullName in Firestore)
+                users.associateBy { it.name.lowercase() }
+            } catch (e: Exception) {
+                val errorMsg = "Failed to fetch existing users: ${e.message}"
+                Log.e(TAG, errorMsg, e)
+                toastHelper.showError(context, "❌ Database Error: $errorMsg")
+                return@withContext ImportProgress(
+                    currentStep = "Failed to check existing users",
+                    progress = 0,
+                    errors = listOf(errorMsg)
+                )
+            }
+
+            val existingVehicles = try {
+                firestoreService.getVehicles().map { "${it.make} ${it.model}".trim().lowercase() }.toSet()
+            } catch (e: Exception) {
+                val errorMsg = "Failed to fetch existing vehicles: ${e.message}"
+                Log.e(TAG, errorMsg, e)
+                toastHelper.showError(context, "❌ Database Error: $errorMsg")
+                return@withContext ImportProgress(
+                    currentStep = "Failed to check existing vehicles",
+                    progress = 0,
+                    errors = listOf(errorMsg)
+                )
+            }
 
             // Step 3: Create missing drivers in users collection
             val driversToCreate = importResult.driversToCreate.filter { 
                 !existingUsers.containsKey(it.name.lowercase())
             }.distinctBy { it.name.lowercase() }
 
+            Log.d(TAG, "Drivers to create: ${driversToCreate.map { it.name }}")
+            Log.d(TAG, "Existing users keys: ${existingUsers.keys}")
+
             val createdUserIds = mutableMapOf<String, String>() // driverName -> userId mapping
+            val creationErrors = mutableListOf<String>()
 
             if (driversToCreate.isNotEmpty()) {
                 onProgress(ImportProgress(
@@ -118,13 +188,24 @@ class ExcelImportManager @Inject constructor(
 
                 driversToCreate.forEach { driver ->
                     try {
+                        Log.d(TAG, "Creating driver user: ${driver.name}")
                         val newUserId = createDriverUserFromImport(driver.name)
                         createdUserIds[driver.name.lowercase()] = newUserId
-                        Log.d(TAG, "Created driver user: ${driver.name} with ID: $newUserId")
+                        Log.d(TAG, "✅ Created driver user: '${driver.name}' with ID: $newUserId")
+                        toastHelper.showMessage(context, "✅ Created driver: ${driver.name}")
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to create driver user: ${driver.name}", e)
+                        val errorMsg = "Failed to create driver user '${driver.name}': ${e.message}"
+                        Log.e(TAG, errorMsg, e)
+                        creationErrors.add(errorMsg)
+                        toastHelper.showError(context, "❌ Driver creation failed: ${driver.name}")
                     }
                 }
+
+                if (creationErrors.isNotEmpty()) {
+                    Log.w(TAG, "Some drivers could not be created: ${creationErrors.joinToString("; ")}")
+                }
+            } else {
+                Log.d(TAG, "No new drivers to create")
             }
 
             // Step 4: Create missing vehicles
@@ -164,18 +245,35 @@ class ExcelImportManager @Inject constructor(
                 try {
                     // Find the correct userId for this driver
                     val driverName = entry.driverName.lowercase()
+                    Log.d(TAG, "Processing entry for driver: '$driverName'")
+                    
                     val correctUserId = when {
                         // Check if we just created this user
-                        createdUserIds.containsKey(driverName) -> createdUserIds[driverName]!!
+                        createdUserIds.containsKey(driverName) -> {
+                            val userId = createdUserIds[driverName]!!
+                            Log.d(TAG, "Using newly created user ID: $userId for driver: $driverName")
+                            userId
+                        }
                         // Check if user already exists
-                        existingUsers.containsKey(driverName) -> existingUsers[driverName]!!.id
-                        // Fallback to current user (should not happen with proper logic)
-                        else -> userId
+                        existingUsers.containsKey(driverName) -> {
+                            val userId = existingUsers[driverName]!!.id
+                            Log.d(TAG, "Using existing user ID: $userId for driver: $driverName")
+                            userId
+                        }
+                        // Fallback - this should not happen with proper logic
+                        else -> {
+                            Log.w(TAG, "⚠️ No user found for driver '$driverName'. Available users: ${existingUsers.keys}. Created users: ${createdUserIds.keys}")
+                            val errorMsg = "No user found for driver '$driverName'"
+                            errors.add(errorMsg)
+                            toastHelper.showError(context, "❌ $errorMsg")
+                            userId // Fallback to admin user
+                        }
                     }
 
                     // Update entry with correct userId
                     val entryWithCorrectUserId = entry.copy(userId = correctUserId)
                     
+                    Log.d(TAG, "Saving entry: driver='${entry.driverName}', date='${entry.date}', userId='$correctUserId'")
                     firestoreService.saveDailyEntry(entryWithCorrectUserId)
                     processedEntries++
                     
@@ -189,18 +287,25 @@ class ExcelImportManager @Inject constructor(
                         warnings = warnings
                     ))
                     
-                    Log.d(TAG, "Imported entry for ${entry.driverName} on ${entry.date} with userId: $correctUserId")
+                    Log.d(TAG, "✅ Imported entry for ${entry.driverName} on ${entry.date} with userId: $correctUserId")
                 } catch (e: Exception) {
                     val errorMessage = "Failed to import entry for ${entry.driverName} on ${entry.date}: ${e.message}"
                     errors.add(errorMessage)
                     Log.e(TAG, errorMessage, e)
+                    toastHelper.showError(context, "❌ Entry import failed: ${entry.driverName}")
                 }
             }
 
-            // Final result
+            // Final result with toast notifications
             val finalStep = if (errors.isEmpty()) {
+                val successMsg = "✅ Import completed successfully! ${processedEntries} entries imported."
+                Log.d(TAG, successMsg)
+                toastHelper.showMessage(context, successMsg)
                 "Import completed successfully"
             } else {
+                val errorMsg = "⚠️ Import completed with ${errors.size} errors. ${processedEntries} entries imported."
+                Log.w(TAG, errorMsg)
+                toastHelper.showError(context, errorMsg)
                 "Import completed with ${errors.size} errors"
             }
 
@@ -214,11 +319,13 @@ class ExcelImportManager @Inject constructor(
             )
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error during Excel import", e)
+            val errorMsg = "Import failed: ${e.message}"
+            Log.e(TAG, "Error during CSV import", e)
+            toastHelper.showError(context, "❌ $errorMsg")
             return@withContext ImportProgress(
                 currentStep = "Import failed",
                 progress = 0,
-                errors = listOf("Import failed: ${e.message}")
+                errors = listOf(errorMsg)
             )
         }
     }
@@ -229,10 +336,12 @@ class ExcelImportManager @Inject constructor(
      * @return The ID of the newly created user document
      */
     private suspend fun createDriverUserFromImport(fullName: String): String {
+        Log.d(TAG, "Creating user for driver: '$fullName'")
+        
         val newUserId = java.util.UUID.randomUUID().toString()
         
         val userData = mapOf(
-            "fullName" to fullName,
+            "fullName" to fullName.trim(),
             "role" to "driver",
             "email" to "placeholder@imported.com",
             "userId" to null,
@@ -242,11 +351,34 @@ class ExcelImportManager @Inject constructor(
             "updatedAt" to com.google.firebase.Timestamp.now()
         )
         
-        // Save directly to Firestore users collection
-        firestoreService.getCollection("users")
-            .document(newUserId)
-            .set(userData)
-            .await()
+        Log.d(TAG, "User data to save: $userData")
+        
+        try {
+            // Save directly to Firestore users collection
+            firestoreService.getCollection("users")
+                .document(newUserId)
+                .set(userData)
+                .await()
+                
+            Log.d(TAG, "✅ Successfully created user document with ID: $newUserId for driver: '$fullName'")
+            
+            // Verify the document was created
+            val createdDoc = firestoreService.getCollection("users")
+                .document(newUserId)
+                .get()
+                .await()
+                
+            if (createdDoc.exists()) {
+                Log.d(TAG, "✅ Verified: User document exists with data: ${createdDoc.data}")
+            } else {
+                Log.e(TAG, "❌ User document was not created properly")
+                throw Exception("User document verification failed")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to create user document for '$fullName'", e)
+            throw Exception("Failed to create user document: ${e.message}", e)
+        }
         
         return newUserId
     }
