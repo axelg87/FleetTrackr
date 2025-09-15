@@ -3,54 +3,56 @@
     android:width="200dp"
     android:height="120dp"
     android:viewportWidth="200"
-    android:viewportHeight="120">
+    android:viewportHeight="200">
     
-    <!-- Background -->
+    <!-- Black background rectangle -->
     <path
         android:fillColor="#000000"
-        android:pathData="M0,0 L200,0 L200,120 L0,120 Z" />
+        android:pathData="M0,40 L200,40 L200,160 L0,160 Z" />
     
-    <!-- AG Letters -->
+    <!-- AG Letters in white -->
     <group>
-        <!-- A -->
+        <!-- Letter A -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M30,35 L45,35 L55,65 L65,35 L80,35 L85,80 L75,80 L72,50 L62,80 L48,80 L38,50 L35,80 L25,80 Z" />
+            android:pathData="M45,60 L65,60 L75,90 L85,60 L105,60 L110,140 L95,140 L92,100 L82,140 L68,140 L58,100 L55,140 L40,140 Z" />
         
-        <!-- G -->
+        <!-- Letter G -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M100,35 Q120,35 130,45 Q140,55 140,65 Q140,75 130,80 L110,80 L110,70 L125,70 Q130,65 130,60 Q130,55 125,50 Q120,45 110,45 L105,45 Q100,50 100,55 L100,75 Q105,80 110,80 L125,80 L125,65 L135,65 L135,85 Q130,90 120,90 L100,90 Q90,85 85,75 L85,55 Q90,45 100,35 Z" />
+            android:pathData="M120,60 Q150,60 160,75 Q170,90 170,105 Q170,120 160,130 L135,130 L135,115 L155,115 Q160,105 160,100 Q160,95 155,85 Q150,75 135,75 L130,75 Q120,85 120,95 L120,125 Q130,135 135,135 L155,135 L155,105 L170,105 L170,145 Q160,155 150,155 L120,155 Q105,145 100,125 L100,95 Q105,75 120,60 Z" />
     </group>
     
-    <!-- MOTION text -->
-    <group>
+    <!-- MOTION text at bottom -->
+    <group android:translateY="165">
+        <!-- M -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M25,95 L30,95 L32,105 L34,95 L39,95 L39,110 L36,110 L36,100 L34,110 L30,110 L28,100 L28,110 L25,110 Z" />
+            android:pathData="M40,10 L48,10 L52,20 L56,10 L64,10 L64,35 L58,35 L58,18 L54,35 L50,35 L46,18 L46,35 L40,35 Z" />
         
+        <!-- O -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M45,95 Q50,95 52,97 Q54,99 54,102 Q54,105 52,107 Q50,109 45,109 L40,109 L40,95 Z M43,98 L43,106 L45,106 Q47,105 47,102 Q47,99 45,98 Z" />
+            android:pathData="M70,10 Q78,10 82,15 Q86,20 86,22.5 Q86,25 82,30 Q78,35 70,35 Q62,35 58,30 Q54,25 54,22.5 Q54,20 58,15 Q62,10 70,10 Z M70,16 Q66,16 64,18 Q62,20 62,22.5 Q62,25 64,27 Q66,29 70,29 Q74,29 76,27 Q78,25 78,22.5 Q78,20 76,18 Q74,16 70,16 Z" />
         
+        <!-- T -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M58,98 L58,106 L65,106 L65,109 L55,109 L55,95 L65,95 L65,98 Z M58,100 L58,103 L63,103 L63,100 Z" />
+            android:pathData="M92,16 L92,35 L86,35 L86,16 L80,16 L80,10 L98,10 L98,16 Z" />
         
+        <!-- I -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M70,98 L70,109 L67,109 L67,98 L64,98 L64,95 L73,95 L73,98 Z" />
+            android:pathData="M104,10 L110,10 L110,35 L104,35 Z" />
         
+        <!-- O -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M78,95 L81,95 L81,109 L78,109 Z" />
+            android:pathData="M116,10 Q124,10 128,15 Q132,20 132,22.5 Q132,25 128,30 Q124,35 116,35 Q108,35 104,30 Q100,25 100,22.5 Q100,20 104,15 Q108,10 116,10 Z M116,16 Q112,16 110,18 Q108,20 108,22.5 Q108,25 110,27 Q112,29 116,29 Q120,29 122,27 Q124,25 124,22.5 Q124,20 122,18 Q120,16 116,16 Z" />
         
+        <!-- N -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M87,95 Q92,95 94,97 Q96,99 96,102 Q96,105 94,107 Q92,109 87,109 L82,109 L82,95 Z M85,98 L85,106 L87,106 Q89,105 89,102 Q89,99 87,98 Z" />
-        
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M102,95 L102,106 L109,106 L109,109 L99,109 L99,95 Z M102,98 L102,101 L107,101 L107,98 Z" />
+            android:pathData="M138,10 L144,10 L152,25 L152,10 L158,10 L158,35 L152,35 L144,20 L144,35 L138,35 Z" />
     </group>
 </vector>
