@@ -5,20 +5,22 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- AG Letters centered -->
+    <!-- AG Letters centered for launcher -->
     <group
         android:translateX="54"
-        android:translateY="54">
+        android:translateY="54"
+        android:scaleX="0.4"
+        android:scaleY="0.4">
         
-        <!-- A -->
+        <!-- Letter A -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M-25,-12 L-15,-12 L-10,3 L-5,-12 L5,-12 L10,12 L2,12 L0,-2 L-5,12 L-15,12 L-20,-2 L-22,12 L-30,12 Z" />
+            android:pathData="M-55,-40 L-35,-40 L-25,-10 L-15,-40 L5,-40 L10,40 L-5,40 L-8,0 L-18,40 L-32,40 L-42,0 L-45,40 L-60,40 Z" />
         
-        <!-- G -->
+        <!-- Letter G -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M15,-12 Q25,-12 30,-6 Q35,0 35,6 Q35,12 30,15 L20,15 L20,9 L27,9 Q30,6 30,3 Q30,0 27,-3 Q25,-6 20,-6 L17,-6 Q15,-3 15,0 L15,9 Q17,12 20,12 L27,12 L27,6 L32,6 L32,18 Q30,20 25,20 L15,20 Q10,18 7,12 L7,0 Q10,-6 15,-12 Z" />
+            android:pathData="M20,-40 Q50,-40 60,-25 Q70,-10 70,5 Q70,20 60,30 L35,30 L35,15 L55,15 Q60,5 60,0 Q60,-5 55,-15 Q50,-25 35,-25 L30,-25 Q20,-15 20,-5 L20,25 Q30,35 35,35 L55,35 L55,5 L70,5 L70,45 Q60,55 50,55 L20,55 Q5,45 0,25 L0,-5 Q5,-25 20,-40 Z" />
     </group>
     
 </vector>
