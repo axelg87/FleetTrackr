@@ -113,7 +113,7 @@ class ExcelImportService @Inject constructor(
                     if (entry != null) {
                         entries.add(entry)
                         
-                        // Track drivers and vehicles to create
+                        // Track drivers to create (will be handled by ExcelImportManager)
                         rowData.driver?.let { driverName ->
                             if (driverName.isNotBlank()) {
                                 driversToCreate.add(
@@ -121,7 +121,7 @@ class ExcelImportService @Inject constructor(
                                         id = UUID.randomUUID().toString(),
                                         name = driverName.trim(),
                                         isActive = true,
-                                        userId = userId
+                                        userId = "" // Will be set by ImportManager after user creation
                                     )
                                 )
                             }
@@ -290,7 +290,7 @@ class ExcelImportService @Inject constructor(
         try {
             val entry = DailyEntry(
                 id = UUID.randomUUID().toString(),
-                userId = userId,
+                userId = "PLACEHOLDER", // Will be corrected by ImportManager
                 date = rowData.date!!,
                 driverName = rowData.driver!!,
                 vehicle = rowData.vehicle!!,
@@ -298,7 +298,7 @@ class ExcelImportService @Inject constructor(
                 yangoEarnings = rowData.yango ?: 0.0,
                 privateJobsEarnings = rowData.private ?: 0.0,
                 careemEarnings = rowData.careem ?: 0.0,
-                notes = "Imported from Excel",
+                notes = "Imported from CSV",
                 photoUrls = emptyList(),
                 isSynced = true,
                 createdAt = rowData.date!!,
@@ -323,24 +323,29 @@ class ExcelImportService @Inject constructor(
     private fun parseDate(dateString: String, rowNumber: Int, errors: MutableList<String>): Date? {
         if (dateString.isBlank()) return null
 
+        // Force European date format parsing (dd/MM/yyyy or dd-MM-yyyy)
         val dateFormats = listOf(
             SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
-            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
-            SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()),
             SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()),
-            SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+            SimpleDateFormat("dd/M/yyyy", Locale.getDefault()),   // Single digit month
+            SimpleDateFormat("d/MM/yyyy", Locale.getDefault()),   // Single digit day
+            SimpleDateFormat("d/M/yyyy", Locale.getDefault()),    // Both single digits
+            SimpleDateFormat("dd-M-yyyy", Locale.getDefault()),   // Single digit month with dashes
+            SimpleDateFormat("d-MM-yyyy", Locale.getDefault()),   // Single digit day with dashes
+            SimpleDateFormat("d-M-yyyy", Locale.getDefault())     // Both single digits with dashes
         )
 
         for (format in dateFormats) {
             try {
                 format.isLenient = false
+                format.timeZone = TimeZone.getTimeZone("UTC") // Parse as UTC
                 return format.parse(dateString)
             } catch (e: Exception) {
                 // Try next format
             }
         }
 
-        errors.add("Row $rowNumber: Invalid date format '$dateString'. Expected formats: dd/MM/yyyy or yyyy-MM-dd")
+        errors.add("Row $rowNumber: Invalid date format '$dateString'. Expected European format: dd/MM/yyyy or dd-MM-yyyy")
         return null
     }
 

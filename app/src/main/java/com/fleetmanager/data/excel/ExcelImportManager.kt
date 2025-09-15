@@ -11,6 +11,7 @@ import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -91,34 +92,37 @@ class ExcelImportManager @Inject constructor(
                 )
             }
 
-            // Step 2: Get existing drivers and vehicles
+            // Step 2: Get existing users (drivers) from users collection
             onProgress(ImportProgress(
                 currentStep = "Checking existing drivers and vehicles...",
                 progress = 20,
                 totalEntries = totalEntries
             ))
 
-            val existingDrivers = firestoreService.getDrivers().map { it.name.lowercase() }.toSet()
+            val existingUsers = firestoreService.getDriverUsers().associateBy { it.name.lowercase() }
             val existingVehicles = firestoreService.getVehicles().map { "${it.make} ${it.model}".trim().lowercase() }.toSet()
 
-            // Step 3: Create missing drivers
+            // Step 3: Create missing drivers in users collection
             val driversToCreate = importResult.driversToCreate.filter { 
-                !existingDrivers.contains(it.name.lowercase())
+                !existingUsers.containsKey(it.name.lowercase())
             }.distinctBy { it.name.lowercase() }
+
+            val createdUserIds = mutableMapOf<String, String>() // driverName -> userId mapping
 
             if (driversToCreate.isNotEmpty()) {
                 onProgress(ImportProgress(
-                    currentStep = "Creating ${driversToCreate.size} new drivers...",
+                    currentStep = "Creating ${driversToCreate.size} new driver users...",
                     progress = 30,
                     totalEntries = totalEntries
                 ))
 
                 driversToCreate.forEach { driver ->
                     try {
-                        firestoreService.saveDriver(driver)
-                        Log.d(TAG, "Created driver: ${driver.name}")
+                        val newUserId = createDriverUserFromImport(driver.name)
+                        createdUserIds[driver.name.lowercase()] = newUserId
+                        Log.d(TAG, "Created driver user: ${driver.name} with ID: $newUserId")
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to create driver: ${driver.name}", e)
+                        Log.e(TAG, "Failed to create driver user: ${driver.name}", e)
                     }
                 }
             }
@@ -145,7 +149,7 @@ class ExcelImportManager @Inject constructor(
                 }
             }
 
-            // Step 5: Import entries
+            // Step 5: Import entries with correct userIds
             onProgress(ImportProgress(
                 currentStep = "Importing entries...",
                 progress = 50,
@@ -158,7 +162,21 @@ class ExcelImportManager @Inject constructor(
 
             importResult.entries.forEach { entry ->
                 try {
-                    firestoreService.saveDailyEntry(entry)
+                    // Find the correct userId for this driver
+                    val driverName = entry.driverName.lowercase()
+                    val correctUserId = when {
+                        // Check if we just created this user
+                        createdUserIds.containsKey(driverName) -> createdUserIds[driverName]!!
+                        // Check if user already exists
+                        existingUsers.containsKey(driverName) -> existingUsers[driverName]!!.id
+                        // Fallback to current user (should not happen with proper logic)
+                        else -> userId
+                    }
+
+                    // Update entry with correct userId
+                    val entryWithCorrectUserId = entry.copy(userId = correctUserId)
+                    
+                    firestoreService.saveDailyEntry(entryWithCorrectUserId)
                     processedEntries++
                     
                     val progressPercent = 50 + ((processedEntries.toFloat() / totalEntries) * 40).toInt()
@@ -171,7 +189,7 @@ class ExcelImportManager @Inject constructor(
                         warnings = warnings
                     ))
                     
-                    Log.d(TAG, "Imported entry for ${entry.driverName} on ${entry.date}")
+                    Log.d(TAG, "Imported entry for ${entry.driverName} on ${entry.date} with userId: $correctUserId")
                 } catch (e: Exception) {
                     val errorMessage = "Failed to import entry for ${entry.driverName} on ${entry.date}: ${e.message}"
                     errors.add(errorMessage)
@@ -204,9 +222,41 @@ class ExcelImportManager @Inject constructor(
             )
         }
     }
+
+    /**
+     * Creates a new driver user in the users collection from import data
+     * @param fullName The driver's full name from Excel
+     * @return The ID of the newly created user document
+     */
+    private suspend fun createDriverUserFromImport(fullName: String): String {
+        val newUserId = java.util.UUID.randomUUID().toString()
+        
+        val userData = mapOf(
+            "fullName" to fullName,
+            "role" to "driver",
+            "email" to "placeholder@imported.com",
+            "userId" to null,
+            "linked" to false,
+            "createdFromImport" to true,
+            "createdAt" to com.google.firebase.Timestamp.now(),
+            "updatedAt" to com.google.firebase.Timestamp.now()
+        )
+        
+        // Save directly to Firestore users collection
+        firestoreService.getCollection("users")
+            .document(newUserId)
+            .set(userData)
+            .await()
+        
+        return newUserId
+    }
 }
 
 // Extension function to check if user can import data
 private fun PermissionManager.canImportData(userRole: UserRole): Boolean {
     return canEdit(userRole) // Only admins can import
 }
+
+// Extension function to access Firestore collection
+private fun FirestoreService.getCollection(name: String) = 
+    com.google.firebase.firestore.FirebaseFirestore.getInstance().collection(name)
