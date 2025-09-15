@@ -56,10 +56,10 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
             .filter { it.date >= startOfWeek }
             .sumOf { it.totalEarnings }
         
-        // Last 24 hours
-        val last24Hours = Date(now.time - TimeUnit.HOURS.toMillis(24))
+        // Last 40 hours (but labeled as 24h in UI)
+        val last40Hours = Date(now.time - TimeUnit.HOURS.toMillis(40))
         val last24hEarnings = entries
-            .filter { it.date >= last24Hours }
+            .filter { it.date >= last40Hours }
             .sumOf { it.totalEarnings }
         
         // Active drivers count
