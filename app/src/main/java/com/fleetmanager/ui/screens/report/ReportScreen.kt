@@ -35,8 +35,10 @@ import com.fleetmanager.ui.viewmodel.SortOption
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
+    onProfileClick: () -> Unit = {},
     viewModel: ReportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,16 +96,30 @@ fun ReportScreen(
         return
     }
     
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Screen Header
-        item {
-            ScreenHeader(title = "Reports")
+    Scaffold(
+        topBar = {
+            ProfileAwareTopBar(
+                title = "Reports",
+                onProfileClick = onProfileClick,
+                actions = {
+                    IconButton(onClick = onExport) {
+                        Icon(
+                            Icons.Default.FileDownload,
+                            contentDescription = "Export",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            )
         }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         
         // Export Button
         item {
@@ -1084,5 +1100,6 @@ private fun DatePickerDialog(
         }
     ) {
         DatePicker(state = datePickerState)
+    }
     }
 }

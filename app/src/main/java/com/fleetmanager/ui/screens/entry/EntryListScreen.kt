@@ -24,11 +24,13 @@ import com.fleetmanager.ui.utils.rememberStableLambda1
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntryListScreen(
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onEntryClick: (String) -> Unit,
+    onProfileClick: () -> Unit = {},
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -39,16 +41,22 @@ fun EntryListScreen(
     val onExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
     val onItemClick: (String) -> Unit = rememberStableLambda1({ entryId: String -> onEntryClick(entryId) })
     
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-        item {
-            ScreenHeader(title = "History")
+    Scaffold(
+        topBar = {
+            ProfileAwareTopBar(
+                title = "History",
+                onProfileClick = onProfileClick
+            )
         }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
         
         // Role indicator for managers and admins
         if (PermissionManager.canViewAll(userRole)) {
@@ -103,18 +111,19 @@ fun EntryListScreen(
                 }
             }
         }
-    }
-        
-        // Floating Action Button Menu - all roles can create
-        FloatingActionButtonMenu(
-            items = createDefaultFabMenuItems(
-                onIncomeClick = onAddClick,
-                onExpenseClick = onExpenseClick
-            ),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        )
+            }
+            
+            // Floating Action Button Menu - all roles can create
+            FloatingActionButtonMenu(
+                items = createDefaultFabMenuItems(
+                    onIncomeClick = onAddClick,
+                    onExpenseClick = onExpenseClick
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            )
+        }
     }
 }
 

@@ -27,6 +27,7 @@ import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
+    onProfileClick: () -> Unit = {},
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -34,17 +35,30 @@ fun AnalyticsScreen(
     val selectedPanel by viewModel.selectedPanel.collectAsState()
     val timeFilter by viewModel.timeFilter.collectAsState()
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Screen Header
-        com.fleetmanager.ui.components.ScreenHeader(
-            title = "Analytics",
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    Scaffold(
+        topBar = {
+            com.fleetmanager.ui.components.ProfileAwareTopBar(
+                title = "Analytics",
+                onProfileClick = onProfileClick,
+                actions = {
+                    IconButton(onClick = { /* TODO: Add analytics filters */ }) {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "Filter",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
         
         // Time Filter
         TimeFilterRow(
@@ -676,6 +690,7 @@ private fun TimeFilterRow(
                     )
                 }
             }
+        }
         }
     }
 }

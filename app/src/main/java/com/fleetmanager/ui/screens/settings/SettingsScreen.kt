@@ -34,9 +34,11 @@ import com.fleetmanager.ui.components.*
 import com.fleetmanager.data.excel.ImportProgress
 import com.fleetmanager.ui.utils.rememberExcelFilePicker
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateToProfile: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -47,15 +49,21 @@ fun SettingsScreen(
         onError = { error -> viewModel.setError(error) }
     )
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            ScreenHeader(title = "Settings")
+    Scaffold(
+        topBar = {
+            ProfileAwareTopBar(
+                title = "Settings",
+                onProfileClick = onProfileClick
+            )
         }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
 
         // Account Section
         item {
@@ -562,6 +570,7 @@ private fun ImportProgressCard(
                     )
                 }
             }
+        }
         }
     }
 }

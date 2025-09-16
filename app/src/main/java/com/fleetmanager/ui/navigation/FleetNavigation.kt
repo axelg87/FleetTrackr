@@ -288,18 +288,24 @@ private fun PagerScreenContent(
             EntryListScreen(
                 onAddEntryClick = onAddEntryClick,
                 onAddExpenseClick = onAddExpenseClick,
-                onEntryClick = onEntryClick
+                onEntryClick = onEntryClick,
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
         Screen.Analytics -> {
-            AnalyticsScreen()
+            AnalyticsScreen(
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
+            )
         }
         Screen.Reports -> {
-            ReportScreen()
+            ReportScreen(
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
+            )
         }
         Screen.Settings -> {
             SettingsScreen(
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
         else -> {
@@ -400,21 +406,27 @@ fun FleetNavigation(
                 },
                 onEntryClick = { entryId ->
                     navController.navigate(Screen.EntryDetail.createRoute(entryId))
-                }
+                },
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
         
         composable(Screen.Analytics.route) {
-            AnalyticsScreen()
+            AnalyticsScreen(
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
+            )
         }
         
         composable(Screen.Reports.route) {
-            ReportScreen()
+            ReportScreen(
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
+            )
         }
         
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
         
