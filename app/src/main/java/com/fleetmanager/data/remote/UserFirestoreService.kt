@@ -44,14 +44,18 @@ class UserFirestoreService @Inject constructor(
                             UserRole.valueOf((document.getString("role") ?: "DRIVER").uppercase())
                         } catch (e: Exception) {
                             UserRole.DRIVER
-                        }
+                        },
+                        email = document.getString("email") ?: "",
+                        profilePictureUrl = document.getString("profilePictureUrl")
                     )
                 } else {
                     // Default user profile if document doesn't exist
                     UserDto(
                         id = userId,
                         name = "Unknown User",
-                        role = UserRole.DRIVER
+                        role = UserRole.DRIVER,
+                        email = "",
+                        profilePictureUrl = null
                     )
                 }
             }
@@ -136,7 +140,9 @@ class UserFirestoreService @Inject constructor(
                                 UserRole.valueOf(roleString.uppercase())
                             } catch (e: Exception) {
                                 UserRole.DRIVER
-                            }
+                            },
+                            email = document.getString("email") ?: "",
+                            profilePictureUrl = document.getString("profilePictureUrl")
                         )
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to parse user: ${document.id}", e)
@@ -164,7 +170,9 @@ class UserFirestoreService @Inject constructor(
                                 UserRole.valueOf(roleString.uppercase())
                             } catch (e: Exception) {
                                 UserRole.DRIVER
-                            }
+                            },
+                            email = document.getString("email") ?: "",
+                            profilePictureUrl = document.getString("profilePictureUrl")
                         )
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to parse user: ${document.id}", e)
@@ -197,7 +205,9 @@ class UserFirestoreService @Inject constructor(
         return UserDto(
             id = userId,
             name = name,
-            role = UserRole.DRIVER
+            role = UserRole.DRIVER,
+            email = email,
+            profilePictureUrl = null
         )
     }
 }

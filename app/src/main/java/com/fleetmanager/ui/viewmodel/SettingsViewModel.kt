@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.viewmodel
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
@@ -15,7 +16,10 @@ import com.fleetmanager.data.excel.ImportProgress
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.sync.SyncManager
+import com.fleetmanager.ui.utils.ToastHelper
+import com.fleetmanager.ui.utils.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -46,7 +50,9 @@ class SettingsViewModel @Inject constructor(
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val syncManager: SyncManager,
-    private val excelImportManager: ExcelImportManager
+    private val excelImportManager: ExcelImportManager,
+    private val toastHelper: ToastHelper,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<SettingsUiState>() {
 
     override fun getInitialState() = SettingsUiState()
@@ -179,6 +185,7 @@ class SettingsViewModel @Inject constructor(
             }
         ) {
             val driver = userFirestoreService.createDriverUser(name, email)
+            toastHelper.showSuccess(context, LocalizedStrings.Success.DRIVER_ADDED)
             updateState { 
                 it.copy(message = "Driver user '${driver.name}' created successfully with email: $email") 
             }
@@ -198,6 +205,7 @@ class SettingsViewModel @Inject constructor(
             }
         ) {
             val vehicle = vehicleFirestoreService.createVehicle(make, model, year, licensePlate)
+            toastHelper.showSuccess(context, LocalizedStrings.Success.VEHICLE_ADDED)
             updateState { 
                 it.copy(message = "Vehicle '${vehicle.displayName}' added successfully") 
             }
@@ -217,6 +225,7 @@ class SettingsViewModel @Inject constructor(
             }
         ) {
             val expenseType = expenseTypeFirestoreService.createExpenseType(name, displayName)
+            toastHelper.showSuccess(context, LocalizedStrings.Success.EXPENSE_TYPE_ADDED)
             updateState { 
                 it.copy(message = "Expense type '${expenseType.displayName}' added successfully") 
             }
@@ -284,6 +293,12 @@ class SettingsViewModel @Inject constructor(
                 updateState { 
                     it.copy(importProgress = progress) 
                 }
+            }
+            
+            if (finalProgress.errors.isEmpty()) {
+                toastHelper.showSuccess(context, LocalizedStrings.Success.CSV_IMPORT_COMPLETED)
+            } else {
+                toastHelper.showWarning(context, LocalizedStrings.Warning.CSV_IMPORT_WITH_ERRORS)
             }
             
             updateState { 

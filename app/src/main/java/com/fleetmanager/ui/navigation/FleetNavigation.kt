@@ -37,6 +37,7 @@ import com.fleetmanager.ui.screens.entry.AddEntryScreen
 import com.fleetmanager.ui.screens.entry.EntryDetailScreen
 import com.fleetmanager.ui.screens.entry.EntryListScreen
 import com.fleetmanager.ui.screens.entry.NewExpenseEntryScreen
+import com.fleetmanager.ui.screens.profile.ProfileScreen
 import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 import com.fleetmanager.ui.screens.splash.SplashScreen
@@ -54,6 +55,7 @@ sealed class Screen(val route: String) {
     object Analytics : Screen("analytics")
     object Reports : Screen("reports")
     object Settings : Screen("settings")
+    object Profile : Screen("profile")
     object AddEntry : Screen("add_entry")
     object AddExpense : Screen("add_expense")
     object EntryDetail : Screen("entry_detail/{entryId}") {
@@ -278,7 +280,8 @@ private fun PagerScreenContent(
         Screen.Dashboard -> {
             DashboardScreen(
                 onAddEntryClick = onAddEntryClick,
-                onAddExpenseClick = onAddExpenseClick
+                onAddExpenseClick = onAddExpenseClick,
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
         Screen.History -> {
@@ -295,7 +298,9 @@ private fun PagerScreenContent(
             ReportScreen()
         }
         Screen.Settings -> {
-            SettingsScreen()
+            SettingsScreen(
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+            )
         }
         else -> {
             // Fallback for any unexpected screens
@@ -380,7 +385,8 @@ fun FleetNavigation(
                 },
                 onAddExpenseClick = {
                     navController.navigate(Screen.AddExpense.route)
-                }
+                },
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
         
@@ -407,7 +413,17 @@ fun FleetNavigation(
         }
         
         composable(Screen.Settings.route) {
-            SettingsScreen()
+            SettingsScreen(
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+            )
+        }
+        
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
         
         composable(Screen.AddEntry.route) {

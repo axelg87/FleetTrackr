@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.ExpenseType
@@ -12,7 +13,10 @@ import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.usecase.SaveExpenseUseCase
 import com.fleetmanager.domain.validation.InputValidator
+import com.fleetmanager.ui.utils.ToastHelper
+import com.fleetmanager.ui.utils.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
@@ -72,7 +76,9 @@ class AddExpenseViewModel @Inject constructor(
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val saveExpenseUseCase: SaveExpenseUseCase,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val toastHelper: ToastHelper,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<AddExpenseUiState>() {
     
     override fun getInitialState() = AddExpenseUiState()
@@ -234,6 +240,7 @@ class AddExpenseViewModel @Inject constructor(
             val result = saveExpenseUseCase(expense, currentState.photoUri, currentState.photoUris)
             result.fold(
                 onSuccess = {
+                    toastHelper.showSuccess(context, LocalizedStrings.Success.EXPENSE_ENTRY_ADDED)
                     updateState { it.copy(isSaving = false, isSaved = true) }
                 },
                 onFailure = { error ->

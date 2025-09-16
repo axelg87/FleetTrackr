@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
@@ -9,7 +10,10 @@ import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.validation.InputValidator
+import com.fleetmanager.ui.utils.ToastHelper
+import com.fleetmanager.ui.utils.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
@@ -69,7 +73,9 @@ class AddEntryViewModel @Inject constructor(
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val toastHelper: ToastHelper,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<AddEntryUiState>() {
     
     override fun getInitialState() = AddEntryUiState()
@@ -236,6 +242,7 @@ class AddEntryViewModel @Inject constructor(
             val result = saveDailyEntryUseCase(entry, currentState.photoUri, currentState.photoUris)
             result.fold(
                 onSuccess = {
+                    toastHelper.showSuccess(context, LocalizedStrings.Success.INCOME_ENTRY_ADDED)
                     updateState { it.copy(isSaving = false, isSaved = true) }
                 },
                 onFailure = { error ->

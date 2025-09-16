@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.domain.model.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 data class NavigationUiState(
+    val userProfile: UserDto? = null,
     val userRole: UserRole? = null
 )
 
@@ -29,6 +31,13 @@ class NavigationViewModel @Inject constructor(
         initialValue = null
     )
     
+    // Expose userProfile
+    val userProfile: StateFlow<UserDto?> = uiState.map { it.userProfile }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.Lazily,
+        initialValue = null
+    )
+    
     init {
         loadUserRole()
     }
@@ -41,7 +50,12 @@ class NavigationViewModel @Inject constructor(
             }
         ) {
             userFirestoreService.getCurrentUserProfile().collect { userProfile ->
-                updateState { it.copy(userRole = userProfile.role) }
+                updateState { 
+                    it.copy(
+                        userProfile = userProfile,
+                        userRole = userProfile.role
+                    ) 
+                }
             }
         }
     }

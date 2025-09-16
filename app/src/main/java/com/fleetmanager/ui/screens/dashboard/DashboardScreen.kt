@@ -19,10 +19,12 @@ import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.DashboardViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
+    onProfileClick: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -32,16 +34,31 @@ fun DashboardScreen(
     val onExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
     val onSyncClick: () -> Unit = rememberStableLambda0({ viewModel.syncNow() })
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-        item {
-            ScreenHeader(title = "Dashboard")
+    Scaffold(
+        topBar = {
+            ProfileAwareTopBar(
+                title = "Dashboard",
+                onProfileClick = onProfileClick,
+                actions = {
+                    IconButton(onClick = onSyncClick) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Sync",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            )
         }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
 
         // Quick Stats
         item {
@@ -100,17 +117,18 @@ fun DashboardScreen(
                 )
             }
         }
-    }
-        
-        // Floating Action Button Menu
-        FloatingActionButtonMenu(
-            items = createDefaultFabMenuItems(
-                onIncomeClick = onAddClick,
-                onExpenseClick = onExpenseClick
-            ),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        )
+            }
+            
+            // Floating Action Button Menu
+            FloatingActionButtonMenu(
+                items = createDefaultFabMenuItems(
+                    onIncomeClick = onAddClick,
+                    onExpenseClick = onExpenseClick
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            )
+        }
     }
 }

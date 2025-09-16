@@ -1,23 +1,32 @@
 package com.fleetmanager.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.fleetmanager.R
 
 // Screen Header Component with Company Logo
@@ -26,6 +35,10 @@ fun ScreenHeader(
     title: String,
     modifier: Modifier = Modifier,
     showLogo: Boolean = true,
+    showProfileIcon: Boolean = false,
+    profilePictureUrl: String? = null,
+    profileInitials: String = "U",
+    onProfileClick: () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
@@ -52,7 +65,21 @@ fun ScreenHeader(
             )
         }
         
-        Row(content = actions)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            actions()
+            
+            if (showProfileIcon) {
+                ProfileIcon(
+                    profilePictureUrl = profilePictureUrl,
+                    initials = profileInitials,
+                    onClick = onProfileClick,
+                    size = 36.dp
+                )
+            }
+        }
     }
 }
 
@@ -367,4 +394,95 @@ data class ActionItem(
 
 enum class StatusType {
     Loading, Error, Success
+}
+
+// Profile Icon Component for Top Bar
+@Composable
+fun ProfileIcon(
+    profilePictureUrl: String?,
+    initials: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (!profilePictureUrl.isNullOrEmpty()) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(profilePictureUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = initials,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontSize = (size.value * 0.35f).sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+    }
+}
+
+// App Top Bar with Profile Icon
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FleetTopAppBar(
+    title: String,
+    profilePictureUrl: String? = null,
+    profileInitials: String = "U",
+    onProfileClick: () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    TopAppBar(
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_company_logo),
+                    contentDescription = "AG Motion Logo",
+                    modifier = Modifier.size(32.dp),
+                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
+        },
+        actions = {
+            actions()
+            ProfileIcon(
+                profilePictureUrl = profilePictureUrl,
+                initials = profileInitials,
+                onClick = onProfileClick,
+                size = 36.dp,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+        },
+        modifier = modifier,
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
 }
