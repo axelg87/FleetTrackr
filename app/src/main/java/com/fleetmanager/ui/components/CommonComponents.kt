@@ -1,31 +1,39 @@
 package com.fleetmanager.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
 import com.fleetmanager.R
 
-// Screen Header Component with Company Logo
+// Screen Header Component with Company Logo and Profile Icon
 @Composable
 fun ScreenHeader(
     title: String,
     modifier: Modifier = Modifier,
     showLogo: Boolean = true,
+    userName: String? = null,
+    onProfileClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
@@ -52,7 +60,21 @@ fun ScreenHeader(
             )
         }
         
-        Row(content = actions)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(content = actions)
+            
+            // Show profile icon if userName is provided
+            userName?.let { name ->
+                ProfileIcon(
+                    userName = name,
+                    size = 40,
+                    onClick = onProfileClick
+                )
+            }
+        }
     }
 }
 
@@ -367,4 +389,91 @@ data class ActionItem(
 
 enum class StatusType {
     Loading, Error, Success
+}
+
+// Profile Icon Component - Shows user initials or default icon
+@Composable
+fun ProfileIcon(
+    userName: String,
+    modifier: Modifier = Modifier,
+    size: Int = 40,
+    onClick: (() -> Unit)? = null
+) {
+    val initials = remember(userName) {
+        getInitials(userName)
+    }
+    
+    val profileModifier = if (onClick != null) {
+        modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .clickable { onClick() }
+    } else {
+        modifier
+            .size(size.dp)
+            .clip(CircleShape)
+    }
+    
+    Box(
+        modifier = profileModifier
+            .background(
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (initials.isNotEmpty()) {
+            Text(
+                text = initials,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontSize = (size * 0.4).sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Profile",
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size((size * 0.6).dp)
+            )
+        }
+    }
+}
+
+// Helper function to extract initials from a name
+private fun getInitials(name: String): String {
+    if (name.isBlank()) return ""
+    
+    val words = name.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+    return when {
+        words.size >= 2 -> {
+            // Take first letter of first word and first letter of last word
+            "${words.first().first().uppercase()}${words.last().first().uppercase()}"
+        }
+        words.size == 1 -> {
+            // Take first two letters of the single word if possible, otherwise just one
+            val word = words.first()
+            if (word.length >= 2) {
+                word.take(2).uppercase()
+            } else {
+                word.take(1).uppercase()
+            }
+        }
+        else -> ""
+    }
+}
+
+// Common profile click handler for consistent behavior
+@Composable
+fun rememberProfileClickHandler(): () -> Unit {
+    return remember {
+        {
+            // TODO: Implement profile menu or navigation
+            // For now, this is a placeholder that could:
+            // 1. Show a profile menu with options like "View Profile", "Account Settings", "Sign Out"
+            // 2. Navigate to a dedicated profile screen
+            // 3. Open a bottom sheet with user information
+        }
+    }
 }

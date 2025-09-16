@@ -33,6 +33,7 @@ fun EntryListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val userRole by viewModel.userRole.collectAsStateWithLifecycle()
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
@@ -47,7 +48,11 @@ fun EntryListScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
         item {
-            ScreenHeader(title = "History")
+            ScreenHeader(
+                title = "History",
+                userName = userProfile.name,
+                onProfileClick = rememberProfileClickHandler()
+            )
         }
         
         // Role indicator for managers and admins

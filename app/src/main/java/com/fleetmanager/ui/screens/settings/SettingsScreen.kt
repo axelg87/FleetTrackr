@@ -39,6 +39,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
     
     // File picker for Excel import
     val pickExcelFile = rememberExcelFilePicker(
@@ -53,7 +54,11 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            ScreenHeader(title = "Settings")
+            ScreenHeader(
+                title = "Settings",
+                userName = userProfile.name,
+                onProfileClick = rememberProfileClickHandler()
+            )
         }
 
         // Account Section

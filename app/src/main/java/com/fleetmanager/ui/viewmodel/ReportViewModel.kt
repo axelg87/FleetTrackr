@@ -16,8 +16,10 @@ import com.fleetmanager.domain.usecase.GetReportDataRealtimeUseCase
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.model.toReportEntries
 import com.fleetmanager.ui.model.toReportEntry
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
@@ -131,6 +133,14 @@ class ReportViewModel @Inject constructor(
 ) : BaseViewModel<ReportUiState>() {
     
     override fun getInitialState() = ReportUiState()
+    
+    // User profile state
+    val userProfile: StateFlow<UserDto> = userFirestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserDto("", "Loading...", com.fleetmanager.domain.model.UserRole.DRIVER)
+        )
     
     init {
         loadReportData()

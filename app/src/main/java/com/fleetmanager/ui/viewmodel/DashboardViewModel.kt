@@ -7,9 +7,13 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Schedule
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.dto.UserDto
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -27,6 +31,7 @@ data class RecentEntry(
 data class DashboardUiState(
     val quickStats: List<StatItem> = emptyList(),
     val recentEntries: List<RecentEntry> = emptyList(),
+    val userProfile: UserDto? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -34,13 +39,15 @@ data class DashboardUiState(
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val getDashboardDataRealtimeUseCase: GetDashboardDataRealtimeUseCase,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val userFirestoreService: UserFirestoreService
 ) : BaseViewModel<DashboardUiState>() {
 
     override fun getInitialState() = DashboardUiState()
 
     init {
         loadDashboardData()
+        loadUserProfile()
     }
 
     fun syncNow() {
@@ -50,6 +57,18 @@ class DashboardViewModel @Inject constructor(
             }
         ) {
             syncManager.syncNow()
+        }
+    }
+
+    private fun loadUserProfile() {
+        executeAsync(
+            onError = { error ->
+                // Don't show error for user profile loading, just use default
+            }
+        ) {
+            userFirestoreService.getCurrentUserProfile().collect { userProfile ->
+                updateState { it.copy(userProfile = userProfile) }
+            }
         }
     }
 

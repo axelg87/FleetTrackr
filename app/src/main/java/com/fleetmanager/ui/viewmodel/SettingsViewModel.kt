@@ -24,6 +24,7 @@ import com.fleetmanager.ui.utils.ExportResult
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.model.toReportEntries
 import com.fleetmanager.ui.model.toReportEntry
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -66,6 +67,14 @@ class SettingsViewModel @Inject constructor(
 ) : BaseViewModel<SettingsUiState>() {
 
     override fun getInitialState() = SettingsUiState()
+    
+    // User profile state
+    val userProfile: StateFlow<com.fleetmanager.data.dto.UserDto> = userFirestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.fleetmanager.data.dto.UserDto("", "Loading...", UserRole.DRIVER)
+        )
 
     init {
         observeAuthState()
