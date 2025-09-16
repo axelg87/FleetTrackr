@@ -4,14 +4,11 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
@@ -246,22 +243,6 @@ fun MainScreenWithPager(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.padding(innerPadding),
-            pageSpacing = 0.dp,
-            userScrollEnabled = true,
-            reverseLayout = false,
-            contentPadding = PaddingValues(0.dp),
-            pageSize = PagerDefaults.PageSize.Fill,
-            beyondBoundsPageCount = 1, // Preload adjacent pages for smoother scrolling
-            flingBehavior = PagerDefaults.flingBehavior(
-                state = pagerState,
-                pagerSnapDistance = PagerDefaults.PagerSnapDistance.atMost(3), // Allow faster multi-page swipes
-                snapAnimationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessHigh,
-                    visibilityThreshold = 0.5f
-                ),
-                decayAnimationSpec = PagerDefaults.snapFlingBehavior().decayAnimationSpec
-            ),
             key = { pageIndex -> bottomNavItems[pageIndex].screen.route }
         ) { pageIndex ->
             // Use key to help with performance and state preservation
