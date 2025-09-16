@@ -411,7 +411,7 @@ private fun CollapsibleFiltersSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FilterDropdown(
+fun FilterDropdown(
     label: String,
     options: List<String>,
     selectedOption: String?,
@@ -467,7 +467,7 @@ private fun FilterDropdown(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateRangeFilter(
+fun DateRangeFilter(
     startDate: Date?,
     endDate: Date?,
     onDateRangeChange: (Date?, Date?) -> Unit
@@ -548,7 +548,7 @@ private fun DateRangeFilter(
             val datePickerState = rememberDatePickerState(
                 initialSelectedDateMillis = startDate?.time
             )
-            DatePickerDialog(
+            CustomDatePickerDialog(
                 onDateSelected = { dateMillis ->
                     dateMillis?.let {
                         onDateRangeChange(Date(it), endDate)
@@ -565,7 +565,7 @@ private fun DateRangeFilter(
             val datePickerState = rememberDatePickerState(
                 initialSelectedDateMillis = endDate?.time
             )
-            DatePickerDialog(
+            CustomDatePickerDialog(
                 onDateSelected = { dateMillis ->
                     dateMillis?.let {
                         onDateRangeChange(startDate, Date(it))
@@ -580,7 +580,7 @@ private fun DateRangeFilter(
 }
 
 @Composable
-private fun EntryTypeFilterSection(
+fun EntryTypeFilterSection(
     selectedEntryType: EntryTypeFilter,
     onEntryTypeChange: (EntryTypeFilter) -> Unit
 ) {
@@ -668,7 +668,7 @@ private fun EntryTypeFilterSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SortDropdown(
+fun SortDropdown(
     selectedSortOption: SortOption,
     onSortOptionSelected: (SortOption) -> Unit,
     modifier: Modifier = Modifier
@@ -712,7 +712,7 @@ private fun SortDropdown(
 }
 
 @Composable
-private fun EnhancedSummarySection(
+fun EnhancedSummarySection(
     totalEntries: Int,
     totalAmount: String,
     totalsByDriver: List<com.fleetmanager.ui.viewmodel.GroupedTotal>,
@@ -814,7 +814,7 @@ private fun EnhancedSummarySection(
 }
 
 @Composable
-private fun GroupedTotalsList(
+fun GroupedTotalsList(
     totals: List<com.fleetmanager.ui.viewmodel.GroupedTotal>
 ) {
     Column(
@@ -866,7 +866,7 @@ private fun GroupedTotalsList(
 }
 
 @Composable
-private fun ChartsSection(
+fun ChartsSection(
     entries: List<ReportEntry>
 ) {
     if (entries.isEmpty()) return
@@ -945,7 +945,7 @@ private fun ChartsSection(
 }
 
 @Composable
-private fun SummarySection(
+fun SummarySection(
     totalEntries: Int,
     totalAmount: String
 ) {
@@ -996,7 +996,7 @@ private fun SummarySection(
 }
 
 @Composable
-private fun ReportEntryCard(
+fun ReportEntryCard(
     entry: ReportEntry,
     modifier: Modifier = Modifier
 ) {
@@ -1079,7 +1079,7 @@ private fun ReportEntryCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DatePickerDialog(
+fun CustomDatePickerDialog(
     onDateSelected: (Long?) -> Unit,
     onDismiss: () -> Unit,
     datePickerState: DatePickerState
