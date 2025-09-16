@@ -1,23 +1,34 @@
 package com.fleetmanager.ui.viewmodel
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.fleetmanager.domain.repository.AuthRepository
+import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
 import com.fleetmanager.data.excel.ExcelImportManager
 import com.fleetmanager.data.excel.ImportProgress
+import com.fleetmanager.data.preferences.SettingsPreferencesDataStore
+import com.fleetmanager.data.preferences.SettingsPreferences
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.sync.SyncManager
+import com.fleetmanager.ui.utils.ReportExporter
+import com.fleetmanager.ui.utils.ExportResult
+import com.fleetmanager.ui.model.ReportEntry
+import com.fleetmanager.ui.model.toReportEntries
+import com.fleetmanager.ui.model.toReportEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 data class SettingsUiState(
@@ -28,6 +39,7 @@ data class SettingsUiState(
     val appVersion: String = "1.1.0",
     val lastSyncTime: String = "Never",
     val isSyncing: Boolean = false,
+    val isExporting: Boolean = false,
     val error: String? = null,
     val isSignedIn: Boolean = false,
     val message: String? = null,
@@ -46,15 +58,19 @@ class SettingsViewModel @Inject constructor(
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val syncManager: SyncManager,
-    private val excelImportManager: ExcelImportManager
+    private val excelImportManager: ExcelImportManager,
+    private val settingsPreferencesDataStore: SettingsPreferencesDataStore,
+    private val fleetRepository: FleetRepository,
+    private val reportExporter: ReportExporter,
+    @ApplicationContext private val context: Context
 ) : BaseViewModel<SettingsUiState>() {
 
     override fun getInitialState() = SettingsUiState()
 
     init {
-        loadSettings()
         observeAuthState()
         loadUserRole()
+        observeSettingsPreferences()
     }
     
     private fun observeAuthState() {
@@ -65,32 +81,45 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun loadSettings() {
+    private fun observeSettingsPreferences() {
         executeAsync {
-            // TODO: Load settings from preferences
-            // For now, using default values
-            updateState { it.copy(lastSyncTime = getLastSyncTime()) }
+            settingsPreferencesDataStore.settingsPreferences.collect { preferences ->
+                updateState { currentState ->
+                    currentState.copy(
+                        autoSyncEnabled = preferences.autoSyncEnabled,
+                        notificationsEnabled = preferences.notificationsEnabled,
+                        dailyRemindersEnabled = preferences.dailyRemindersEnabled,
+                        selectedTheme = preferences.selectedTheme,
+                        lastSyncTime = preferences.lastSyncTime
+                    )
+                }
+            }
         }
     }
 
     fun toggleAutoSync(enabled: Boolean) {
-        updateState { it.copy(autoSyncEnabled = enabled) }
-        // TODO: Save to preferences
-        if (enabled) {
-            syncManager.startPeriodicSync()
-        } else {
-            syncManager.stopPeriodicSync()
+        executeAsync {
+            settingsPreferencesDataStore.setAutoSyncEnabled(enabled)
+            if (enabled) {
+                syncManager.startPeriodicSync()
+            } else {
+                syncManager.stopPeriodicSync()
+            }
         }
     }
 
     fun toggleNotifications(enabled: Boolean) {
-        updateState { it.copy(notificationsEnabled = enabled) }
-        // TODO: Save to preferences and update notification settings
+        executeAsync {
+            settingsPreferencesDataStore.setNotificationsEnabled(enabled)
+            // TODO: Update notification settings in system
+        }
     }
 
     fun toggleDailyReminders(enabled: Boolean) {
-        updateState { it.copy(dailyRemindersEnabled = enabled) }
-        // TODO: Save to preferences and schedule/cancel daily reminders
+        executeAsync {
+            settingsPreferencesDataStore.setDailyRemindersEnabled(enabled)
+            // TODO: Schedule/cancel daily reminders
+        }
     }
 
     fun syncNow() {
@@ -103,10 +132,10 @@ class SettingsViewModel @Inject constructor(
             }
         ) {
             syncManager.syncNow()
+            settingsPreferencesDataStore.updateLastSyncTimestamp()
             updateState {
                 it.copy(
                     isSyncing = false,
-                    lastSyncTime = getCurrentTime(),
                     message = "Data synced successfully"
                 )
             }
@@ -115,12 +144,65 @@ class SettingsViewModel @Inject constructor(
 
     fun exportData() {
         executeAsync(
+            onLoading = { isLoading ->
+                updateState { it.copy(isExporting = isLoading, error = null) }
+            },
             onError = { error ->
-                updateState { it.copy(error = "Export failed: $error") }
+                updateState { it.copy(isExporting = false, error = "Export failed: $error") }
             }
         ) {
-            // TODO: Implement data export functionality
-            updateState { it.copy(error = "Export feature coming soon!") }
+            // Fetch all data for export
+            val allReportEntries = mutableListOf<ReportEntry>()
+            
+            // Get all daily entries and convert to report entries
+            val dailyEntries = fleetRepository.getAllDailyEntries().first()
+            dailyEntries.forEach { dailyEntry ->
+                allReportEntries.addAll(dailyEntry.toReportEntries())
+            }
+            
+            // Get all expenses and convert to report entries
+            val expenses = fleetRepository.getAllExpenses().first()
+            expenses.forEach { expense ->
+                allReportEntries.add(expense.toReportEntry())
+            }
+            
+            // Sort by date descending
+            allReportEntries.sortByDescending { it.date }
+            
+            if (allReportEntries.isEmpty()) {
+                updateState { 
+                    it.copy(
+                        isExporting = false,
+                        message = "No data to export"
+                    )
+                }
+                return@executeAsync
+            }
+            
+            // Use the ReportExporter to export data
+            val result = reportExporter.exportToCsv(
+                context = context,
+                entries = allReportEntries
+            )
+            
+            when (result) {
+                is ExportResult.Success -> {
+                    updateState { 
+                        it.copy(
+                            isExporting = false,
+                            message = "Data exported successfully to: ${result.filePath}"
+                        )
+                    }
+                }
+                is ExportResult.Error -> {
+                    updateState { 
+                        it.copy(
+                            isExporting = false,
+                            error = result.message
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -133,6 +215,8 @@ class SettingsViewModel @Inject constructor(
             val result = authRepository.signOut()
             result.fold(
                 onSuccess = {
+                    // Clear preferences when signing out
+                    settingsPreferencesDataStore.clearAllPreferences()
                     updateState { it.copy(message = "Signed out successfully") }
                 },
                 onFailure = { error ->
@@ -223,15 +307,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun getLastSyncTime(): String {
-        // TODO: Get actual last sync time from preferences
-        return "Just now"
-    }
-
-    private fun getCurrentTime(): String {
-        return java.text.SimpleDateFormat("MMM dd, HH:mm", java.util.Locale.getDefault())
-            .format(java.util.Date())
-    }
     
     // Excel Import functionality
     private var pendingExcelImport: Uri? = null
