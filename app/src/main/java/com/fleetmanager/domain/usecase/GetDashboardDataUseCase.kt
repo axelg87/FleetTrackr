@@ -14,7 +14,15 @@ data class DashboardData(
     val thisWeekEarnings: Double,
     val last24hEarnings: Double,
     val activeDriversCount: Int,
-    val recentEntries: List<DailyEntry>
+    val recentEntries: List<DailyEntry>,
+    // Earnings by source for this month
+    val thisMonthUberEarnings: Double,
+    val thisMonthYangoEarnings: Double,
+    val thisMonthPrivateEarnings: Double,
+    // Earnings by source for this week  
+    val thisWeekUberEarnings: Double,
+    val thisWeekYangoEarnings: Double,
+    val thisWeekPrivateEarnings: Double
 )
 
 /**
@@ -46,9 +54,11 @@ class GetDashboardDataUseCase @Inject constructor(
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val startOfMonth = calendar.time
-        val thisMonthEarnings = entries
-            .filter { it.date >= startOfMonth }
-            .sumOf { it.totalEarnings }
+        val thisMonthEntries = entries.filter { it.date >= startOfMonth }
+        val thisMonthEarnings = thisMonthEntries.sumOf { it.totalEarnings }
+        val thisMonthUberEarnings = thisMonthEntries.sumOf { it.uberEarnings }
+        val thisMonthYangoEarnings = thisMonthEntries.sumOf { it.yangoEarnings }
+        val thisMonthPrivateEarnings = thisMonthEntries.sumOf { it.privateJobsEarnings }
         
         // This week (Monday to Sunday)
         calendar.time = now
@@ -60,9 +70,11 @@ class GetDashboardDataUseCase @Inject constructor(
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val startOfWeek = calendar.time
-        val thisWeekEarnings = entries
-            .filter { it.date >= startOfWeek }
-            .sumOf { it.totalEarnings }
+        val thisWeekEntries = entries.filter { it.date >= startOfWeek }
+        val thisWeekEarnings = thisWeekEntries.sumOf { it.totalEarnings }
+        val thisWeekUberEarnings = thisWeekEntries.sumOf { it.uberEarnings }
+        val thisWeekYangoEarnings = thisWeekEntries.sumOf { it.yangoEarnings }
+        val thisWeekPrivateEarnings = thisWeekEntries.sumOf { it.privateJobsEarnings }
         
         // Last 24 hours
         val last24Hours = Date(now.time - TimeUnit.HOURS.toMillis(24))
@@ -83,7 +95,13 @@ class GetDashboardDataUseCase @Inject constructor(
             thisWeekEarnings = thisWeekEarnings,
             last24hEarnings = last24hEarnings,
             activeDriversCount = activeDriversCount,
-            recentEntries = recentEntries
+            recentEntries = recentEntries,
+            thisMonthUberEarnings = thisMonthUberEarnings,
+            thisMonthYangoEarnings = thisMonthYangoEarnings,
+            thisMonthPrivateEarnings = thisMonthPrivateEarnings,
+            thisWeekUberEarnings = thisWeekUberEarnings,
+            thisWeekYangoEarnings = thisWeekYangoEarnings,
+            thisWeekPrivateEarnings = thisWeekPrivateEarnings
         )
     }
 }

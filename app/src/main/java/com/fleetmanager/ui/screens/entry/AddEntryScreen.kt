@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.AddEntryViewModel
+import com.fleetmanager.ui.components.DriverInputComponent
 import coil.compose.AsyncImage
 import com.fleetmanager.R
 import java.text.SimpleDateFormat
@@ -117,44 +118,18 @@ fun AddEntryScreen(
                 )
             }
             
-            // Driver dropdown
-            ExposedDropdownMenuBox(
-                expanded = uiState.driverDropdownExpanded,
-                onExpandedChange = viewModel::toggleDriverDropdown
-            ) {
-                OutlinedTextField(
-                    value = uiState.driverInput,
-                    onValueChange = viewModel::updateDriverInput,
-                    readOnly = false,
-                    label = { Text(stringResource(R.string.driver_name)) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.driverDropdownExpanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
-                )
-                
-                ExposedDropdownMenu(
-                    expanded = uiState.driverDropdownExpanded,
-                    onDismissRequest = { viewModel.toggleDriverDropdown(false) }
-                ) {
-                    if (uiState.allDriverNames.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("No drivers available") },
-                            onClick = { }
-                        )
-                    } else {
-                        uiState.allDriverNames.forEach { driverName ->
-                            DropdownMenuItem(
-                                text = { Text(driverName) },
-                                onClick = {
-                                    viewModel.updateDriverInput(driverName)
-                                    viewModel.toggleDriverDropdown(false)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+            // Driver input with role-based restrictions
+            DriverInputComponent(
+                driverInput = uiState.driverInput,
+                allDriverNames = uiState.allDriverNames,
+                isDropdownExpanded = uiState.driverDropdownExpanded,
+                onDriverInputChange = viewModel::updateDriverInput,
+                onToggleDropdown = viewModel::toggleDriverDropdown,
+                userRole = uiState.userRole,
+                currentUserName = uiState.currentUserProfile?.name,
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.driver_name)
+            )
             
             // Vehicle dropdown
             ExposedDropdownMenuBox(

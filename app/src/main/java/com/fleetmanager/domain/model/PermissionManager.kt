@@ -13,6 +13,7 @@ object PermissionManager {
     
     // UI-specific permissions
     fun canAccessReports(userRole: UserRole): Boolean = userRole != UserRole.DRIVER
+    fun canAccessAnalytics(userRole: UserRole): Boolean = userRole == UserRole.ADMIN
     fun canSeeAdminControls(userRole: UserRole): Boolean = userRole == UserRole.ADMIN
     
     // Data management permissions
@@ -29,7 +30,7 @@ object PermissionManager {
         return when (userRole) {
             UserRole.DRIVER -> setOf("dashboard", "history", "settings")
             UserRole.MANAGER -> setOf("dashboard", "history", "reports", "settings")
-            UserRole.ADMIN -> setOf("dashboard", "history", "reports", "settings")
+            UserRole.ADMIN -> setOf("dashboard", "history", "analytics", "reports", "settings")
         }
     }
 }

@@ -16,6 +16,7 @@ import com.fleetmanager.domain.usecase.GetReportDataRealtimeUseCase
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.model.toReportEntries
 import com.fleetmanager.ui.model.toReportEntry
+import com.fleetmanager.ui.model.FilterContext
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -271,6 +272,28 @@ class ReportViewModel @Inject constructor(
     fun toggleFilterPanel() {
         updateState { currentState ->
             currentState.copy(isFilterPanelExpanded = !currentState.isFilterPanelExpanded)
+        }
+    }
+    
+    /**
+     * Apply filter context from dashboard tile navigation.
+     * This method sets up the filters based on the provided context and expands the filter panel.
+     */
+    fun applyFilterContext(filterContext: FilterContext) {
+        updateState { currentState ->
+            currentState.copy(
+                startDate = filterContext.startDate,
+                endDate = filterContext.endDate,
+                selectedType = filterContext.sourceFilter?.let { source ->
+                    when (source.lowercase()) {
+                        "uber" -> "Uber"
+                        "yango" -> "Yango"  
+                        "private" -> "Private Jobs"
+                        else -> null
+                    }
+                },
+                isFilterPanelExpanded = true // Expand to show applied filters
+            )
         }
     }
     

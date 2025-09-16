@@ -10,6 +10,7 @@ import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
 import com.fleetmanager.data.dto.UserDto
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.SaveExpenseUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +41,9 @@ data class AddExpenseUiState(
     val isSaved: Boolean = false,
     val errorMessage: String? = null,
     val amountError: String? = null,
-    val notesError: String? = null
+    val notesError: String? = null,
+    val userRole: UserRole? = null,
+    val currentUserProfile: UserDto? = null
 ) {
     val canSave: Boolean
         get() = driverInput.isNotBlank() && 
@@ -79,6 +82,7 @@ class AddExpenseViewModel @Inject constructor(
     
     init {
         loadFirestoreData()
+        loadUserProfile()
     }
     
     
@@ -110,6 +114,23 @@ class AddExpenseViewModel @Inject constructor(
                         expenseTypes = expenseTypes,
                         selectedExpenseType = selectedExpenseType
                     )
+                }
+            }
+        }
+    }
+    
+    private fun loadUserProfile() {
+        executeAsync(
+            onError = { error ->
+                // Don't show error for user profile loading, just continue
+            }
+        ) {
+            userFirestoreService.getCurrentUserProfile().collect { userProfile ->
+                updateState { 
+                    it.copy(
+                        currentUserProfile = userProfile,
+                        userRole = userProfile.role
+                    ) 
                 }
             }
         }

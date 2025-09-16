@@ -45,6 +45,8 @@ import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.ui.viewmodel.NavigationViewModel
+import com.fleetmanager.ui.model.FilterContext
+import com.fleetmanager.ui.navigation.NavigationState
 import androidx.hilt.navigation.compose.hiltViewModel
 
 sealed class Screen(val route: String) {
@@ -80,6 +82,7 @@ val allBottomNavItems = listOf(
 fun getBottomNavItemsForRole(userRole: UserRole): List<BottomNavItem> {
     return allBottomNavItems.filter { navItem ->
         when (navItem.screen) {
+            Screen.Analytics -> PermissionManager.canAccessAnalytics(userRole)
             Screen.Reports -> PermissionManager.canAccessReports(userRole)
             else -> true // Dashboard, History, Settings are available to all roles
         }
@@ -281,7 +284,12 @@ private fun PagerScreenContent(
             DashboardScreen(
                 onAddEntryClick = onAddEntryClick,
                 onAddExpenseClick = onAddExpenseClick,
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onNavigateToReportsWithFilter = { filterContext ->
+                    // Store the filter context and navigate to Reports screen
+                    NavigationState.setPendingFilterContext(filterContext)
+                    navController.navigate(Screen.Reports.route)
+                }
             )
         }
         Screen.History -> {
@@ -299,7 +307,8 @@ private fun PagerScreenContent(
         }
         Screen.Reports -> {
             ReportScreen(
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                filterContext = NavigationState.consumePendingFilterContext()
             )
         }
         Screen.Settings -> {
@@ -391,7 +400,11 @@ fun FleetNavigation(
                 onAddExpenseClick = {
                     navController.navigate(Screen.AddExpense.route)
                 },
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onNavigateToReportsWithFilter = { filterContext ->
+                    NavigationState.setPendingFilterContext(filterContext)
+                    navController.navigate(Screen.Reports.route)
+                }
             )
         }
         
@@ -418,7 +431,8 @@ fun FleetNavigation(
         
         composable(Screen.Reports.route) {
             ReportScreen(
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                filterContext = NavigationState.consumePendingFilterContext()
             )
         }
         

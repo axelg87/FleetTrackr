@@ -18,15 +18,24 @@ import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.DashboardViewModel
+import com.fleetmanager.ui.model.FilterContext
 
 @Composable
 fun DashboardScreen(
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: (() -> Unit)? = null,
+    onNavigateToReportsWithFilter: ((FilterContext) -> Unit)? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Set up navigation callback
+    LaunchedEffect(onNavigateToReportsWithFilter) {
+        if (onNavigateToReportsWithFilter != null) {
+            viewModel.setNavigationCallback(onNavigateToReportsWithFilter)
+        }
+    }
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
@@ -52,6 +61,17 @@ fun DashboardScreen(
         // Quick Stats
         item {
             StatsGrid(stats = uiState.quickStats)
+        }
+
+        // Earnings by Source
+        if (uiState.earningsStats.isNotEmpty()) {
+            item {
+                SectionHeader(title = "Earnings by Source")
+            }
+            
+            item {
+                StatsGrid(stats = uiState.earningsStats)
+            }
         }
 
         // Quick Actions

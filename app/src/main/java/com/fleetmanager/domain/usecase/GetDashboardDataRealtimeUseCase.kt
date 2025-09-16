@@ -38,9 +38,11 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val startOfMonth = calendar.time
-        val thisMonthEarnings = entries
-            .filter { it.date >= startOfMonth }
-            .sumOf { it.totalEarnings }
+        val thisMonthEntries = entries.filter { it.date >= startOfMonth }
+        val thisMonthEarnings = thisMonthEntries.sumOf { it.totalEarnings }
+        val thisMonthUberEarnings = thisMonthEntries.sumOf { it.uberEarnings }
+        val thisMonthYangoEarnings = thisMonthEntries.sumOf { it.yangoEarnings }
+        val thisMonthPrivateEarnings = thisMonthEntries.sumOf { it.privateJobsEarnings }
         
         // This week (Monday to Sunday)
         calendar.time = now
@@ -52,9 +54,11 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val startOfWeek = calendar.time
-        val thisWeekEarnings = entries
-            .filter { it.date >= startOfWeek }
-            .sumOf { it.totalEarnings }
+        val thisWeekEntries = entries.filter { it.date >= startOfWeek }
+        val thisWeekEarnings = thisWeekEntries.sumOf { it.totalEarnings }
+        val thisWeekUberEarnings = thisWeekEntries.sumOf { it.uberEarnings }
+        val thisWeekYangoEarnings = thisWeekEntries.sumOf { it.yangoEarnings }
+        val thisWeekPrivateEarnings = thisWeekEntries.sumOf { it.privateJobsEarnings }
         
         // Last 40 hours (but labeled as 24h in UI)
         val last40Hours = Date(now.time - TimeUnit.HOURS.toMillis(40))
@@ -75,7 +79,13 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
             thisWeekEarnings = thisWeekEarnings,
             last24hEarnings = last24hEarnings,
             activeDriversCount = activeDriversCount,
-            recentEntries = recentEntries
+            recentEntries = recentEntries,
+            thisMonthUberEarnings = thisMonthUberEarnings,
+            thisMonthYangoEarnings = thisMonthYangoEarnings,
+            thisMonthPrivateEarnings = thisMonthPrivateEarnings,
+            thisWeekUberEarnings = thisWeekUberEarnings,
+            thisWeekYangoEarnings = thisWeekYangoEarnings,
+            thisWeekPrivateEarnings = thisWeekPrivateEarnings
         )
     }
 }
