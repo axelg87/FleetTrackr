@@ -77,7 +77,7 @@ class ExcelImportManager @Inject constructor(
         }
         
         if (!PermissionManager.canImportData(userRole)) {
-            val errorMsg = "Only admins can import CSV data. Your role: $userRole"
+            val errorMsg = "Only admins can import CSV data. Your role: ${userRole.name}"
             Log.e(TAG, errorMsg)
             toastHelper.showError(context, "❌ Access Denied: $errorMsg")
             return@withContext ImportProgress(

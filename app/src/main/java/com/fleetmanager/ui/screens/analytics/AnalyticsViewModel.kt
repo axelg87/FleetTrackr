@@ -76,7 +76,7 @@ class AnalyticsViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
-            initialValue = UserDto("", "Loading...", UserRole.DRIVER)
+            initialValue = UserDto("", "Loading...", "", UserRole.DRIVER, null)
         )
     
     init {
