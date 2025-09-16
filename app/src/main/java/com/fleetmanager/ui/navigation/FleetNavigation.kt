@@ -1,12 +1,17 @@
 package com.fleetmanager.ui.navigation
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
@@ -162,27 +167,52 @@ fun MainScreenWithPager(
     bottomNavItems: List<BottomNavItem>,
     currentRoute: String?
 ) {
-    val pagerState = rememberPagerState(pageCount = { bottomNavItems.size })
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Find the current page index based on the current route
-    val currentPageIndex = bottomNavItems.indexOfFirst { it.screen.route == currentRoute }.let { index ->
-        if (index >= 0) index else 0
-    }
-    
-    // Sync pager with current route when route changes
-    LaunchedEffect(currentRoute) {
-        val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == currentRoute }
-        if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
-            pagerState.animateScrollToPage(targetIndex)
+    // Memoize the current page index to avoid recalculation
+    val currentPageIndex = remember(currentRoute, bottomNavItems) {
+        bottomNavItems.indexOfFirst { it.screen.route == currentRoute }.let { index ->
+            if (index >= 0) index else 0
         }
     }
     
-    // Sync route with pager when user swipes
-    LaunchedEffect(pagerState.currentPage) {
-        val targetRoute = bottomNavItems.getOrNull(pagerState.currentPage)?.screen?.route
-        if (targetRoute != null && targetRoute != currentRoute) {
-            navigateToBottomNavDestination(navController, targetRoute)
+    // Create pager state with optimized initial page
+    val pagerState = rememberPagerState(
+        initialPage = currentPageIndex,
+        pageCount = { bottomNavItems.size }
+    )
+    
+    // Memoize coroutine scope
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Track if we're currently syncing to prevent circular updates
+    var isSyncing by remember { mutableStateOf(false) }
+    
+    // Sync pager with current route when route changes (only from external navigation)
+    LaunchedEffect(currentRoute) {
+        if (!isSyncing) {
+            val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == currentRoute }
+            if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
+                isSyncing = true
+                pagerState.animateScrollToPage(
+                    page = targetIndex,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+                isSyncing = false
+            }
+        }
+    }
+    
+    // Sync route with pager when user swipes (optimized to reduce navigation calls)
+    LaunchedEffect(pagerState.settledPage) {
+        if (!isSyncing && pagerState.settledPage != currentPageIndex) {
+            val targetRoute = bottomNavItems.getOrNull(pagerState.settledPage)?.screen?.route
+            if (targetRoute != null && targetRoute != currentRoute) {
+                isSyncing = true
+                navigateToBottomNavDestination(navController, targetRoute)
+                isSyncing = false
+            }
         }
     }
     
@@ -192,66 +222,107 @@ fun MainScreenWithPager(
                 currentRoute = currentRoute,
                 bottomNavItems = bottomNavItems,
                 onNavigate = { route ->
-                    // Find the index of the target route
-                    val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == route }
-                    if (targetIndex >= 0) {
-                        // Animate to the target page
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(targetIndex)
+                    if (!isSyncing) {
+                        val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == route }
+                        if (targetIndex >= 0) {
+                            coroutineScope.launch {
+                                isSyncing = true
+                                pagerState.animateScrollToPage(
+                                    page = targetIndex,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessHigh
+                                    )
+                                )
+                                isSyncing = false
+                            }
                         }
+                        navigateToBottomNavDestination(navController, route)
                     }
-                    navigateToBottomNavDestination(navController, route)
                 }
             )
         }
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            pageSpacing = 0.dp,
+            userScrollEnabled = true,
+            reverseLayout = false,
+            contentPadding = PaddingValues(0.dp),
+            pageSize = PagerDefaults.PageSize.Fill,
+            beyondBoundsPageCount = 1, // Preload adjacent pages for smoother scrolling
+            flingBehavior = PagerDefaults.flingBehavior(
+                state = pagerState,
+                pagerSnapDistance = PagerDefaults.PagerSnapDistance.atMost(3), // Allow faster multi-page swipes
+                snapAnimationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessHigh,
+                    visibilityThreshold = 0.5f
+                ),
+                decayAnimationSpec = PagerDefaults.snapFlingBehavior().decayAnimationSpec
+            ),
+            key = { pageIndex -> bottomNavItems[pageIndex].screen.route }
         ) { pageIndex ->
-            val item = bottomNavItems[pageIndex]
-            when (item.screen) {
-                Screen.Dashboard -> {
-                    DashboardScreen(
-                        onAddEntryClick = {
-                            navController.navigate(Screen.AddEntry.route)
-                        },
-                        onAddExpenseClick = {
-                            navController.navigate(Screen.AddExpense.route)
-                        }
-                    )
-                }
-                Screen.History -> {
-                    EntryListScreen(
-                        onAddEntryClick = {
-                            navController.navigate(Screen.AddEntry.route)
-                        },
-                        onAddExpenseClick = {
-                            navController.navigate(Screen.AddExpense.route)
-                        },
-                        onEntryClick = { entryId ->
-                            navController.navigate(Screen.EntryDetail.createRoute(entryId))
-                        }
-                    )
-                }
-                Screen.Analytics -> {
-                    AnalyticsScreen()
-                }
-                Screen.Reports -> {
-                    ReportScreen()
-                }
-                Screen.Settings -> {
-                    SettingsScreen()
-                }
-                else -> {
-                    // Fallback for any unexpected screens
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Screen not found: ${item.screen.route}")
-                    }
-                }
+            // Use key to help with performance and state preservation
+            key(bottomNavItems[pageIndex].screen.route) {
+                PagerScreenContent(
+                    navController = navController,
+                    screen = bottomNavItems[pageIndex].screen
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PagerScreenContent(
+    navController: NavHostController,
+    screen: Screen
+) {
+    // Create stable callbacks to prevent unnecessary recompositions
+    val onAddEntryClick = remember {
+        { navController.navigate(Screen.AddEntry.route) }
+    }
+    
+    val onAddExpenseClick = remember {
+        { navController.navigate(Screen.AddExpense.route) }
+    }
+    
+    val onEntryClick = remember {
+        { entryId: String -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) }
+    }
+    
+    when (screen) {
+        Screen.Dashboard -> {
+            DashboardScreen(
+                onAddEntryClick = onAddEntryClick,
+                onAddExpenseClick = onAddExpenseClick
+            )
+        }
+        Screen.History -> {
+            EntryListScreen(
+                onAddEntryClick = onAddEntryClick,
+                onAddExpenseClick = onAddExpenseClick,
+                onEntryClick = onEntryClick
+            )
+        }
+        Screen.Analytics -> {
+            AnalyticsScreen()
+        }
+        Screen.Reports -> {
+            ReportScreen()
+        }
+        Screen.Settings -> {
+            SettingsScreen()
+        }
+        else -> {
+            // Fallback for any unexpected screens
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Screen not found: ${screen.route}")
             }
         }
     }
@@ -265,6 +336,7 @@ private fun BottomNavigationBar(
 ) {
     NavigationBar {
         bottomNavItems.forEach { item ->
+            val isSelected = currentRoute == item.screen.route
             NavigationBarItem(
                 icon = { 
                     Icon(
@@ -273,8 +345,10 @@ private fun BottomNavigationBar(
                     )
                 },
                 label = { Text(item.title) },
-                selected = currentRoute == item.screen.route,
-                onClick = { onNavigate(item.screen.route) }
+                selected = isSelected,
+                onClick = remember(item.screen.route) { 
+                    { onNavigate(item.screen.route) } 
+                }
             )
         }
     }
