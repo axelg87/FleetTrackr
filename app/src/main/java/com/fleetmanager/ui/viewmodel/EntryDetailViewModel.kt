@@ -31,7 +31,7 @@ class EntryDetailViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = UserDto("", "Loading...", UserRole.DRIVER)
+            initialValue = UserDto("", "Loading...", "", UserRole.DRIVER, null)
         )
     
     // Expose user role for convenience

@@ -108,6 +108,38 @@ class StorageService @Inject constructor(
         }
     }
     
+    suspend fun uploadProfilePicture(uri: Uri): String {
+        try {
+            val fileName = "profile_picture_${UUID.randomUUID()}.jpg"
+            val photoRef = getUserStorage().child("profile").child(fileName)
+            
+            Log.d(TAG, "Starting profile picture upload: $fileName")
+            photoRef.putFile(uri).await()
+            val downloadUrl = photoRef.downloadUrl.await().toString()
+            Log.d(TAG, "Successfully uploaded profile picture: $fileName")
+            return downloadUrl
+        } catch (e: IllegalStateException) {
+            // Authentication error - user not signed in
+            val errorMessage = "Please sign in to upload profile picture"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        } catch (e: Exception) {
+            val errorMessage = when {
+                e.message?.contains("object doesn't exist", ignoreCase = true) == true -> 
+                    "Storage location not accessible. Please check your internet connection and try again."
+                e.message?.contains("permission", ignoreCase = true) == true -> 
+                    "Permission denied. Please make sure you're signed in."
+                e.message?.contains("network", ignoreCase = true) == true -> 
+                    "Network error. Please check your internet connection."
+                else -> "Failed to upload profile picture: ${e.message}"
+            }
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
+    }
+    
     suspend fun deletePhoto(photoUrl: String) {
         try {
             // Verify authentication before attempting delete

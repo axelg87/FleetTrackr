@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,6 +25,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.fleetmanager.R
 
 // Screen Header Component with Company Logo and Profile Icon
@@ -33,6 +38,7 @@ fun ScreenHeader(
     modifier: Modifier = Modifier,
     showLogo: Boolean = true,
     userName: String? = null,
+    profilePictureUrl: String? = null,
     onProfileClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
@@ -71,6 +77,7 @@ fun ScreenHeader(
                 ProfileIcon(
                     userName = name,
                     size = 40,
+                    profilePictureUrl = profilePictureUrl,
                     onClick = onProfileClick
                 )
             }
@@ -391,12 +398,13 @@ enum class StatusType {
     Loading, Error, Success
 }
 
-// Profile Icon Component - Shows user initials or default icon
+// Profile Icon Component - Shows user profile picture, initials, or default icon
 @Composable
 fun ProfileIcon(
     userName: String,
     modifier: Modifier = Modifier,
     size: Int = 40,
+    profilePictureUrl: String? = null,
     onClick: (() -> Unit)? = null
 ) {
     val initials = remember(userName) {
@@ -414,29 +422,48 @@ fun ProfileIcon(
             .clip(CircleShape)
     }
     
-    Box(
-        modifier = profileModifier
-            .background(
-                color = MaterialTheme.colorScheme.primary,
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (initials.isNotEmpty()) {
-            Text(
-                text = initials,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontSize = (size * 0.4).sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Profile",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size((size * 0.6).dp)
-            )
+    if (profilePictureUrl != null) {
+        // Show profile picture
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(profilePictureUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = "Profile Picture",
+            modifier = profileModifier
+                .border(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape
+                ),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        // Show initials or default icon
+        Box(
+            modifier = profileModifier
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (initials.isNotEmpty()) {
+                Text(
+                    text = initials,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = (size * 0.4).sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Profile",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size((size * 0.6).dp)
+                )
+            }
         }
     }
 }
@@ -466,14 +493,10 @@ private fun getInitials(name: String): String {
 
 // Common profile click handler for consistent behavior
 @Composable
-fun rememberProfileClickHandler(): () -> Unit {
-    return remember {
+fun rememberProfileClickHandler(onNavigateToProfile: () -> Unit): () -> Unit {
+    return remember(onNavigateToProfile) {
         {
-            // TODO: Implement profile menu or navigation
-            // For now, this is a placeholder that could:
-            // 1. Show a profile menu with options like "View Profile", "Account Settings", "Sign Out"
-            // 2. Navigate to a dedicated profile screen
-            // 3. Open a bottom sheet with user information
+            onNavigateToProfile()
         }
     }
 }

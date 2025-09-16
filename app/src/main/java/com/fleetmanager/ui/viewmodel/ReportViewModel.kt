@@ -139,7 +139,7 @@ class ReportViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = UserDto("", "Loading...", com.fleetmanager.domain.model.UserRole.DRIVER)
+            initialValue = UserDto("", "Loading...", "", com.fleetmanager.domain.model.UserRole.DRIVER, null)
         )
     
     init {

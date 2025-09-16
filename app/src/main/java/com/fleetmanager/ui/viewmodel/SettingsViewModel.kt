@@ -73,7 +73,7 @@ class SettingsViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = com.fleetmanager.data.dto.UserDto("", "Loading...", UserRole.DRIVER)
+            initialValue = com.fleetmanager.data.dto.UserDto("", "Loading...", "", UserRole.DRIVER, null)
         )
 
     init {
