@@ -18,6 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -197,7 +198,7 @@ private fun ProfilePicture(
 ) {
     Box(
         modifier = modifier
-            .size(size)
+            .size(width = size, height = size)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center
