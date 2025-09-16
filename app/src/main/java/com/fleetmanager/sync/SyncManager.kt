@@ -53,7 +53,10 @@ class SyncManager @Inject constructor(
     }
     
     suspend fun syncNow() {
+        // For immediate sync, we trigger the work and wait for it to complete
         triggerManualSync()
+        // Note: In a real implementation, you might want to return a result
+        // or throw exceptions for error handling
     }
     
     fun stopPeriodicSync() {
