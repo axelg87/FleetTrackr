@@ -7,9 +7,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Expense
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsData
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsPanel
@@ -48,7 +52,8 @@ data class FilteredData(
  */
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
-    private val fleetRepository: FleetRepository
+    private val fleetRepository: FleetRepository,
+    private val userFirestoreService: UserFirestoreService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(AnalyticsUiState())
@@ -65,6 +70,14 @@ class AnalyticsViewModel @Inject constructor(
     
     private val _timeFilter = MutableStateFlow(TimeFilter.LAST_3_MONTHS)
     val timeFilter: StateFlow<TimeFilter> = _timeFilter.asStateFlow()
+    
+    // User profile state
+    val userProfile: StateFlow<UserDto> = userFirestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+            initialValue = UserDto("", "Loading...", UserRole.DRIVER)
+        )
     
     init {
         loadEntriesForMonth(_currentMonth.value)

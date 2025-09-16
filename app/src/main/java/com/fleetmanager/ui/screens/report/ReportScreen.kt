@@ -40,6 +40,7 @@ fun ReportScreen(
     viewModel: ReportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userProfile by viewModel.userProfile.collectAsState()
     val context = LocalContext.current
     val reportExporter = remember { ReportExporter() }
     
@@ -102,7 +103,11 @@ fun ReportScreen(
     ) {
         // Screen Header
         item {
-            ScreenHeader(title = "Reports")
+            ScreenHeader(
+                title = "Reports",
+                userName = userProfile.name,
+                onProfileClick = rememberProfileClickHandler()
+            )
         }
         
         // Export Button

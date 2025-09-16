@@ -40,7 +40,11 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
         item {
-            ScreenHeader(title = "Dashboard")
+            ScreenHeader(
+                title = "Dashboard",
+                userName = uiState.userProfile?.name,
+                onProfileClick = rememberProfileClickHandler()
+            )
         }
 
         // Quick Stats

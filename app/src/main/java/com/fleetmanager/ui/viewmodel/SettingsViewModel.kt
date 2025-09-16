@@ -66,6 +66,14 @@ class SettingsViewModel @Inject constructor(
 ) : BaseViewModel<SettingsUiState>() {
 
     override fun getInitialState() = SettingsUiState()
+    
+    // User profile state
+    val userProfile: StateFlow<com.fleetmanager.data.dto.UserDto> = userFirestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.fleetmanager.data.dto.UserDto("", "Loading...", UserRole.DRIVER)
+        )
 
     init {
         observeAuthState()

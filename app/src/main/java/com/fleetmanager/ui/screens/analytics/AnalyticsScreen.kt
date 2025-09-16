@@ -33,6 +33,7 @@ fun AnalyticsScreen(
     val analyticsData by viewModel.analyticsData.collectAsState()
     val selectedPanel by viewModel.selectedPanel.collectAsState()
     val timeFilter by viewModel.timeFilter.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
     
     Column(
         modifier = Modifier
@@ -43,6 +44,8 @@ fun AnalyticsScreen(
         // Screen Header
         com.fleetmanager.ui.components.ScreenHeader(
             title = "Analytics",
+            userName = userProfile.name,
+            onProfileClick = com.fleetmanager.ui.components.rememberProfileClickHandler(),
             modifier = Modifier.padding(bottom = 16.dp)
         )
         

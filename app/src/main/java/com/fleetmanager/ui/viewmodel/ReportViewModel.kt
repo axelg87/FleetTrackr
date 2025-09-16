@@ -132,6 +132,14 @@ class ReportViewModel @Inject constructor(
     
     override fun getInitialState() = ReportUiState()
     
+    // User profile state
+    val userProfile: StateFlow<UserDto> = userFirestoreService.getCurrentUserProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserDto("", "Loading...", com.fleetmanager.domain.model.UserRole.DRIVER)
+        )
+    
     init {
         loadReportData()
         loadUserContext()
