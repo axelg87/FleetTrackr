@@ -132,6 +132,9 @@ dependencies {
     // Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
     
+    // Pager for swipe navigation
+    implementation("androidx.compose.foundation:foundation:1.5.4")
+    
     // Date picker for Compose
     implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
     

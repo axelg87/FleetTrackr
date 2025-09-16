@@ -1,6 +1,11 @@
 package com.fleetmanager.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
@@ -10,8 +15,10 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import kotlinx.coroutines.launch
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -113,24 +120,138 @@ fun MainScreenWithBottomNav(
     
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
+    // Check if we're on a main tab screen (where pager should be active)
+    val isMainTabScreen = currentRoute in bottomNavItems.map { it.screen.route }
+    
+    if (isMainTabScreen) {
+        // Use pager for main tab screens
+        MainScreenWithPager(
+            navController = navController,
+            bottomNavItems = bottomNavItems,
+            currentRoute = currentRoute
+        )
+    } else {
+        // Use regular navigation for other screens (like AddEntry, EntryDetail, etc.)
+        Scaffold(
+            bottomBar = {
+                if (shouldShowBottomNav(currentRoute, bottomNavItems)) {
+                    BottomNavigationBar(
+                        currentRoute = currentRoute,
+                        bottomNavItems = bottomNavItems,
+                        onNavigate = { route ->
+                            navigateToBottomNavDestination(navController, route)
+                        }
+                    )
+                }
+            }
+        ) { innerPadding ->
+            FleetNavigation(
+                navController = navController,
+                startDestination = Screen.Dashboard.route,
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+    }
+}
+
+@Composable
+fun MainScreenWithPager(
+    navController: NavHostController,
+    bottomNavItems: List<BottomNavItem>,
+    currentRoute: String?
+) {
+    val pagerState = rememberPagerState(pageCount = { bottomNavItems.size })
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Find the current page index based on the current route
+    val currentPageIndex = bottomNavItems.indexOfFirst { it.screen.route == currentRoute }.let { index ->
+        if (index >= 0) index else 0
+    }
+    
+    // Sync pager with current route when route changes
+    LaunchedEffect(currentRoute) {
+        val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == currentRoute }
+        if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
+            pagerState.animateScrollToPage(targetIndex)
+        }
+    }
+    
+    // Sync route with pager when user swipes
+    LaunchedEffect(pagerState.currentPage) {
+        val targetRoute = bottomNavItems.getOrNull(pagerState.currentPage)?.screen?.route
+        if (targetRoute != null && targetRoute != currentRoute) {
+            navigateToBottomNavDestination(navController, targetRoute)
+        }
+    }
+    
     Scaffold(
         bottomBar = {
-            if (shouldShowBottomNav(currentRoute, bottomNavItems)) {
-                BottomNavigationBar(
-                    currentRoute = currentRoute,
-                    bottomNavItems = bottomNavItems,
-                    onNavigate = { route ->
-                        navigateToBottomNavDestination(navController, route)
+            BottomNavigationBar(
+                currentRoute = currentRoute,
+                bottomNavItems = bottomNavItems,
+                onNavigate = { route ->
+                    // Find the index of the target route
+                    val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == route }
+                    if (targetIndex >= 0) {
+                        // Animate to the target page
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(targetIndex)
+                        }
                     }
-                )
-            }
+                    navigateToBottomNavDestination(navController, route)
+                }
+            )
         }
     ) { innerPadding ->
-        FleetNavigation(
-            navController = navController,
-            startDestination = Screen.Dashboard.route,
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier.padding(innerPadding)
-        )
+        ) { pageIndex ->
+            val item = bottomNavItems[pageIndex]
+            when (item.screen) {
+                Screen.Dashboard -> {
+                    DashboardScreen(
+                        onAddEntryClick = {
+                            navController.navigate(Screen.AddEntry.route)
+                        },
+                        onAddExpenseClick = {
+                            navController.navigate(Screen.AddExpense.route)
+                        }
+                    )
+                }
+                Screen.History -> {
+                    EntryListScreen(
+                        onAddEntryClick = {
+                            navController.navigate(Screen.AddEntry.route)
+                        },
+                        onAddExpenseClick = {
+                            navController.navigate(Screen.AddExpense.route)
+                        },
+                        onEntryClick = { entryId ->
+                            navController.navigate(Screen.EntryDetail.createRoute(entryId))
+                        }
+                    )
+                }
+                Screen.Analytics -> {
+                    AnalyticsScreen()
+                }
+                Screen.Reports -> {
+                    ReportScreen()
+                }
+                Screen.Settings -> {
+                    SettingsScreen()
+                }
+                else -> {
+                    // Fallback for any unexpected screens
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Screen not found: ${item.screen.route}")
+                    }
+                }
+            }
+        }
     }
 }
 
