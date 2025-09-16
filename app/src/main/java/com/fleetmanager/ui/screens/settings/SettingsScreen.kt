@@ -289,7 +289,7 @@ private fun AdminSection(
     if (showAddVehicleDialog) {
         AddVehicleDialog(
             onDismiss = { showAddVehicleDialog = false },
-            onConfirm = { make, model, year, licensePlate ->
+            onConfirm = { make: String, model: String, year: Int, licensePlate: String ->
                 onAddVehicle(make, model, year, licensePlate)
                 showAddVehicleDialog = false
             }
@@ -300,7 +300,7 @@ private fun AdminSection(
     if (showAddExpenseTypeDialog) {
         AddExpenseTypeDialog(
             onDismiss = { showAddExpenseTypeDialog = false },
-            onConfirm = { name, displayName ->
+            onConfirm = { name: String, displayName: String ->
                 onAddExpenseType(name, displayName)
                 showAddExpenseTypeDialog = false
             }
@@ -310,7 +310,7 @@ private fun AdminSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddDriverDialog(
+fun AddDriverDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
@@ -363,7 +363,7 @@ private fun AddDriverDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddVehicleDialog(
+fun AddVehicleDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String, Int, String) -> Unit
 ) {
@@ -427,7 +427,7 @@ private fun AddVehicleDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddExpenseTypeDialog(
+fun AddExpenseTypeDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
@@ -475,7 +475,7 @@ private fun AddExpenseTypeDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ImportProgressCard(
+fun ImportProgressCard(
     progress: ImportProgress?,
     onDismiss: () -> Unit
 ) {
