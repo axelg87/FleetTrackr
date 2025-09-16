@@ -112,8 +112,8 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Storage,
                     title = "Data Export",
-                    subtitle = "Export your data to CSV",
-                    onClick = { viewModel.exportData() }
+                    subtitle = if (uiState.isExporting) "Exporting..." else "Export your data to CSV",
+                    onClick = { if (!uiState.isExporting) viewModel.exportData() }
                 )
             }
         }
@@ -197,6 +197,16 @@ fun SettingsScreen(
                 StatusCard(
                     type = StatusType.Loading,
                     message = "Syncing data..."
+                )
+            }
+        }
+        
+        // Show export status if exporting
+        if (uiState.isExporting) {
+            item {
+                StatusCard(
+                    type = StatusType.Loading,
+                    message = "Exporting data to CSV..."
                 )
             }
         }
