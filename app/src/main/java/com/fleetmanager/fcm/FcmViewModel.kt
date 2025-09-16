@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.fleetmanager.auth.AuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -27,7 +29,7 @@ class FcmViewModel @Inject constructor(
     private val _fcmStatus = MutableStateFlow<FcmStatus?>(null)
     val fcmStatus: StateFlow<FcmStatus?> = _fcmStatus.asStateFlow()
     
-    private val _permissionStatus = MutableStateFlow(PermissionStatus.Denied)
+    private val _permissionStatus = MutableStateFlow<PermissionStatus>(PermissionStatus.Denied)
     val permissionStatus: StateFlow<PermissionStatus> = _permissionStatus.asStateFlow()
     
     private val _isLoading = MutableStateFlow(false)
@@ -51,6 +53,11 @@ class FcmViewModel @Inject constructor(
             isSetupComplete = status?.isFullySetup == true
         )
     }.distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = FcmUiState()
+        )
     
     init {
         // Initialize permission status
@@ -194,7 +201,8 @@ class FcmViewModel @Inject constructor(
      * Update permission status
      */
     private fun updatePermissionStatus() {
-        _permissionStatus.value = notificationPermissionHandler.getPermissionStatus()
+        val status: PermissionStatus = notificationPermissionHandler.getPermissionStatus()
+        _permissionStatus.value = status
     }
     
     /**
