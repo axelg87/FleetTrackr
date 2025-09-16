@@ -29,6 +29,7 @@ fun EntryListScreen(
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onEntryClick: (String) -> Unit,
+    onNavigateToProfile: (() -> Unit)? = null,
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -51,7 +52,8 @@ fun EntryListScreen(
             ScreenHeader(
                 title = "History",
                 userName = userProfile.name,
-                onProfileClick = rememberProfileClickHandler()
+                profilePictureUrl = userProfile.profilePictureUrl,
+                onProfileClick = onNavigateToProfile?.let { rememberProfileClickHandler(it) }
             )
         }
         

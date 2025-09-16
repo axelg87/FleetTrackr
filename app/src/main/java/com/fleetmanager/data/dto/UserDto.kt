@@ -5,5 +5,7 @@ import com.fleetmanager.domain.model.UserRole
 data class UserDto(
     val id: String,
     val name: String,
-    val role: UserRole
+    val email: String = "",
+    val role: UserRole,
+    val profilePictureUrl: String? = null
 )

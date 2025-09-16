@@ -37,6 +37,7 @@ import java.util.*
 
 @Composable
 fun ReportScreen(
+    onNavigateToProfile: (() -> Unit)? = null,
     viewModel: ReportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,7 +107,8 @@ fun ReportScreen(
             ScreenHeader(
                 title = "Reports",
                 userName = userProfile.name,
-                onProfileClick = rememberProfileClickHandler()
+                profilePictureUrl = userProfile.profilePictureUrl,
+                onProfileClick = onNavigateToProfile?.let { rememberProfileClickHandler(it) }
             )
         }
         

@@ -36,6 +36,7 @@ import com.fleetmanager.ui.utils.rememberExcelFilePicker
 
 @Composable
 fun SettingsScreen(
+    onNavigateToProfile: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -57,7 +58,8 @@ fun SettingsScreen(
             ScreenHeader(
                 title = "Settings",
                 userName = userProfile.name,
-                onProfileClick = rememberProfileClickHandler()
+                profilePictureUrl = userProfile.profilePictureUrl,
+                onProfileClick = onNavigateToProfile?.let { rememberProfileClickHandler(it) }
             )
         }
 
@@ -68,7 +70,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Person,
                     title = "Profile",
                     subtitle = "Manage your account details",
-                    onClick = { /* TODO: Navigate to profile */ }
+                    onClick = { onNavigateToProfile?.invoke() }
                 )
                 
                 SettingsItem(

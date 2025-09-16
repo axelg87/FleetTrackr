@@ -27,6 +27,7 @@ import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
+    onNavigateToProfile: (() -> Unit)? = null,
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -45,7 +46,8 @@ fun AnalyticsScreen(
         com.fleetmanager.ui.components.ScreenHeader(
             title = "Analytics",
             userName = userProfile.name,
-            onProfileClick = com.fleetmanager.ui.components.rememberProfileClickHandler(),
+            profilePictureUrl = userProfile.profilePictureUrl,
+            onProfileClick = onNavigateToProfile?.let { com.fleetmanager.ui.components.rememberProfileClickHandler(it) },
             modifier = Modifier.padding(bottom = 16.dp)
         )
         

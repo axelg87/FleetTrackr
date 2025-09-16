@@ -40,18 +40,22 @@ class UserFirestoreService @Inject constructor(
                     UserDto(
                         id = document.id,
                         name = document.getString("displayName") ?: document.getString("name") ?: "Unknown User",
+                        email = document.getString("email") ?: "",
                         role = try {
                             UserRole.valueOf((document.getString("role") ?: "DRIVER").uppercase())
                         } catch (e: Exception) {
                             UserRole.DRIVER
-                        }
+                        },
+                        profilePictureUrl = document.getString("profilePictureUrl")
                     )
                 } else {
                     // Default user profile if document doesn't exist
                     UserDto(
                         id = userId,
                         name = "Unknown User",
-                        role = UserRole.DRIVER
+                        email = "",
+                        role = UserRole.DRIVER,
+                        profilePictureUrl = null
                     )
                 }
             }
@@ -132,11 +136,13 @@ class UserFirestoreService @Inject constructor(
                         UserDto(
                             id = document.id,
                             name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
+                            email = document.getString("email") ?: "",
                             role = try {
                                 UserRole.valueOf(roleString.uppercase())
                             } catch (e: Exception) {
                                 UserRole.DRIVER
-                            }
+                            },
+                            profilePictureUrl = document.getString("profilePictureUrl")
                         )
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to parse user: ${document.id}", e)
@@ -160,11 +166,13 @@ class UserFirestoreService @Inject constructor(
                         UserDto(
                             id = document.id,
                             name = document.getString("name") ?: document.getString("displayName") ?: "Unknown User",
+                            email = document.getString("email") ?: "",
                             role = try {
                                 UserRole.valueOf(roleString.uppercase())
                             } catch (e: Exception) {
                                 UserRole.DRIVER
-                            }
+                            },
+                            profilePictureUrl = document.getString("profilePictureUrl")
                         )
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to parse user: ${document.id}", e)
@@ -197,7 +205,86 @@ class UserFirestoreService @Inject constructor(
         return UserDto(
             id = userId,
             name = name,
-            role = UserRole.DRIVER
+            email = email,
+            role = UserRole.DRIVER,
+            profilePictureUrl = null
         )
+    }
+    
+    // Update user profile information (name and email)
+    suspend fun updateUserProfile(name: String, email: String) {
+        val userId = authService.getCurrentUserId() ?: throw IllegalStateException("User not authenticated")
+        
+        try {
+            val updateData = mapOf(
+                "name" to name,
+                "displayName" to name, // For compatibility
+                "email" to email,
+                "updatedAt" to com.google.firebase.Timestamp.now()
+            )
+            
+            getCollection()
+                .document(userId)
+                .update(updateData)
+                .await()
+            
+            Log.d(TAG, "✅ User profile updated successfully for: $userId")
+            toastHelper.showMessage(context, "✅ Profile updated successfully")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to update user profile: ${e.message}", e)
+            toastHelper.showError(context, "❌ Failed to update profile: ${e.message}")
+            throw e
+        }
+    }
+    
+    // Update user profile picture URL
+    suspend fun updateProfilePicture(profilePictureUrl: String) {
+        val userId = authService.getCurrentUserId() ?: throw IllegalStateException("User not authenticated")
+        
+        try {
+            val updateData = mapOf(
+                "profilePictureUrl" to profilePictureUrl,
+                "updatedAt" to com.google.firebase.Timestamp.now()
+            )
+            
+            getCollection()
+                .document(userId)
+                .update(updateData)
+                .await()
+            
+            Log.d(TAG, "✅ Profile picture updated successfully for: $userId")
+            toastHelper.showMessage(context, "✅ Profile picture updated successfully")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to update profile picture: ${e.message}", e)
+            toastHelper.showError(context, "❌ Failed to update profile picture: ${e.message}")
+            throw e
+        }
+    }
+    
+    // Remove user profile picture
+    suspend fun removeProfilePicture() {
+        val userId = authService.getCurrentUserId() ?: throw IllegalStateException("User not authenticated")
+        
+        try {
+            val updateData = mapOf(
+                "profilePictureUrl" to null,
+                "updatedAt" to com.google.firebase.Timestamp.now()
+            )
+            
+            getCollection()
+                .document(userId)
+                .update(updateData)
+                .await()
+            
+            Log.d(TAG, "✅ Profile picture removed successfully for: $userId")
+            toastHelper.showMessage(context, "✅ Profile picture removed successfully")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to remove profile picture: ${e.message}", e)
+            toastHelper.showError(context, "❌ Failed to remove profile picture: ${e.message}")
+            throw e
+        }
     }
 }

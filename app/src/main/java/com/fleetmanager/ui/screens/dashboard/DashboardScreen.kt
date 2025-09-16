@@ -23,6 +23,7 @@ import com.fleetmanager.ui.viewmodel.DashboardViewModel
 fun DashboardScreen(
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
+    onNavigateToProfile: (() -> Unit)? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,7 +44,8 @@ fun DashboardScreen(
             ScreenHeader(
                 title = "Dashboard",
                 userName = uiState.userProfile?.name,
-                onProfileClick = rememberProfileClickHandler()
+                profilePictureUrl = uiState.userProfile?.profilePictureUrl,
+                onProfileClick = onNavigateToProfile?.let { rememberProfileClickHandler(it) }
             )
         }
 
