@@ -232,82 +232,7 @@ fun SettingsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AdminSection(
-    onAddDriver: (String, String) -> Unit,
-    onAddVehicle: (String, String, Int, String) -> Unit,
-    onAddExpenseType: (String, String) -> Unit,
-    onImportExcel: () -> Unit
-) {
-    var showAddDriverDialog by remember { mutableStateOf(false) }
-    var showAddVehicleDialog by remember { mutableStateOf(false) }
-    var showAddExpenseTypeDialog by remember { mutableStateOf(false) }
-
-    SettingsSection(title = "Admin Controls") {
-        SettingsItem(
-            icon = Icons.Default.PersonAdd,
-            title = "Add Driver",
-            subtitle = "Create a new user with DRIVER role",
-            onClick = { showAddDriverDialog = true }
-        )
-        
-        SettingsItem(
-            icon = Icons.Default.DirectionsCar,
-            title = "Add Vehicle",
-            subtitle = "Add a new vehicle to the fleet",
-            onClick = { showAddVehicleDialog = true }
-        )
-        
-        SettingsItem(
-            icon = Icons.Default.Receipt,
-            title = "Add Expense Type",
-            subtitle = "Create a new expense category",
-            onClick = { showAddExpenseTypeDialog = true }
-        )
-        
-        SettingsItem(
-            icon = Icons.Default.Upload,
-            title = "Import CSV Entries",
-            subtitle = "Import past income data from CSV file (exported from Excel)",
-            onClick = onImportExcel
-        )
-    }
-
-    // Add Driver Dialog
-    if (showAddDriverDialog) {
-        AddDriverDialog(
-            onDismiss = { showAddDriverDialog = false },
-            onConfirm = { name, email ->
-                onAddDriver(name, email)
-                showAddDriverDialog = false
-            }
-        )
-    }
-
-    // Add Vehicle Dialog
-    if (showAddVehicleDialog) {
-        AddVehicleDialog(
-            onDismiss = { showAddVehicleDialog = false },
-            onConfirm = { make: String, model: String, year: Int, licensePlate: String ->
-                onAddVehicle(make, model, year, licensePlate)
-                showAddVehicleDialog = false
-            }
-        )
-    }
-
-    // Add Expense Type Dialog
-    if (showAddExpenseTypeDialog) {
-        AddExpenseTypeDialog(
-            onDismiss = { showAddExpenseTypeDialog = false },
-            onConfirm = { name: String, displayName: String ->
-                onAddExpenseType(name, displayName)
-                showAddExpenseTypeDialog = false
-            }
-        )
-    }
-}
-
+// Dialog Components - defined before AdminSection to ensure proper visibility
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddDriverDialog(
@@ -571,6 +496,81 @@ fun ImportProgressCard(
                 }
             }
         }
-        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminSection(
+    onAddDriver: (String, String) -> Unit,
+    onAddVehicle: (String, String, Int, String) -> Unit,
+    onAddExpenseType: (String, String) -> Unit,
+    onImportExcel: () -> Unit
+) {
+    var showAddDriverDialog by remember { mutableStateOf(false) }
+    var showAddVehicleDialog by remember { mutableStateOf(false) }
+    var showAddExpenseTypeDialog by remember { mutableStateOf(false) }
+
+    SettingsSection(title = "Admin Controls") {
+        SettingsItem(
+            icon = Icons.Default.PersonAdd,
+            title = "Add Driver",
+            subtitle = "Create a new user with DRIVER role",
+            onClick = { showAddDriverDialog = true }
+        )
+        
+        SettingsItem(
+            icon = Icons.Default.DirectionsCar,
+            title = "Add Vehicle",
+            subtitle = "Add a new vehicle to the fleet",
+            onClick = { showAddVehicleDialog = true }
+        )
+        
+        SettingsItem(
+            icon = Icons.Default.Receipt,
+            title = "Add Expense Type",
+            subtitle = "Create a new expense category",
+            onClick = { showAddExpenseTypeDialog = true }
+        )
+        
+        SettingsItem(
+            icon = Icons.Default.Upload,
+            title = "Import CSV Entries",
+            subtitle = "Import past income data from CSV file (exported from Excel)",
+            onClick = onImportExcel
+        )
+    }
+
+    // Add Driver Dialog
+    if (showAddDriverDialog) {
+        AddDriverDialog(
+            onDismiss = { showAddDriverDialog = false },
+            onConfirm = { name, email ->
+                onAddDriver(name, email)
+                showAddDriverDialog = false
+            }
+        )
+    }
+
+    // Add Vehicle Dialog
+    if (showAddVehicleDialog) {
+        AddVehicleDialog(
+            onDismiss = { showAddVehicleDialog = false },
+            onConfirm = { make: String, model: String, year: Int, licensePlate: String ->
+                onAddVehicle(make, model, year, licensePlate)
+                showAddVehicleDialog = false
+            }
+        )
+    }
+
+    // Add Expense Type Dialog
+    if (showAddExpenseTypeDialog) {
+        AddExpenseTypeDialog(
+            onDismiss = { showAddExpenseTypeDialog = false },
+            onConfirm = { name: String, displayName: String ->
+                onAddExpenseType(name, displayName)
+                showAddExpenseTypeDialog = false
+            }
+        )
     }
 }
