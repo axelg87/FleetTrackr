@@ -44,9 +44,7 @@ class DashboardViewModel @Inject constructor(
 
     override fun getInitialState() = DashboardUiState()
 
-    // Navigation callback for tile clicks - use StateFlow to ensure it's always available
-    private val _navigationCallback = MutableStateFlow<((FilterContext) -> Unit)?>(null)
-    private val navigationCallback: StateFlow<((FilterContext) -> Unit)?> = _navigationCallback.asStateFlow()
+    // Navigation is now handled by NavigationViewModel - no need for callbacks here
 
     // Expose user role for role-based UI decisions
     val userRole: StateFlow<UserRole> = uiState
@@ -78,9 +76,7 @@ class DashboardViewModel @Inject constructor(
         }
     }
     
-    fun setNavigationCallback(callback: (FilterContext) -> Unit) {
-        _navigationCallback.value = callback
-    }
+    // Navigation callback is no longer needed - handled by NavigationViewModel
 
     fun syncNow() {
         executeAsync(
@@ -122,25 +118,19 @@ class DashboardViewModel @Inject constructor(
                         icon = Icons.Default.CalendarToday,
                         value = "$${String.format("%.0f", dashboardData.thisMonthEarnings)}",
                         label = "This Month",
-                        onClick = {
-                            navigationCallback.value?.invoke(FilterContextFactory.createThisMonthFilter())
-                        }
+                        filterContext = FilterContextFactory.createThisMonthFilter()
                     ))
                     add(StatItem(
                         icon = Icons.Default.TrendingUp,
                         value = "$${String.format("%.0f", dashboardData.thisWeekEarnings)}",
                         label = "This Week",
-                        onClick = {
-                            navigationCallback.value?.invoke(FilterContextFactory.createThisWeekFilter())
-                        }
+                        filterContext = FilterContextFactory.createThisWeekFilter()
                     ))
                     add(StatItem(
                         icon = Icons.Default.Schedule,
                         value = "$${String.format("%.0f", dashboardData.last24hEarnings)}",
                         label = "Last 24h",
-                        onClick = {
-                            navigationCallback.value?.invoke(FilterContextFactory.createLast24HFilter())
-                        }
+                        filterContext = FilterContextFactory.createLast24HFilter()
                     ))
                     // Only show Active Drivers tile for admin users
                     if (isAdmin) {
@@ -160,25 +150,19 @@ class DashboardViewModel @Inject constructor(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
                             label = "Uber (Month)",
-                            onClick = {
-                                navigationCallback.value?.invoke(FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH))
-                            }
+                            filterContext = FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH)
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
                             label = "Yango (Month)",
-                            onClick = {
-                                navigationCallback.value?.invoke(FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH))
-                            }
+                            filterContext = FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH)
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
                             label = "Private (Month)",
-                            onClick = {
-                                navigationCallback.value?.invoke(FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH))
-                            }
+                            filterContext = FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH)
                         ),
                         StatItem(
                             icon = Icons.Default.Assignment,

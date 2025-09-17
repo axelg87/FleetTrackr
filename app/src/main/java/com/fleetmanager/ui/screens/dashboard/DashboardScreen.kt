@@ -31,12 +31,7 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    // Set up navigation callback
-    LaunchedEffect(onNavigateToReportsWithFilter) {
-        if (onNavigateToReportsWithFilter != null) {
-            viewModel.setNavigationCallback(onNavigateToReportsWithFilter)
-        }
-    }
+    // Navigation is now handled directly through the callback parameter
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
@@ -61,7 +56,14 @@ fun DashboardScreen(
 
         // Quick Stats
         item {
-            StatsGrid(stats = uiState.quickStats)
+            StatsGrid(
+                stats = uiState.quickStats,
+                onStatClick = { statItem ->
+                    statItem.filterContext?.let { filterContext ->
+                        onNavigateToReportsWithFilter?.invoke(filterContext)
+                    }
+                }
+            )
         }
 
         // Earnings by Source
@@ -71,7 +73,14 @@ fun DashboardScreen(
             }
             
             item {
-                StatsGrid(stats = uiState.earningsStats)
+                StatsGrid(
+                    stats = uiState.earningsStats,
+                    onStatClick = { statItem ->
+                        statItem.filterContext?.let { filterContext ->
+                            onNavigateToReportsWithFilter?.invoke(filterContext)
+                        }
+                    }
+                )
             }
         }
 
