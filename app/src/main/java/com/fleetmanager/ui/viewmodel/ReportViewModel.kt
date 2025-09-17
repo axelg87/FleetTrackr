@@ -16,7 +16,6 @@ import com.fleetmanager.domain.usecase.GetReportDataRealtimeUseCase
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.model.toReportEntries
 import com.fleetmanager.ui.model.toReportEntry
-import com.fleetmanager.ui.model.FilterContext
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -275,39 +274,6 @@ class ReportViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Apply filter context from dashboard tile navigation.
-     * This method sets up the filters based on the provided context and expands the filter panel.
-     */
-    fun applyFilterContext(filterContext: FilterContext) {
-        updateState { currentState ->
-            val newState = currentState.copy(
-                startDate = filterContext.startDate,
-                endDate = filterContext.endDate,
-                selectedType = filterContext.sourceFilter?.let { source ->
-                    when (source.lowercase()) {
-                        "uber" -> "Uber"
-                        "yango" -> "Yango"  
-                        "private" -> "Private Jobs"
-                        else -> null
-                    }
-                },
-                isFilterPanelExpanded = false // Keep collapsed by default
-            )
-            // Immediately apply filters when context is applied
-            newState.copy(filteredEntries = applySortingAndFilters(newState))
-        }
-    }
-    
-    /**
-     * Refresh filters - re-applies current filter state.
-     * This ensures filters are properly applied when screen gains focus.
-     */
-    fun refreshFilters() {
-        updateState { currentState ->
-            currentState.copy(filteredEntries = applySortingAndFilters(currentState))
-        }
-    }
     
     fun exportData(exportAction: suspend () -> Unit) {
         executeAsync(

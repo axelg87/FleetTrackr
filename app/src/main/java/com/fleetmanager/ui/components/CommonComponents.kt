@@ -386,8 +386,7 @@ data class StatItem(
     val icon: ImageVector,
     val value: String,
     val label: String,
-    val onClick: (() -> Unit)? = null,
-    val filterContext: com.fleetmanager.ui.model.FilterContext? = null
+    val onClick: (() -> Unit)? = null
 )
 
 data class ActionItem(
