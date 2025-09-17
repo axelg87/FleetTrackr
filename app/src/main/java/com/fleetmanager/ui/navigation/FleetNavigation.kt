@@ -405,7 +405,7 @@ fun FleetNavigation(
                 },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToReportsWithFilter = { filterContext ->
-                    NavigationState.setPendingFilterContext(filterContext)
+                    // This shouldn't be called in non-pager mode, but handle it gracefully
                     navController.navigate(Screen.Reports.route)
                 }
             )
@@ -435,7 +435,7 @@ fun FleetNavigation(
         composable(Screen.Reports.route) {
             ReportScreen(
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                filterContext = NavigationState.consumePendingFilterContext()
+                filterContext = null // No filter context in non-pager mode
             )
         }
         
