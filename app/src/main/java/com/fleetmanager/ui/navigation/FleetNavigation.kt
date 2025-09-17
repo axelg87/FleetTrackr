@@ -189,18 +189,11 @@ fun MainScreenWithPager(
         pageCount = { bottomNavItems.size }
     )
     
-    // Sync ViewModel page index with route changes
-    LaunchedEffect(currentPageIndex) {
-        if (currentPageIndex != vmCurrentPageIndex && !isNavigating) {
-            fleetNavigationViewModel.updateCurrentPageIndex(currentPageIndex)
-        }
-    }
-    
-    // Sync pager with ViewModel page index
+    // Sync pager with ViewModel page index changes (from navigation)
     LaunchedEffect(vmCurrentPageIndex) {
-        if (vmCurrentPageIndex != pagerState.currentPage && !isNavigating) {
+        if (vmCurrentPageIndex != pagerState.currentPage && vmCurrentPageIndex < bottomNavItems.size) {
             pagerState.animateScrollToPage(
-                page = vmCurrentPageIndex.coerceIn(0, bottomNavItems.size - 1),
+                page = vmCurrentPageIndex,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioNoBouncy,
                     stiffness = Spring.StiffnessMedium
@@ -211,27 +204,22 @@ fun MainScreenWithPager(
     
     // Handle user swipes - update NavController to match pager
     LaunchedEffect(pagerState.settledPage) {
-        if (pagerState.settledPage != vmCurrentPageIndex && !isNavigating) {
-            val targetRoute = bottomNavItems.getOrNull(pagerState.settledPage)?.screen?.route
-            if (targetRoute != null && targetRoute != currentRoute) {
-                // Update NavController to match pager state
-                navController.navigate(targetRoute) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
+        val targetRoute = bottomNavItems.getOrNull(pagerState.settledPage)?.screen?.route
+        if (targetRoute != null && targetRoute != currentRoute && !isNavigating) {
+            navController.navigate(targetRoute) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
                 }
-                // Update ViewModel state
-                fleetNavigationViewModel.updateCurrentPageIndex(pagerState.settledPage)
+                launchSingleTop = true
+                restoreState = true
             }
         }
     }
     
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(
-                currentRoute = currentRoute,
+            BottomNavigationBarWithPager(
+                currentPageIndex = pagerState.currentPage,
                 bottomNavItems = bottomNavItems,
                 onNavigate = { route ->
                     if (!isNavigating) {
@@ -340,6 +328,32 @@ private fun BottomNavigationBar(
     NavigationBar {
         bottomNavItems.forEach { item ->
             val isSelected = currentRoute == item.screen.route
+            NavigationBarItem(
+                icon = { 
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.title
+                    )
+                },
+                label = { Text(item.title) },
+                selected = isSelected,
+                onClick = remember(item.screen.route) { 
+                    { onNavigate(item.screen.route) } 
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomNavigationBarWithPager(
+    currentPageIndex: Int,
+    bottomNavItems: List<BottomNavItem>,
+    onNavigate: (String) -> Unit
+) {
+    NavigationBar {
+        bottomNavItems.forEachIndexed { index, item ->
+            val isSelected = currentPageIndex == index
             NavigationBarItem(
                 icon = { 
                     Icon(

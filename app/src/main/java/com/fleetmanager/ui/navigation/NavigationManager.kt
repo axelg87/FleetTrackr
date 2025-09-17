@@ -24,45 +24,6 @@ class NavigationManager @Inject constructor() {
     // Public read-only state
     val pendingFilterContext: StateFlow<FilterContext?> = _pendingFilterContext.asStateFlow()
     
-    /**
-     * Navigate to Reports screen with filter context
-     * This method ensures both navigation and filter application work together
-     */
-    fun navigateToReportsWithFilter(
-        navController: NavHostController,
-        filterContext: FilterContext,
-        bottomNavItems: List<BottomNavItem>,
-        onPagerNavigate: (Int) -> Unit
-    ) {
-        // Set the filter context first
-        _pendingFilterContext.value = filterContext
-        
-        // Find the Reports tab index
-        val reportsIndex = bottomNavItems.indexOfFirst { it.screen == Screen.Reports }
-        
-        if (reportsIndex >= 0) {
-            // Navigate using pager to ensure UI consistency
-            onPagerNavigate(reportsIndex)
-        }
-    }
-    
-    /**
-     * Navigate to a specific tab by route
-     * DRY principle: Single method for tab navigation
-     */
-    fun navigateToTab(
-        route: String,
-        navController: NavHostController,
-        bottomNavItems: List<BottomNavItem>,
-        onPagerNavigate: (Int) -> Unit
-    ) {
-        val tabIndex = bottomNavItems.indexOfFirst { it.screen.route == route }
-        
-        if (tabIndex >= 0) {
-            // Use pager navigation for tabs
-            onPagerNavigate(tabIndex)
-        }
-    }
     
     /**
      * Consume the pending filter context (one-time use)
@@ -71,6 +32,13 @@ class NavigationManager @Inject constructor() {
         val context = _pendingFilterContext.value
         _pendingFilterContext.value = null
         return context
+    }
+    
+    /**
+     * Set pending filter context
+     */
+    fun setPendingFilterContext(filterContext: FilterContext) {
+        _pendingFilterContext.value = filterContext
     }
     
     /**

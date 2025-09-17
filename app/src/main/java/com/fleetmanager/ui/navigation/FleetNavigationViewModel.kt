@@ -44,14 +44,25 @@ class FleetNavigationViewModel @Inject constructor(
         viewModelScope.launch {
             _isNavigating.value = true
             
-            navigationManager.navigateToReportsWithFilter(
-                navController = navController,
-                filterContext = filterContext,
-                bottomNavItems = bottomNavItems,
-                onPagerNavigate = { pageIndex ->
-                    _currentPageIndex.value = pageIndex
+            // Set the filter context first
+            navigationManager.setPendingFilterContext(filterContext)
+            
+            // Find the Reports tab index
+            val reportsIndex = bottomNavItems.indexOfFirst { it.screen == Screen.Reports }
+            
+            if (reportsIndex >= 0) {
+                // Update page index immediately for UI consistency
+                _currentPageIndex.value = reportsIndex
+                
+                // Navigate to Reports route
+                navController.navigate(Screen.Reports.route) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
                 }
-            )
+            }
             
             _isNavigating.value = false
         }
@@ -70,14 +81,21 @@ class FleetNavigationViewModel @Inject constructor(
         viewModelScope.launch {
             _isNavigating.value = true
             
-            navigationManager.navigateToTab(
-                route = route,
-                navController = navController,
-                bottomNavItems = bottomNavItems,
-                onPagerNavigate = { pageIndex ->
-                    _currentPageIndex.value = pageIndex
+            val tabIndex = bottomNavItems.indexOfFirst { it.screen.route == route }
+            
+            if (tabIndex >= 0) {
+                // Update page index immediately for UI consistency
+                _currentPageIndex.value = tabIndex
+                
+                // Navigate to the route
+                navController.navigate(route) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
                 }
-            )
+            }
             
             _isNavigating.value = false
         }
@@ -90,6 +108,13 @@ class FleetNavigationViewModel @Inject constructor(
         if (!_isNavigating.value) {
             _currentPageIndex.value = index
         }
+    }
+    
+    /**
+     * Set navigating state - used to prevent circular navigation updates
+     */
+    fun setNavigating(isNavigating: Boolean) {
+        _isNavigating.value = isNavigating
     }
     
     /**

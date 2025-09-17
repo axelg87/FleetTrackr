@@ -281,7 +281,7 @@ class ReportViewModel @Inject constructor(
      */
     fun applyFilterContext(filterContext: FilterContext) {
         updateState { currentState ->
-            currentState.copy(
+            val newState = currentState.copy(
                 startDate = filterContext.startDate,
                 endDate = filterContext.endDate,
                 selectedType = filterContext.sourceFilter?.let { source ->
@@ -294,6 +294,18 @@ class ReportViewModel @Inject constructor(
                 },
                 isFilterPanelExpanded = false // Keep collapsed by default
             )
+            // Immediately apply filters when context is applied
+            newState.copy(filteredEntries = applySortingAndFilters(newState))
+        }
+    }
+    
+    /**
+     * Refresh filters - re-applies current filter state.
+     * This ensures filters are properly applied when screen gains focus.
+     */
+    fun refreshFilters() {
+        updateState { currentState ->
+            currentState.copy(filteredEntries = applySortingAndFilters(currentState))
         }
     }
     
