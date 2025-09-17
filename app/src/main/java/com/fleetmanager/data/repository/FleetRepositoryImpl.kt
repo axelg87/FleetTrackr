@@ -58,6 +58,9 @@ class FleetRepositoryImpl @Inject constructor(
     override fun getDailyEntryById(id: String): Flow<DailyEntry?> = flow {
         val dto = dailyEntryDao.getEntryById(id)
         emit(dto?.let { DailyEntryMapper.toDomain(it) })
+    }.catch { e ->
+        // Log error but emit null to prevent crashes
+        emit(null)
     }
     
     override suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri?, photoUris: List<Uri>) {

@@ -49,7 +49,7 @@ class EntryDetailViewModel @Inject constructor(
                 updateState { it.copy(isLoading = isLoading, errorMessage = null) }
             },
             onError = { error ->
-                updateState { it.copy(isLoading = false, errorMessage = error) }
+                updateState { it.copy(isLoading = false, errorMessage = "Failed to load entry: $error") }
             }
         ) {
             getEntryByIdUseCase(entryId)
@@ -58,7 +58,7 @@ class EntryDetailViewModel @Inject constructor(
                         it.copy(
                             entry = entry,
                             isLoading = false,
-                            errorMessage = null
+                            errorMessage = if (entry == null) "Entry not found" else null
                         )
                     }
                 }
