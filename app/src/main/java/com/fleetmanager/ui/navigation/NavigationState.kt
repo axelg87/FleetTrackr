@@ -2,6 +2,8 @@ package com.fleetmanager.ui.navigation
 
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 /**
  * Centralized Navigation State Management
@@ -19,7 +21,7 @@ class NavigationState(
     fun navigateTo(route: String) {
         navController.navigate(route) {
             // Standard navigation behavior
-            popUpTo(navController.graph.startDestinationId) {
+            popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
             }
             launchSingleTop = true

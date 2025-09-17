@@ -143,20 +143,17 @@ class DashboardViewModel @Inject constructor(
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
-                            label = "Uber (Month)",
-                            filterContext = FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH)
+                            label = "Uber (Month)"
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
-                            label = "Yango (Month)",
-                            filterContext = FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH)
+                            label = "Yango (Month)"
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
-                            label = "Private (Month)",
-                            filterContext = FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH)
+                            label = "Private (Month)"
                         ),
                         StatItem(
                             icon = Icons.Default.Assignment,
