@@ -43,15 +43,6 @@ class NavigationManager @Inject constructor() {
         if (reportsIndex >= 0) {
             // Navigate using pager to ensure UI consistency
             onPagerNavigate(reportsIndex)
-        } else {
-            // Fallback to direct navigation if Reports tab not found
-            navController.navigate(Screen.Reports.route) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            }
         }
     }
     
@@ -70,9 +61,6 @@ class NavigationManager @Inject constructor() {
         if (tabIndex >= 0) {
             // Use pager navigation for tabs
             onPagerNavigate(tabIndex)
-        } else {
-            // Fallback for non-tab routes
-            navController.navigate(route)
         }
     }
     

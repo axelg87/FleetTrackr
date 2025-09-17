@@ -15,7 +15,7 @@ import javax.inject.Inject
  * Manages navigation state and coordinates between different navigation methods
  */
 @HiltViewModel
-class NavigationViewModel @Inject constructor(
+class FleetNavigationViewModel @Inject constructor(
     private val navigationManager: NavigationManager
 ) : ViewModel() {
     
