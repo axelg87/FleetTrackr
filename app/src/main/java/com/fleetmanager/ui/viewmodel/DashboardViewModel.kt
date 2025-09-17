@@ -13,6 +13,9 @@ import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
+import com.fleetmanager.ui.model.FilterContext
+import com.fleetmanager.ui.model.FilterContextFactory
+import com.fleetmanager.ui.model.TimeRange
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -30,6 +33,7 @@ data class RecentEntry(
 
 data class DashboardUiState(
     val quickStats: List<StatItem> = emptyList(),
+    val earningsStats: List<StatItem> = emptyList(), // New tiles for specific earnings
     val recentEntries: List<RecentEntry> = emptyList(),
     val userProfile: UserDto? = null,
     val isLoading: Boolean = false,
@@ -45,9 +49,16 @@ class DashboardViewModel @Inject constructor(
 
     override fun getInitialState() = DashboardUiState()
 
+    // Navigation callback for tile clicks
+    private var onNavigateToReportsWithFilter: ((FilterContext) -> Unit)? = null
+
     init {
         loadDashboardData()
         loadUserProfile()
+    }
+    
+    fun setNavigationCallback(callback: (FilterContext) -> Unit) {
+        onNavigateToReportsWithFilter = callback
     }
 
     fun syncNow() {
@@ -86,22 +97,77 @@ class DashboardViewModel @Inject constructor(
                     StatItem(
                         icon = Icons.Default.CalendarToday,
                         value = "$${String.format("%.0f", dashboardData.thisMonthEarnings)}",
-                        label = "This Month"
+                        label = "This Month",
+                        onClick = {
+                            onNavigateToReportsWithFilter?.invoke(
+                                FilterContextFactory.createThisMonthFilter()
+                            )
+                        }
                     ),
                     StatItem(
                         icon = Icons.Default.TrendingUp,
                         value = "$${String.format("%.0f", dashboardData.thisWeekEarnings)}",
-                        label = "This Week"
+                        label = "This Week",
+                        onClick = {
+                            onNavigateToReportsWithFilter?.invoke(
+                                FilterContextFactory.createThisWeekFilter()
+                            )
+                        }
                     ),
                     StatItem(
                         icon = Icons.Default.Schedule,
                         value = "$${String.format("%.0f", dashboardData.last24hEarnings)}",
-                        label = "Last 24h"
+                        label = "Last 24h",
+                        onClick = {
+                            onNavigateToReportsWithFilter?.invoke(
+                                FilterContextFactory.createLast24HFilter()
+                            )
+                        }
                     ),
                     StatItem(
                         icon = Icons.Default.People,
                         value = dashboardData.activeDriversCount.toString(),
                         label = "Active Drivers"
+                        // No click action for active drivers count
+                    )
+                )
+                
+                val earningsStats = listOf(
+                    StatItem(
+                        icon = Icons.Default.AttachMoney,
+                        value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
+                        label = "Uber (Month)",
+                        onClick = {
+                            onNavigateToReportsWithFilter?.invoke(
+                                FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH)
+                            )
+                        }
+                    ),
+                    StatItem(
+                        icon = Icons.Default.AttachMoney,
+                        value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
+                        label = "Yango (Month)",
+                        onClick = {
+                            onNavigateToReportsWithFilter?.invoke(
+                                FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH)
+                            )
+                        }
+                    ),
+                    StatItem(
+                        icon = Icons.Default.AttachMoney,
+                        value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
+                        label = "Private (Month)",
+                        onClick = {
+                            onNavigateToReportsWithFilter?.invoke(
+                                FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH)
+                            )
+                        }
+                    ),
+                    StatItem(
+                        icon = Icons.Default.Assignment,
+                        value = "${dashboardData.recentEntries.size}",
+                        label = "Recent Entries"
+                        // No click action for recent entries count
                     )
                 )
 
@@ -118,6 +184,7 @@ class DashboardViewModel @Inject constructor(
                 updateState {
                     it.copy(
                         quickStats = quickStats,
+                        earningsStats = earningsStats,
                         recentEntries = recentEntries,
                         isLoading = false,
                         error = null

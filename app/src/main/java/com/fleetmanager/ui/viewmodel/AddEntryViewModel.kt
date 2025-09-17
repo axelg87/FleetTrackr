@@ -7,6 +7,7 @@ import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +39,9 @@ data class AddEntryUiState(
     val uberEarningsError: String? = null,
     val yangoEarningsError: String? = null,
     val privateJobsEarningsError: String? = null,
-    val notesError: String? = null
+    val notesError: String? = null,
+    val userRole: UserRole? = null,
+    val currentUserProfile: UserDto? = null
 ) {
     val canSave: Boolean
         get() = driverInput.isNotBlank() && 
@@ -76,6 +79,7 @@ class AddEntryViewModel @Inject constructor(
     
     init {
         loadFirestoreData()
+        loadUserProfile()
     }
     
     
@@ -101,6 +105,22 @@ class AddEntryViewModel @Inject constructor(
         }
     }
     
+    private fun loadUserProfile() {
+        executeAsync(
+            onError = { error ->
+                // Don't show error for user profile loading, just continue
+            }
+        ) {
+            userFirestoreService.getCurrentUserProfile().collect { userProfile ->
+                updateState { 
+                    it.copy(
+                        currentUserProfile = userProfile,
+                        userRole = userProfile.role
+                    ) 
+                }
+            }
+        }
+    }
     
     fun selectDriver(driver: Driver) {
         updateState { it.copy(selectedDriver = driver, driverInput = driver.name) }
