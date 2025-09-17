@@ -130,7 +130,8 @@ fun StatCard(
 @Composable
 fun StatsGrid(
     stats: List<StatItem>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onStatClick: ((StatItem) -> Unit)? = null
 ) {
     Column(
         modifier = modifier,
@@ -146,7 +147,7 @@ fun StatsGrid(
                     icon = stat.icon,
                     value = stat.value,
                     label = stat.label,
-                    onClick = stat.onClick,
+                    onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -155,7 +156,7 @@ fun StatsGrid(
                     icon = stat.icon,
                     value = stat.value,
                     label = stat.label,
-                    onClick = stat.onClick,
+                    onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -171,7 +172,7 @@ fun StatsGrid(
                     icon = stat.icon,
                     value = stat.value,
                     label = stat.label,
-                    onClick = stat.onClick,
+                    onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -180,7 +181,7 @@ fun StatsGrid(
                     icon = stat.icon,
                     value = stat.value,
                     label = stat.label,
-                    onClick = stat.onClick,
+                    onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -385,7 +386,8 @@ data class StatItem(
     val icon: ImageVector,
     val value: String,
     val label: String,
-    val onClick: (() -> Unit)? = null
+    val onClick: (() -> Unit)? = null,
+    val filterContext: com.fleetmanager.ui.model.FilterContext? = null
 )
 
 data class ActionItem(

@@ -44,12 +44,23 @@ class EntryDetailViewModel @Inject constructor(
         )
     
     fun loadEntry(entryId: String) {
+        if (entryId.isBlank()) {
+            updateState { it.copy(isLoading = false, errorMessage = "Invalid entry ID") }
+            return
+        }
+        
         executeAsync(
             onLoading = { isLoading ->
                 updateState { it.copy(isLoading = isLoading, errorMessage = null) }
             },
             onError = { error ->
-                updateState { it.copy(isLoading = false, errorMessage = "Failed to load entry: $error") }
+                val errorMessage = when {
+                    error.contains("not found", ignoreCase = true) -> "Entry not found. It may have been deleted or you don't have permission to view it."
+                    error.contains("network", ignoreCase = true) || error.contains("connection", ignoreCase = true) -> "Network error. Please check your connection and try again."
+                    error.contains("permission", ignoreCase = true) -> "You don't have permission to view this entry."
+                    else -> "Failed to load entry: $error"
+                }
+                updateState { it.copy(isLoading = false, errorMessage = errorMessage) }
             }
         ) {
             getEntryByIdUseCase(entryId)
@@ -58,7 +69,7 @@ class EntryDetailViewModel @Inject constructor(
                         it.copy(
                             entry = entry,
                             isLoading = false,
-                            errorMessage = if (entry == null) "Entry not found" else null
+                            errorMessage = if (entry == null) "Entry not found. It may have been deleted or moved." else null
                         )
                     }
                 }

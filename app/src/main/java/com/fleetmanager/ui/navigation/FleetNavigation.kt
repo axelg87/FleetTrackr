@@ -44,9 +44,9 @@ import com.fleetmanager.ui.screens.splash.SplashScreen
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
-import com.fleetmanager.ui.viewmodel.NavigationViewModel
+import com.fleetmanager.ui.viewmodel.NavigationViewModel as UserNavigationViewModel
+import com.fleetmanager.ui.navigation.FleetNavigationViewModel
 import com.fleetmanager.ui.model.FilterContext
-import com.fleetmanager.ui.navigation.NavigationState
 import androidx.hilt.navigation.compose.hiltViewModel
 
 sealed class Screen(val route: String) {
@@ -122,9 +122,10 @@ fun MainScreenWithBottomNav(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    // Create a ViewModel to get user role
-    val navigationViewModel: NavigationViewModel = hiltViewModel()
-    val userRole by navigationViewModel.userRole.collectAsState()
+    // Create ViewModels
+    val userNavigationViewModel: UserNavigationViewModel = hiltViewModel()
+    val fleetNavigationViewModel: FleetNavigationViewModel = hiltViewModel()
+    val userRole by userNavigationViewModel.userRole.collectAsState()
     
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
@@ -136,7 +137,8 @@ fun MainScreenWithBottomNav(
         MainScreenWithPager(
             navController = navController,
             bottomNavItems = bottomNavItems,
-            currentRoute = currentRoute
+            currentRoute = currentRoute,
+            fleetNavigationViewModel = fleetNavigationViewModel
         )
     } else {
         // Use regular navigation for other screens (like AddEntry, EntryDetail, etc.)
@@ -147,7 +149,7 @@ fun MainScreenWithBottomNav(
                         currentRoute = currentRoute,
                         bottomNavItems = bottomNavItems,
                         onNavigate = { route ->
-                            navigateToBottomNavDestination(navController, route)
+                            fleetNavigationViewModel.navigateToTab(route, navController, bottomNavItems)
                         }
                     )
                 }
@@ -167,53 +169,61 @@ fun MainScreenWithBottomNav(
 fun MainScreenWithPager(
     navController: NavHostController,
     bottomNavItems: List<BottomNavItem>,
-    currentRoute: String?
+    currentRoute: String?,
+    fleetNavigationViewModel: FleetNavigationViewModel
 ) {
-    // Memoize the current page index to avoid recalculation
+    // Get state from FleetNavigationViewModel
+    val vmCurrentPageIndex by fleetNavigationViewModel.currentPageIndex.collectAsState()
+    val isNavigating by fleetNavigationViewModel.isNavigating.collectAsState()
+    
+    // Calculate current page index based on route
     val currentPageIndex = remember(currentRoute, bottomNavItems) {
         bottomNavItems.indexOfFirst { it.screen.route == currentRoute }.let { index ->
             if (index >= 0) index else 0
         }
     }
     
-    // Create pager state with optimized initial page
+    // Create pager state
     val pagerState = rememberPagerState(
-        initialPage = currentPageIndex,
+        initialPage = vmCurrentPageIndex.coerceIn(0, bottomNavItems.size - 1),
         pageCount = { bottomNavItems.size }
     )
     
-    // Memoize coroutine scope
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Track if we're currently syncing to prevent circular updates
-    var isSyncing by remember { mutableStateOf(false) }
-    
-    // Sync pager with current route when route changes (only from external navigation)
-    LaunchedEffect(currentRoute) {
-        if (!isSyncing) {
-            val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == currentRoute }
-            if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
-                isSyncing = true
-                pagerState.animateScrollToPage(
-                    page = targetIndex,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                )
-                isSyncing = false
-            }
+    // Sync ViewModel page index with route changes
+    LaunchedEffect(currentPageIndex) {
+        if (currentPageIndex != vmCurrentPageIndex && !isNavigating) {
+            fleetNavigationViewModel.updateCurrentPageIndex(currentPageIndex)
         }
     }
     
-    // Sync route with pager when user swipes (optimized to reduce navigation calls)
+    // Sync pager with ViewModel page index
+    LaunchedEffect(vmCurrentPageIndex) {
+        if (vmCurrentPageIndex != pagerState.currentPage && !isNavigating) {
+            pagerState.animateScrollToPage(
+                page = vmCurrentPageIndex.coerceIn(0, bottomNavItems.size - 1),
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+        }
+    }
+    
+    // Handle user swipes - update NavController to match pager
     LaunchedEffect(pagerState.settledPage) {
-        if (!isSyncing && pagerState.settledPage != currentPageIndex) {
+        if (pagerState.settledPage != vmCurrentPageIndex && !isNavigating) {
             val targetRoute = bottomNavItems.getOrNull(pagerState.settledPage)?.screen?.route
             if (targetRoute != null && targetRoute != currentRoute) {
-                isSyncing = true
-                navigateToBottomNavDestination(navController, targetRoute)
-                isSyncing = false
+                // Update NavController to match pager state
+                navController.navigate(targetRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                // Update ViewModel state
+                fleetNavigationViewModel.updateCurrentPageIndex(pagerState.settledPage)
             }
         }
     }
@@ -224,22 +234,8 @@ fun MainScreenWithPager(
                 currentRoute = currentRoute,
                 bottomNavItems = bottomNavItems,
                 onNavigate = { route ->
-                    if (!isSyncing) {
-                        val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == route }
-                        if (targetIndex >= 0) {
-                            coroutineScope.launch {
-                                isSyncing = true
-                                pagerState.animateScrollToPage(
-                                    page = targetIndex,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessHigh
-                                    )
-                                )
-                                isSyncing = false
-                            }
-                        }
-                        navigateToBottomNavDestination(navController, route)
+                    if (!isNavigating) {
+                        fleetNavigationViewModel.navigateToTab(route, navController, bottomNavItems)
                     }
                 }
             )
@@ -254,7 +250,9 @@ fun MainScreenWithPager(
             key(bottomNavItems[pageIndex].screen.route) {
                 PagerScreenContent(
                     navController = navController,
-                    screen = bottomNavItems[pageIndex].screen
+                    screen = bottomNavItems[pageIndex].screen,
+                    fleetNavigationViewModel = fleetNavigationViewModel,
+                    bottomNavItems = bottomNavItems
                 )
             }
         }
@@ -264,7 +262,9 @@ fun MainScreenWithPager(
 @Composable
 private fun PagerScreenContent(
     navController: NavHostController,
-    screen: Screen
+    screen: Screen,
+    fleetNavigationViewModel: FleetNavigationViewModel,
+    bottomNavItems: List<BottomNavItem>
 ) {
     // Create stable callbacks to prevent unnecessary recompositions
     val onAddEntryClick = remember {
@@ -286,9 +286,11 @@ private fun PagerScreenContent(
                 onAddExpenseClick = onAddExpenseClick,
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToReportsWithFilter = { filterContext ->
-                    // Store the filter context and navigate to Reports screen
-                    NavigationState.setPendingFilterContext(filterContext)
-                    navController.navigate(Screen.Reports.route)
+                    fleetNavigationViewModel.navigateToReportsWithFilter(
+                        navController = navController,
+                        filterContext = filterContext,
+                        bottomNavItems = bottomNavItems
+                    )
                 },
                 onEntryClick = onEntryClick
             )
@@ -309,7 +311,7 @@ private fun PagerScreenContent(
         Screen.Reports -> {
             ReportScreen(
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                filterContext = NavigationState.consumePendingFilterContext()
+                filterContext = fleetNavigationViewModel.consumePendingFilterContext()
             )
         }
         Screen.Settings -> {
@@ -403,7 +405,7 @@ fun FleetNavigation(
                 },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToReportsWithFilter = { filterContext ->
-                    NavigationState.setPendingFilterContext(filterContext)
+                    // This shouldn't be called in non-pager mode, but handle it gracefully
                     navController.navigate(Screen.Reports.route)
                 }
             )
@@ -433,7 +435,7 @@ fun FleetNavigation(
         composable(Screen.Reports.route) {
             ReportScreen(
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                filterContext = NavigationState.consumePendingFilterContext()
+                filterContext = null // No filter context in non-pager mode
             )
         }
         

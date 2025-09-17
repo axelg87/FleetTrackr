@@ -55,10 +55,36 @@ class FleetRepositoryImpl @Inject constructor(
     override fun getDailyEntriesByDateRange(startDate: Date, endDate: Date): Flow<List<DailyEntry>> = 
         dailyEntryDao.getEntriesByDateRange(startDate, endDate).map { DailyEntryMapper.toDomainList(it) }
     
-    override fun getDailyEntryById(id: String): Flow<DailyEntry?> = 
-        dailyEntryDao.getEntryByIdFlow(id).map { dto ->
-            dto?.let { DailyEntryMapper.toDomain(it) }
+    override fun getDailyEntryById(id: String): Flow<DailyEntry?> = flow {
+        try {
+            // First try to get from local database
+            dailyEntryDao.getEntryByIdFlow(id).map { dto ->
+                dto?.let { DailyEntryMapper.toDomain(it) }
+            }.collect { localEntry ->
+                if (localEntry != null) {
+                    emit(localEntry)
+                } else {
+                    // If not found locally, try to fetch from Firestore
+                    try {
+                        val remoteEntry = firestoreService.getDailyEntryById(id)
+                        if (remoteEntry != null) {
+                            // Cache it locally for future use
+                            dailyEntryDao.insertEntry(DailyEntryMapper.toDto(remoteEntry))
+                            emit(remoteEntry)
+                        } else {
+                            emit(null)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to fetch entry from Firestore: ${e.message}", e)
+                        emit(null)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting entry by ID: ${e.message}", e)
+            emit(null)
         }
+    }
     
     override suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri?, photoUris: List<Uri>) {
         val userId = authService.getCurrentUserId() ?: ""
