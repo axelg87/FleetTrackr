@@ -123,11 +123,11 @@ private fun MainNavigation(
     val userRole by userNavigationViewModel.userRole.collectAsState()
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
-    // Swipe navigation setup
+    // Swipe navigation setup with proper state management
     val swipeManager = rememberSwipeNavigationManager(navigationState, bottomNavItems)
     val swipeNavigationState = rememberSwipeNavigationState(
         swipeManager = swipeManager,
-        initialPage = swipeManager.getCurrentPageIndex(currentRoute)
+        currentRoute = currentRoute
     )
     
     Scaffold(
