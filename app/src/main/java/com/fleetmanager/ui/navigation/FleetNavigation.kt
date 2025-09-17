@@ -11,7 +11,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.fleetmanager.domain.model.UserRole
@@ -28,7 +27,6 @@ import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 import com.fleetmanager.ui.screens.splash.SplashScreen
 import com.fleetmanager.ui.viewmodel.NavigationViewModel as UserNavigationViewModel
-import kotlinx.coroutines.flow.collectAsState
 
 /**
  * Clean Navigation Routes
