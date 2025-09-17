@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 data class EntryDetailUiState(
     val entry: DailyEntry? = null,
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true, // Start with loading state since we expect to load data
     val errorMessage: String? = null
 )
 

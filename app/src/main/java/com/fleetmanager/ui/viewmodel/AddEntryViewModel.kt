@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
+import java.util.Calendar
 
 data class AddEntryUiState(
     val driverUsers: List<UserDto> = emptyList(),
@@ -23,7 +24,7 @@ data class AddEntryUiState(
     val selectedVehicle: Vehicle? = null,
     val driverInput: String = "",
     val vehicleInput: String = "",
-    val date: Date = Date(),
+    val date: Date,
     val uberEarnings: String = "",
     val yangoEarnings: String = "",
     val privateJobsEarnings: String = "",
@@ -75,7 +76,28 @@ class AddEntryViewModel @Inject constructor(
     private val validator: InputValidator
 ) : BaseViewModel<AddEntryUiState>() {
     
-    override fun getInitialState() = AddEntryUiState()
+    override fun getInitialState() = AddEntryUiState(
+        date = getDefaultDate()
+    )
+    
+    /**
+     * Calculate the default date based on the 2PM rule:
+     * - If current time is before 2:00 PM, use yesterday's date
+     * - Otherwise, use today's date
+     */
+    private fun getDefaultDate(): Date {
+        val now = Calendar.getInstance()
+        val currentHour = now.get(Calendar.HOUR_OF_DAY)
+        
+        return if (currentHour < 14) { // Before 2:00 PM (14:00)
+            // Use yesterday's date
+            now.add(Calendar.DAY_OF_MONTH, -1)
+            now.time
+        } else {
+            // Use today's date
+            now.time
+        }
+    }
     
     init {
         loadFirestoreData()

@@ -98,4 +98,16 @@ class SignInViewModel @Inject constructor(
     fun onError(message: String) {
         updateState { it.copy(errorMessage = message, isLoading = false) }
     }
+    
+    fun signOut() {
+        executeAsync(
+            onError = { error ->
+                updateState { it.copy(errorMessage = "Sign out failed: $error") }
+            }
+        ) {
+            authRepository.signOut()
+            // Stop sync when user signs out
+            syncManager.stopPeriodicSync()
+        }
+    }
 }

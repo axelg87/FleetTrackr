@@ -55,15 +55,10 @@ class FleetRepositoryImpl @Inject constructor(
     override fun getDailyEntriesByDateRange(startDate: Date, endDate: Date): Flow<List<DailyEntry>> = 
         dailyEntryDao.getEntriesByDateRange(startDate, endDate).map { DailyEntryMapper.toDomainList(it) }
     
-    override fun getDailyEntryById(id: String): Flow<DailyEntry?> = flow {
-        try {
-            val dto = dailyEntryDao.getEntryById(id)
-            emit(dto?.let { DailyEntryMapper.toDomain(it) })
-        } catch (e: Exception) {
-            // Log error but emit null to prevent crashes
-            emit(null)
+    override fun getDailyEntryById(id: String): Flow<DailyEntry?> = 
+        dailyEntryDao.getEntryByIdFlow(id).map { dto ->
+            dto?.let { DailyEntryMapper.toDomain(it) }
         }
-    }
     
     override suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri?, photoUris: List<Uri>) {
         val userId = authService.getCurrentUserId() ?: ""

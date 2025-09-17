@@ -26,6 +26,7 @@ fun DashboardScreen(
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: (() -> Unit)? = null,
     onNavigateToReportsWithFilter: ((FilterContext) -> Unit)? = null,
+    onEntryClick: ((String) -> Unit)? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -107,12 +108,9 @@ fun DashboardScreen(
             }
         } else {
             items(uiState.recentEntries) { entry ->
-                ActivityItemCard(
-                    icon = Icons.Default.DirectionsCar,
-                    title = entry.driverName,
-                    subtitle = entry.date,
-                    value = "$${String.format("%.0f", entry.totalEarnings)}",
-                    valueLabel = "${entry.totalRides} rides"
+                DailyEntryTile(
+                    entry = entry,
+                    onClick = { onEntryClick?.invoke(entry.id) }
                 )
             }
         }
@@ -140,3 +138,4 @@ fun DashboardScreen(
         )
     }
 }
+

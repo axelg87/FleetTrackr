@@ -24,18 +24,11 @@ import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
-data class RecentEntry(
-    val id: String,
-    val driverName: String,
-    val date: String,
-    val totalEarnings: Double,
-    val totalRides: Int
-)
 
 data class DashboardUiState(
     val quickStats: List<StatItem> = emptyList(),
     val earningsStats: List<StatItem> = emptyList(), // New tiles for specific earnings
-    val recentEntries: List<RecentEntry> = emptyList(),
+    val recentEntries: List<com.fleetmanager.domain.model.DailyEntry> = emptyList(),
     val userProfile: UserDto? = null,
     val isLoading: Boolean = false,
     val error: String? = null
@@ -45,7 +38,8 @@ data class DashboardUiState(
 class DashboardViewModel @Inject constructor(
     private val getDashboardDataRealtimeUseCase: GetDashboardDataRealtimeUseCase,
     private val syncManager: SyncManager,
-    private val userFirestoreService: UserFirestoreService
+    private val userFirestoreService: UserFirestoreService,
+    private val authRepository: com.fleetmanager.domain.repository.AuthRepository
 ) : BaseViewModel<DashboardUiState>() {
 
     override fun getInitialState() = DashboardUiState()
@@ -63,8 +57,24 @@ class DashboardViewModel @Inject constructor(
         )
 
     init {
+        observeAuthStateChanges()
         loadDashboardData()
         loadUserProfile()
+    }
+    
+    private fun observeAuthStateChanges() {
+        executeAsync {
+            authRepository.isSignedIn.collect { isSignedIn ->
+                if (!isSignedIn) {
+                    // User signed out, reset the ViewModel
+                    resetToInitialState()
+                } else {
+                    // User signed in, reload data
+                    loadDashboardData()
+                    loadUserProfile()
+                }
+            }
+        }
     }
     
     fun setNavigationCallback(callback: (FilterContext) -> Unit) {
@@ -186,15 +196,8 @@ class DashboardViewModel @Inject constructor(
                     emptyList() // Hide all earnings stats for non-admin users
                 }
 
-                val recentEntries = dashboardData.recentEntries.map { entry ->
-                    RecentEntry(
-                        id = entry.id,
-                        driverName = entry.driverName,
-                        date = entry.date.toString(),
-                        totalEarnings = entry.totalEarnings,
-                        totalRides = 0 // We don't have ride counts in the current model
-                    )
-                }
+                // Use actual DailyEntry objects for complete data
+                val recentEntries = dashboardData.recentEntries
 
                 updateState {
                     it.copy(

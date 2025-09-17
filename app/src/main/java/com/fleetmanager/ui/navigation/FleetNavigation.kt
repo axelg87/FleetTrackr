@@ -289,7 +289,8 @@ private fun PagerScreenContent(
                     // Store the filter context and navigate to Reports screen
                     NavigationState.setPendingFilterContext(filterContext)
                     navController.navigate(Screen.Reports.route)
-                }
+                },
+                onEntryClick = onEntryClick
             )
         }
         Screen.History -> {
