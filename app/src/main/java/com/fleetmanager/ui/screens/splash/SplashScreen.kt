@@ -54,7 +54,7 @@ fun SplashScreen(
         )
         
         // Wait for animations to complete, then navigate
-        delay(1500)
+        delay(750)
         onSplashComplete()
     }
     

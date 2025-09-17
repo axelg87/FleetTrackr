@@ -119,6 +119,13 @@ private fun MainNavigation(
     val userRole by userNavigationViewModel.userRole.collectAsState()
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
+    // Swipe navigation setup
+    val swipeManager = rememberSwipeNavigationManager(navigationState, bottomNavItems)
+    val swipeNavigationState = rememberSwipeNavigationState(
+        swipeManager = swipeManager,
+        initialPage = swipeManager.getCurrentPageIndex(currentRoute)
+    )
+    
     Scaffold(
         bottomBar = {
             if (shouldShowBottomNav(currentRoute)) {
@@ -135,41 +142,19 @@ private fun MainNavigation(
             startDestination = Screen.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Main tab screens
-            composable(Screen.Dashboard.route) {
-                DashboardScreen(
-                    onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
-                    onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
-                    onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) }
-                )
-            }
-            
-            composable(Screen.History.route) {
-                EntryListScreen(
-                    onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
-                    onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
-                    onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) },
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
-            }
-            
-            composable(Screen.Analytics.route) {
-                AnalyticsScreen(
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
-            }
-            
-            composable(Screen.Reports.route) {
-                ReportScreen(
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
-            }
-            
-            composable(Screen.Settings.route) {
-                SettingsScreen(
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
+            // Main tab screens with swipe navigation
+            bottomNavItems.forEach { navItem ->
+                composable(navItem.screen.route) {
+                    SwipeableMainContent(
+                        swipeNavigationState = swipeNavigationState,
+                        currentRoute = currentRoute,
+                        bottomNavItems = bottomNavItems,
+                        onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
+                        onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
+                        onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
+                        onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) }
+                    )
+                }
             }
             
             // Secondary screens
