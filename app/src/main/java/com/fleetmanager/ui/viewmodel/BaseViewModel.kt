@@ -26,6 +26,19 @@ abstract class BaseViewModel<T> : ViewModel() {
     protected abstract fun getInitialState(): T
     
     /**
+     * Reset the ViewModel to its initial state
+     * Called when user authentication state changes
+     */
+    protected open fun resetToInitialState() {
+        // Cancel all active jobs first
+        activeJobs.forEach { it.cancel() }
+        activeJobs.clear()
+        
+        // Reset state to initial
+        _uiState.value = getInitialState()
+    }
+    
+    /**
      * Execute a suspend function safely with error handling
      */
     protected fun executeAsync(

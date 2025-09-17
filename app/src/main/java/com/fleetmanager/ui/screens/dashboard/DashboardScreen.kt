@@ -19,6 +19,16 @@ import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.DashboardViewModel
 import com.fleetmanager.ui.model.FilterContext
+import com.fleetmanager.domain.model.DailyEntry
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun DashboardScreen(
@@ -26,6 +36,7 @@ fun DashboardScreen(
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: (() -> Unit)? = null,
     onNavigateToReportsWithFilter: ((FilterContext) -> Unit)? = null,
+    onEntryClick: ((String) -> Unit)? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -107,12 +118,9 @@ fun DashboardScreen(
             }
         } else {
             items(uiState.recentEntries) { entry ->
-                ActivityItemCard(
-                    icon = Icons.Default.DirectionsCar,
-                    title = entry.driverName,
-                    subtitle = entry.date,
-                    value = "$${String.format("%.0f", entry.totalEarnings)}",
-                    valueLabel = "${entry.totalRides} rides"
+                DailyEntryTile(
+                    entry = entry.toDailyEntry(),
+                    onClick = { onEntryClick?.invoke(entry.id) }
                 )
             }
         }
@@ -139,4 +147,22 @@ fun DashboardScreen(
                 .padding(16.dp)
         )
     }
+}
+
+
+// Extension function to convert RecentEntry to DailyEntry for unified display
+fun RecentEntry.toDailyEntry(): DailyEntry {
+    return DailyEntry(
+        id = this.id,
+        date = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).parse(this.date) ?: Date(),
+        driverName = this.driverName,
+        vehicle = "", // RecentEntry doesn't have vehicle info, we'll need to enhance the data model
+        uberEarnings = 0.0, // These would need to be added to RecentEntry if we want to show breakdown
+        yangoEarnings = 0.0,
+        privateJobsEarnings = this.totalEarnings, // For now, put all earnings in private
+        notes = "",
+        createdAt = Date(),
+        updatedAt = Date(),
+        isSynced = true
+    )
 }

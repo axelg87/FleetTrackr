@@ -36,10 +36,13 @@ fun EntryListScreen(
     val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     
+    // State for delete confirmation dialog
+    var entryToDelete by remember { mutableStateOf<DailyEntry?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
     val onExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
-    val onItemClick: (String) -> Unit = rememberStableLambda1({ entryId: String -> onEntryClick(entryId) })
     
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -103,9 +106,14 @@ fun EntryListScreen(
                     items = uiState.entries,
                     key = { it.id }
                 ) { entry ->
-                    EntryCard(
+                    DailyEntryTile(
                         entry = entry,
-                        onClick = { onItemClick(entry.id) }
+                        onClick = { onEntryClick(entry.id) },
+                        onDelete = {
+                            entryToDelete = entry
+                            showDeleteDialog = true
+                        },
+                        showDeleteButton = PermissionManager.canDelete(userRole)
                     )
                 }
             }
@@ -122,74 +130,44 @@ fun EntryListScreen(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         )
-    }
-}
-
-@Composable
-fun EntryCard(
-    entry: DailyEntry,
-    onClick: () -> Unit
-) {
-    val dateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    
-    ListItemCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = entry.driverName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = entry.vehicle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = dateFormatter.format(entry.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "$${String.format("%.2f", entry.totalEarnings)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                if (!entry.isSynced) {
-                    Text(
-                        text = "⏳ Syncing",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
+        
+        // Delete confirmation dialog
+        if (showDeleteDialog && entryToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showDeleteDialog = false
+                    entryToDelete = null
+                },
+                title = { Text("Delete Entry") },
+                text = { 
+                    Text("Are you sure you want to delete the entry for ${entryToDelete!!.driverName} on ${SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(entryToDelete!!.date)}? This action cannot be undone.") 
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            entryToDelete?.let { entry ->
+                                viewModel.deleteEntry(entry.id) {
+                                    // Entry deleted successfully
+                                }
+                            }
+                            showDeleteDialog = false
+                            entryToDelete = null
+                        }
+                    ) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { 
+                            showDeleteDialog = false
+                            entryToDelete = null
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
                 }
-            }
-        }
-        
-        if (entry.notes.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = entry.notes,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        EarningsChips(
-            earnings = listOf(
-                EarningItem("Uber", entry.uberEarnings),
-                EarningItem("Yango", entry.yangoEarnings),
-                EarningItem("Private", entry.privateJobsEarnings)
-            )
-        )
     }
 }

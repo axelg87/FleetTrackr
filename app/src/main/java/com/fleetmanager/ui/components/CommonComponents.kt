@@ -500,3 +500,97 @@ fun rememberProfileClickHandler(onNavigateToProfile: () -> Unit): () -> Unit {
         }
     }
 }
+
+// Unified Daily Entry Tile component for consistent UI across Dashboard and History
+@Composable
+fun DailyEntryTile(
+    entry: com.fleetmanager.domain.model.DailyEntry,
+    onClick: () -> Unit,
+    onDelete: (() -> Unit)? = null,
+    showDeleteButton: Boolean = false
+) {
+    val dateFormatter = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
+    
+    ListItemCard(onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.driverName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = entry.vehicle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = dateFormatter.format(entry.date),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "$${String.format("%.2f", entry.totalEarnings)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (!entry.isSynced) {
+                            Text(
+                                text = "⏳ Syncing",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                    
+                    // Delete button for admin users
+                    if (showDeleteButton && onDelete != null) {
+                        IconButton(
+                            onClick = { onDelete() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Delete,
+                                contentDescription = "Delete entry",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (entry.notes.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = entry.notes,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        EarningsChips(
+            earnings = listOf(
+                com.fleetmanager.ui.components.EarningItem("Uber", entry.uberEarnings),
+                com.fleetmanager.ui.components.EarningItem("Yango", entry.yangoEarnings),
+                com.fleetmanager.ui.components.EarningItem("Private", entry.privateJobsEarnings)
+            )
+        )
+    }
+}

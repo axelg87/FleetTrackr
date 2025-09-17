@@ -20,7 +20,9 @@ data class EntryListUiState(
 @HiltViewModel
 class EntryListViewModel @Inject constructor(
     private val getAllEntriesRealtimeUseCase: GetAllEntriesRealtimeUseCase,
-    private val firestoreService: FirestoreService
+    private val firestoreService: FirestoreService,
+    private val authRepository: com.fleetmanager.domain.repository.AuthRepository,
+    private val deleteDailyEntryUseCase: com.fleetmanager.domain.usecase.DeleteDailyEntryUseCase
 ) : BaseViewModel<EntryListUiState>() {
     
     companion object {
@@ -47,7 +49,22 @@ class EntryListViewModel @Inject constructor(
         )
     
     init {
+        observeAuthStateChanges()
         observeEntriesWithRole()
+    }
+    
+    private fun observeAuthStateChanges() {
+        executeAsync {
+            authRepository.isSignedIn.collect { isSignedIn ->
+                if (!isSignedIn) {
+                    // User signed out, reset the ViewModel
+                    resetToInitialState()
+                } else {
+                    // User signed in, reload data
+                    observeEntriesWithRole()
+                }
+            }
+        }
     }
     
     private fun observeEntriesWithRole() {
@@ -82,6 +99,18 @@ class EntryListViewModel @Inject constructor(
                         }
                     }
             }
+        }
+    }
+    
+    fun deleteEntry(entryId: String, onSuccess: (() -> Unit)? = null) {
+        executeAsync(
+            onError = { error ->
+                Log.e(TAG, "Error deleting entry: $error")
+                updateState { it.copy(errorMessage = "Failed to delete entry: $error") }
+            }
+        ) {
+            deleteDailyEntryUseCase(entryId)
+            onSuccess?.invoke()
         }
     }
 }

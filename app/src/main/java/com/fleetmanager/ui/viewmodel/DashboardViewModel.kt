@@ -45,7 +45,8 @@ data class DashboardUiState(
 class DashboardViewModel @Inject constructor(
     private val getDashboardDataRealtimeUseCase: GetDashboardDataRealtimeUseCase,
     private val syncManager: SyncManager,
-    private val userFirestoreService: UserFirestoreService
+    private val userFirestoreService: UserFirestoreService,
+    private val authRepository: com.fleetmanager.domain.repository.AuthRepository
 ) : BaseViewModel<DashboardUiState>() {
 
     override fun getInitialState() = DashboardUiState()
@@ -63,8 +64,24 @@ class DashboardViewModel @Inject constructor(
         )
 
     init {
+        observeAuthStateChanges()
         loadDashboardData()
         loadUserProfile()
+    }
+    
+    private fun observeAuthStateChanges() {
+        executeAsync {
+            authRepository.isSignedIn.collect { isSignedIn ->
+                if (!isSignedIn) {
+                    // User signed out, reset the ViewModel
+                    resetToInitialState()
+                } else {
+                    // User signed in, reload data
+                    loadDashboardData()
+                    loadUserProfile()
+                }
+            }
+        }
     }
     
     fun setNavigationCallback(callback: (FilterContext) -> Unit) {

@@ -52,9 +52,9 @@ class AuthService @Inject constructor(
     
     fun getGoogleSignInClient(): GoogleSignInClient = googleClientInternal
     
-    fun signOut() {
+    suspend fun signOut() {
         firebaseAuth.signOut()
-        googleClientInternal.signOut()
+        googleClientInternal.signOut().await()
     }
     
     fun getCurrentUserId(): String? = firebaseAuth.currentUser?.uid
