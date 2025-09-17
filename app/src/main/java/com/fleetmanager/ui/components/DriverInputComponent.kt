@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -44,7 +45,7 @@ fun DriverInputComponent(
             label = { Text(label) },
             readOnly = true,
             enabled = false,
-            modifier = modifier,
+            modifier = modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
                 disabledBorderColor = MaterialTheme.colorScheme.outline,
@@ -72,7 +73,9 @@ fun DriverInputComponent(
                 readOnly = false,
                 label = { Text(label) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded) },
-                modifier = Modifier.menuAnchor()
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
             )
             
             ExposedDropdownMenu(

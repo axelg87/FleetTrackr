@@ -292,7 +292,7 @@ class ReportViewModel @Inject constructor(
                         else -> null
                     }
                 },
-                isFilterPanelExpanded = true // Expand to show applied filters
+                isFilterPanelExpanded = false // Keep collapsed by default
             )
         }
     }

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Schedule
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
@@ -52,6 +53,15 @@ class DashboardViewModel @Inject constructor(
     // Navigation callback for tile clicks
     private var onNavigateToReportsWithFilter: ((FilterContext) -> Unit)? = null
 
+    // Expose user role for role-based UI decisions
+    val userRole: StateFlow<UserRole> = uiState
+        .map { it.userProfile?.role ?: UserRole.DRIVER }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UserRole.DRIVER
+        )
+
     init {
         loadDashboardData()
         loadUserProfile()
@@ -93,83 +103,88 @@ class DashboardViewModel @Inject constructor(
             }
         ) {
             getDashboardDataRealtimeUseCase().collect { dashboardData ->
-                val quickStats = listOf(
-                    StatItem(
+                val currentUserRole = uiState.value.userProfile?.role ?: UserRole.DRIVER
+                val isAdmin = PermissionManager.canSeeAdminControls(currentUserRole)
+                
+                val quickStats = buildList {
+                    add(StatItem(
                         icon = Icons.Default.CalendarToday,
                         value = "$${String.format("%.0f", dashboardData.thisMonthEarnings)}",
                         label = "This Month",
                         onClick = {
-                            onNavigateToReportsWithFilter?.invoke(
-                                FilterContextFactory.createThisMonthFilter()
-                            )
+                            val callback = onNavigateToReportsWithFilter
+                            callback?.invoke(FilterContextFactory.createThisMonthFilter())
                         }
-                    ),
-                    StatItem(
+                    ))
+                    add(StatItem(
                         icon = Icons.Default.TrendingUp,
                         value = "$${String.format("%.0f", dashboardData.thisWeekEarnings)}",
                         label = "This Week",
                         onClick = {
-                            onNavigateToReportsWithFilter?.invoke(
-                                FilterContextFactory.createThisWeekFilter()
-                            )
+                            val callback = onNavigateToReportsWithFilter
+                            callback?.invoke(FilterContextFactory.createThisWeekFilter())
                         }
-                    ),
-                    StatItem(
+                    ))
+                    add(StatItem(
                         icon = Icons.Default.Schedule,
                         value = "$${String.format("%.0f", dashboardData.last24hEarnings)}",
                         label = "Last 24h",
                         onClick = {
-                            onNavigateToReportsWithFilter?.invoke(
-                                FilterContextFactory.createLast24HFilter()
-                            )
+                            val callback = onNavigateToReportsWithFilter
+                            callback?.invoke(FilterContextFactory.createLast24HFilter())
                         }
-                    ),
-                    StatItem(
-                        icon = Icons.Default.People,
-                        value = dashboardData.activeDriversCount.toString(),
-                        label = "Active Drivers"
-                        // No click action for active drivers count
-                    )
-                )
+                    ))
+                    // Only show Active Drivers tile for admin users
+                    if (isAdmin) {
+                        add(StatItem(
+                            icon = Icons.Default.People,
+                            value = dashboardData.activeDriversCount.toString(),
+                            label = "Active Drivers"
+                            // No click action for active drivers count
+                        ))
+                    }
+                }
                 
-                val earningsStats = listOf(
-                    StatItem(
-                        icon = Icons.Default.AttachMoney,
-                        value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
-                        label = "Uber (Month)",
-                        onClick = {
-                            onNavigateToReportsWithFilter?.invoke(
-                                FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH)
-                            )
-                        }
-                    ),
-                    StatItem(
-                        icon = Icons.Default.AttachMoney,
-                        value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
-                        label = "Yango (Month)",
-                        onClick = {
-                            onNavigateToReportsWithFilter?.invoke(
-                                FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH)
-                            )
-                        }
-                    ),
-                    StatItem(
-                        icon = Icons.Default.AttachMoney,
-                        value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
-                        label = "Private (Month)",
-                        onClick = {
-                            onNavigateToReportsWithFilter?.invoke(
-                                FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH)
-                            )
-                        }
-                    ),
-                    StatItem(
-                        icon = Icons.Default.Assignment,
-                        value = "${dashboardData.recentEntries.size}",
-                        label = "Recent Entries"
-                        // No click action for recent entries count
+                // Only show earnings stats for admin users
+                val earningsStats = if (isAdmin) {
+                    listOf(
+                        StatItem(
+                            icon = Icons.Default.AttachMoney,
+                            value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
+                            label = "Uber (Month)",
+                            onClick = {
+                                val callback = onNavigateToReportsWithFilter
+                                callback?.invoke(FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH))
+                            }
+                        ),
+                        StatItem(
+                            icon = Icons.Default.AttachMoney,
+                            value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
+                            label = "Yango (Month)",
+                            onClick = {
+                                val callback = onNavigateToReportsWithFilter
+                                callback?.invoke(FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH))
+                            }
+                        ),
+                        StatItem(
+                            icon = Icons.Default.AttachMoney,
+                            value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
+                            label = "Private (Month)",
+                            onClick = {
+                                val callback = onNavigateToReportsWithFilter
+                                callback?.invoke(FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH))
+                            }
+                        ),
+                        StatItem(
+                            icon = Icons.Default.Assignment,
+                            value = "${dashboardData.recentEntries.size}",
+                            label = "Recent Entries"
+                            // No click action for recent entries count
+                        )
                     )
-                )
+                } else {
+                    emptyList() // Hide all earnings stats for non-admin users
+                }
 
                 val recentEntries = dashboardData.recentEntries.map { entry ->
                     RecentEntry(
