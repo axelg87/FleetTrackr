@@ -50,6 +50,14 @@ This implementation provides horizontal swipe navigation between the main screen
 - **I**: Interface segregation (focused interfaces)
 - **D**: Dependency inversion (depends on abstractions)
 
+## Experimental API Usage
+
+This implementation uses experimental Compose Foundation APIs:
+- `HorizontalPager` from `androidx.compose.foundation.pager`
+- `PagerState` and `rememberPagerState`
+
+All files properly opt-in using `@OptIn(ExperimentalFoundationApi::class)` at both file and function levels as required.
+
 ## Implementation Details
 
 ### Navigation Flow

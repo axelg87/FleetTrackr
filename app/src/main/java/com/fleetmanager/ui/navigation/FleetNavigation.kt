@@ -1,5 +1,8 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.fleetmanager.ui.navigation
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -107,6 +110,7 @@ fun AppNavigation(
 /**
  * Main Navigation for Signed-in Users
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainNavigation(
     navController: NavHostController

@@ -1,5 +1,8 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.fleetmanager.ui.navigation
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
@@ -17,6 +20,7 @@ import com.fleetmanager.ui.screens.settings.SettingsScreen
  * Wraps the main tab screens in a HorizontalPager for swipe navigation.
  * Clean separation of concerns - this component only handles the pager layout.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SwipeableMainContent(
     swipeNavigationState: SwipeNavigationState,

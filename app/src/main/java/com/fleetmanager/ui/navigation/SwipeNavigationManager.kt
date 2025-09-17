@@ -1,5 +1,8 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.fleetmanager.ui.navigation
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
@@ -111,6 +114,7 @@ class SwipeNavigationState(
 /**
  * Remember swipe navigation state
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun rememberSwipeNavigationState(
     swipeManager: SwipeNavigationManager,
