@@ -18,14 +18,12 @@ import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.DashboardViewModel
-import com.fleetmanager.ui.model.FilterContext
 
 @Composable
 fun DashboardScreen(
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: (() -> Unit)? = null,
-    onNavigateToReportsWithFilter: ((FilterContext) -> Unit)? = null,
     onEntryClick: ((String) -> Unit)? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -58,11 +56,7 @@ fun DashboardScreen(
         item {
             StatsGrid(
                 stats = uiState.quickStats,
-                onStatClick = { statItem ->
-                    statItem.filterContext?.let { filterContext ->
-                        onNavigateToReportsWithFilter?.invoke(filterContext)
-                    }
-                }
+                onStatClick = { /* Tile clicks disabled - clean dashboard */ }
             )
         }
 
@@ -75,11 +69,7 @@ fun DashboardScreen(
             item {
                 StatsGrid(
                     stats = uiState.earningsStats,
-                    onStatClick = { statItem ->
-                        statItem.filterContext?.let { filterContext ->
-                            onNavigateToReportsWithFilter?.invoke(filterContext)
-                        }
-                    }
+                    onStatClick = { /* Tile clicks disabled - clean dashboard */ }
                 )
             }
         }

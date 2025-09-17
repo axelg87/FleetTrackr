@@ -26,7 +26,6 @@ import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.components.charts.SimpleBarChart
 import com.fleetmanager.ui.components.charts.SimplePieChart
 import com.fleetmanager.ui.components.CalendarFilterComponent
-import com.fleetmanager.ui.model.FilterContext
 import com.fleetmanager.ui.model.ChartDataGenerator
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.utils.ReportExporter
@@ -40,20 +39,12 @@ import java.util.*
 @Composable
 fun ReportScreen(
     onNavigateToProfile: (() -> Unit)? = null,
-    filterContext: FilterContext? = null,
     viewModel: ReportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val userProfile by viewModel.userProfile.collectAsState()
     val context = LocalContext.current
     val reportExporter = remember { ReportExporter() }
-    
-    // Apply filter context if provided
-    LaunchedEffect(filterContext) {
-        filterContext?.let { context ->
-            viewModel.applyFilterContext(context)
-        }
-    }
     
     // Track current tab for charts/totals
     var selectedTab by remember { mutableStateOf(0) }

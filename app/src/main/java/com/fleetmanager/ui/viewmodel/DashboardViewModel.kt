@@ -14,9 +14,6 @@ import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
-import com.fleetmanager.ui.model.FilterContext
-import com.fleetmanager.ui.model.FilterContextFactory
-import com.fleetmanager.ui.model.TimeRange
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -117,20 +114,17 @@ class DashboardViewModel @Inject constructor(
                     add(StatItem(
                         icon = Icons.Default.CalendarToday,
                         value = "$${String.format("%.0f", dashboardData.thisMonthEarnings)}",
-                        label = "This Month",
-                        filterContext = FilterContextFactory.createThisMonthFilter()
+                        label = "This Month"
                     ))
                     add(StatItem(
                         icon = Icons.Default.TrendingUp,
                         value = "$${String.format("%.0f", dashboardData.thisWeekEarnings)}",
-                        label = "This Week",
-                        filterContext = FilterContextFactory.createThisWeekFilter()
+                        label = "This Week"
                     ))
                     add(StatItem(
                         icon = Icons.Default.Schedule,
                         value = "$${String.format("%.0f", dashboardData.last24hEarnings)}",
-                        label = "Last 24h",
-                        filterContext = FilterContextFactory.createLast24HFilter()
+                        label = "Last 24h"
                     ))
                     // Only show Active Drivers tile for admin users
                     if (isAdmin) {
@@ -149,20 +143,17 @@ class DashboardViewModel @Inject constructor(
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
-                            label = "Uber (Month)",
-                            filterContext = FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH)
+                            label = "Uber (Month)"
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
-                            label = "Yango (Month)",
-                            filterContext = FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH)
+                            label = "Yango (Month)"
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
-                            label = "Private (Month)",
-                            filterContext = FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH)
+                            label = "Private (Month)"
                         ),
                         StatItem(
                             icon = Icons.Default.Assignment,
