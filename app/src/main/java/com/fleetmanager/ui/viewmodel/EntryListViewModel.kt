@@ -90,9 +90,11 @@ class EntryListViewModel @Inject constructor(
                     }
                     .collect { entries ->
                         Log.d(TAG, "Received ${entries.size} entries for role $role")
+                        // Sort entries by date descending (most recent first)
+                        val sortedEntries = entries.sortedByDescending { it.date }
                         updateState {
                             it.copy(
-                                entries = entries,
+                                entries = sortedEntries,
                                 isLoading = false,
                                 errorMessage = null
                             )

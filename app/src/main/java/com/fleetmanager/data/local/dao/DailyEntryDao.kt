@@ -20,6 +20,9 @@ interface DailyEntryDao {
     @Query("SELECT * FROM daily_entries WHERE id = :id")
     suspend fun getEntryById(id: String): DailyEntryDto?
     
+    @Query("SELECT * FROM daily_entries WHERE id = :id")
+    fun getEntryByIdFlow(id: String): Flow<DailyEntryDto?>
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEntry(entry: DailyEntryDto)
     

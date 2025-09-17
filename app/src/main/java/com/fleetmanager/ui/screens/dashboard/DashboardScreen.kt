@@ -119,7 +119,7 @@ fun DashboardScreen(
         } else {
             items(uiState.recentEntries) { entry ->
                 DailyEntryTile(
-                    entry = entry.toDailyEntry(),
+                    entry = entry,
                     onClick = { onEntryClick?.invoke(entry.id) }
                 )
             }
@@ -149,20 +149,3 @@ fun DashboardScreen(
     }
 }
 
-
-// Extension function to convert RecentEntry to DailyEntry for unified display
-fun RecentEntry.toDailyEntry(): DailyEntry {
-    return DailyEntry(
-        id = this.id,
-        date = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).parse(this.date) ?: Date(),
-        driverName = this.driverName,
-        vehicle = "", // RecentEntry doesn't have vehicle info, we'll need to enhance the data model
-        uberEarnings = 0.0, // These would need to be added to RecentEntry if we want to show breakdown
-        yangoEarnings = 0.0,
-        privateJobsEarnings = this.totalEarnings, // For now, put all earnings in private
-        notes = "",
-        createdAt = Date(),
-        updatedAt = Date(),
-        isSynced = true
-    )
-}
