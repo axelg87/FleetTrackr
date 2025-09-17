@@ -1,5 +1,8 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.fleetmanager.ui.navigation
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -107,6 +110,7 @@ fun AppNavigation(
 /**
  * Main Navigation for Signed-in Users
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainNavigation(
     navController: NavHostController
@@ -118,6 +122,13 @@ private fun MainNavigation(
     val userNavigationViewModel: UserNavigationViewModel = hiltViewModel()
     val userRole by userNavigationViewModel.userRole.collectAsState()
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
+    
+    // Swipe navigation setup with proper state management
+    val swipeManager = rememberSwipeNavigationManager(navigationState, bottomNavItems)
+    val swipeNavigationState = rememberSwipeNavigationState(
+        swipeManager = swipeManager,
+        currentRoute = currentRoute
+    )
     
     Scaffold(
         bottomBar = {
@@ -135,41 +146,19 @@ private fun MainNavigation(
             startDestination = Screen.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Main tab screens
-            composable(Screen.Dashboard.route) {
-                DashboardScreen(
-                    onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
-                    onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
-                    onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) }
-                )
-            }
-            
-            composable(Screen.History.route) {
-                EntryListScreen(
-                    onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
-                    onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
-                    onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) },
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
-            }
-            
-            composable(Screen.Analytics.route) {
-                AnalyticsScreen(
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
-            }
-            
-            composable(Screen.Reports.route) {
-                ReportScreen(
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
-            }
-            
-            composable(Screen.Settings.route) {
-                SettingsScreen(
-                    onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) }
-                )
+            // Main tab screens with swipe navigation
+            bottomNavItems.forEach { navItem ->
+                composable(navItem.screen.route) {
+                    SwipeableMainContent(
+                        swipeNavigationState = swipeNavigationState,
+                        currentRoute = currentRoute,
+                        bottomNavItems = bottomNavItems,
+                        onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
+                        onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
+                        onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
+                        onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) }
+                    )
+                }
             }
             
             // Secondary screens
