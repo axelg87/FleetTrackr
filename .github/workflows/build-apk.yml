@@ -23,23 +23,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-          cache: gradle
-
-      - name: Cache Android SDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.android
-            ${{ env.ANDROID_SDK_ROOT }}
-          key: android-sdk-${{ runner.os }}-v1
-          restore-keys: |
-            android-sdk-${{ runner.os }}-
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Check Android SDK Cache Size (optional)
-        run: du -sh ~/.android $ANDROID_SDK_ROOT || true
 
       - name: Decode keystore
         run: |
@@ -59,7 +45,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build APK with Gradle
-        run: ./gradlew :app:assembleDebug -PVERSION_CODE=$VERSION_CODE -PVERSION_NAME=$VERSION_NAME --build-cache --parallel --daemon --no-configuration-cache
+        run: ./gradlew :app:assembleDebug -PVERSION_CODE=$VERSION_CODE -PVERSION_NAME=$VERSION_NAME --parallel --daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
