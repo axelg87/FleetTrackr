@@ -187,6 +187,36 @@ class FirestoreService @Inject constructor(
             }
     }
     
+    suspend fun getDailyEntryById(entryId: String): DailyEntry? {
+        return try {
+            val userId = requireAuth()
+            val userRole = getCurrentUserRole()
+            
+            val document = getCollection("entries")
+                .document(entryId)
+                .get()
+                .await()
+            
+            val entry = document.toObject<DailyEntry>()
+            
+            // Check if user has permission to view this entry
+            if (entry != null) {
+                if (PermissionManager.canViewAll(userRole) || entry.userId == userId) {
+                    entry
+                } else {
+                    Log.w(TAG, "User $userId does not have permission to view entry $entryId")
+                    null
+                }
+            } else {
+                Log.w(TAG, "Entry not found: $entryId")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get daily entry by ID: ${e.message}", e)
+            null
+        }
+    }
+    
     // Role-based flow for entries
     fun getDailyEntriesFlowForRole(userRole: UserRole): Flow<List<DailyEntry>> {
         val userId = authService.getCurrentUserId() ?: ""

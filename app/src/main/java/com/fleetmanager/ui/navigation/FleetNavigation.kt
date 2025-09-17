@@ -185,15 +185,16 @@ fun MainScreenWithPager(
     // Memoize coroutine scope
     val coroutineScope = rememberCoroutineScope()
     
-    // Track if we're currently syncing to prevent circular updates
-    var isSyncing by remember { mutableStateOf(false) }
+    // Track navigation state to prevent circular updates
+    var isNavigatingFromPager by remember { mutableStateOf(false) }
+    var isNavigatingFromRoute by remember { mutableStateOf(false) }
     
     // Sync pager with current route when route changes (only from external navigation)
     LaunchedEffect(currentRoute) {
-        if (!isSyncing) {
+        if (!isNavigatingFromPager) {
             val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == currentRoute }
             if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
-                isSyncing = true
+                isNavigatingFromRoute = true
                 pagerState.animateScrollToPage(
                     page = targetIndex,
                     animationSpec = spring(
@@ -201,19 +202,19 @@ fun MainScreenWithPager(
                         stiffness = Spring.StiffnessMedium
                     )
                 )
-                isSyncing = false
+                isNavigatingFromRoute = false
             }
         }
     }
     
-    // Sync route with pager when user swipes (optimized to reduce navigation calls)
+    // Sync route with pager when user swipes
     LaunchedEffect(pagerState.settledPage) {
-        if (!isSyncing && pagerState.settledPage != currentPageIndex) {
+        if (!isNavigatingFromRoute && pagerState.settledPage != currentPageIndex) {
             val targetRoute = bottomNavItems.getOrNull(pagerState.settledPage)?.screen?.route
             if (targetRoute != null && targetRoute != currentRoute) {
-                isSyncing = true
+                isNavigatingFromPager = true
                 navigateToBottomNavDestination(navController, targetRoute)
-                isSyncing = false
+                isNavigatingFromPager = false
             }
         }
     }
@@ -224,11 +225,11 @@ fun MainScreenWithPager(
                 currentRoute = currentRoute,
                 bottomNavItems = bottomNavItems,
                 onNavigate = { route ->
-                    if (!isSyncing) {
+                    if (!isNavigatingFromPager && !isNavigatingFromRoute) {
                         val targetIndex = bottomNavItems.indexOfFirst { it.screen.route == route }
                         if (targetIndex >= 0) {
                             coroutineScope.launch {
-                                isSyncing = true
+                                isNavigatingFromRoute = true
                                 pagerState.animateScrollToPage(
                                     page = targetIndex,
                                     animationSpec = spring(
@@ -236,7 +237,7 @@ fun MainScreenWithPager(
                                         stiffness = Spring.StiffnessHigh
                                     )
                                 )
-                                isSyncing = false
+                                isNavigatingFromRoute = false
                             }
                         }
                         navigateToBottomNavDestination(navController, route)

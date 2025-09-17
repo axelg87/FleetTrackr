@@ -44,8 +44,9 @@ class DashboardViewModel @Inject constructor(
 
     override fun getInitialState() = DashboardUiState()
 
-    // Navigation callback for tile clicks
-    private var onNavigateToReportsWithFilter: ((FilterContext) -> Unit)? = null
+    // Navigation callback for tile clicks - use StateFlow to ensure it's always available
+    private val _navigationCallback = MutableStateFlow<((FilterContext) -> Unit)?>(null)
+    private val navigationCallback: StateFlow<((FilterContext) -> Unit)?> = _navigationCallback.asStateFlow()
 
     // Expose user role for role-based UI decisions
     val userRole: StateFlow<UserRole> = uiState
@@ -78,7 +79,7 @@ class DashboardViewModel @Inject constructor(
     }
     
     fun setNavigationCallback(callback: (FilterContext) -> Unit) {
-        onNavigateToReportsWithFilter = callback
+        _navigationCallback.value = callback
     }
 
     fun syncNow() {
@@ -122,8 +123,7 @@ class DashboardViewModel @Inject constructor(
                         value = "$${String.format("%.0f", dashboardData.thisMonthEarnings)}",
                         label = "This Month",
                         onClick = {
-                            val callback = onNavigateToReportsWithFilter
-                            callback?.invoke(FilterContextFactory.createThisMonthFilter())
+                            navigationCallback.value?.invoke(FilterContextFactory.createThisMonthFilter())
                         }
                     ))
                     add(StatItem(
@@ -131,8 +131,7 @@ class DashboardViewModel @Inject constructor(
                         value = "$${String.format("%.0f", dashboardData.thisWeekEarnings)}",
                         label = "This Week",
                         onClick = {
-                            val callback = onNavigateToReportsWithFilter
-                            callback?.invoke(FilterContextFactory.createThisWeekFilter())
+                            navigationCallback.value?.invoke(FilterContextFactory.createThisWeekFilter())
                         }
                     ))
                     add(StatItem(
@@ -140,8 +139,7 @@ class DashboardViewModel @Inject constructor(
                         value = "$${String.format("%.0f", dashboardData.last24hEarnings)}",
                         label = "Last 24h",
                         onClick = {
-                            val callback = onNavigateToReportsWithFilter
-                            callback?.invoke(FilterContextFactory.createLast24HFilter())
+                            navigationCallback.value?.invoke(FilterContextFactory.createLast24HFilter())
                         }
                     ))
                     // Only show Active Drivers tile for admin users
@@ -163,8 +161,7 @@ class DashboardViewModel @Inject constructor(
                             value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
                             label = "Uber (Month)",
                             onClick = {
-                                val callback = onNavigateToReportsWithFilter
-                                callback?.invoke(FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH))
+                                navigationCallback.value?.invoke(FilterContextFactory.createUberEarningsFilter(TimeRange.THIS_MONTH))
                             }
                         ),
                         StatItem(
@@ -172,8 +169,7 @@ class DashboardViewModel @Inject constructor(
                             value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
                             label = "Yango (Month)",
                             onClick = {
-                                val callback = onNavigateToReportsWithFilter
-                                callback?.invoke(FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH))
+                                navigationCallback.value?.invoke(FilterContextFactory.createYangoEarningsFilter(TimeRange.THIS_MONTH))
                             }
                         ),
                         StatItem(
@@ -181,8 +177,7 @@ class DashboardViewModel @Inject constructor(
                             value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
                             label = "Private (Month)",
                             onClick = {
-                                val callback = onNavigateToReportsWithFilter
-                                callback?.invoke(FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH))
+                                navigationCallback.value?.invoke(FilterContextFactory.createPrivateEarningsFilter(TimeRange.THIS_MONTH))
                             }
                         ),
                         StatItem(
