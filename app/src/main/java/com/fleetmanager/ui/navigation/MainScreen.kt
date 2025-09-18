@@ -11,9 +11,12 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import com.fleetmanager.ui.screens.analytics.AnalyticsScreen
 import com.fleetmanager.ui.screens.dashboard.DashboardScreen
@@ -42,8 +45,8 @@ fun MainScreen(
         pageCount = { bottomNavItems.size }
     )
 
-    // Gate flags to prevent feedback loops
-    var isAnimatingToTarget = remember { false }
+    // Gate flag to prevent feedback loops
+    var isAnimatingToTarget by remember { mutableStateOf(false) }
 
     // Tab click -> Pager (via NavigationState)
     LaunchedEffect(currentIndex) {

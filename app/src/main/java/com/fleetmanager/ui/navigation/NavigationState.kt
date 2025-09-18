@@ -11,12 +11,12 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 @Stable
 object NavigationState {
-	private val _currentPageIndex = MutableStateFlow(0)
-	val currentPageIndex: StateFlow<Int> = _currentPageIndex.asStateFlow()
+    private val _currentPageIndex = MutableStateFlow(0)
+    val currentPageIndex: StateFlow<Int> = _currentPageIndex.asStateFlow()
 
-	fun setCurrentPage(index: Int) {
-		if (index != _currentPageIndex.value) {
-			_currentPageIndex.value = index
-		}
-	}
+    fun setCurrentPage(index: Int) {
+        if (index != _currentPageIndex.value) {
+            _currentPageIndex.value = index
+        }
+    }
 }
