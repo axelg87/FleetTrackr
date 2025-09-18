@@ -77,6 +77,7 @@ dependencies {
     
     // Compose BOM
     implementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -114,7 +115,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")
