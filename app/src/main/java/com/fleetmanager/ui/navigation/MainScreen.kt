@@ -16,7 +16,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import com.fleetmanager.ui.screens.analytics.AnalyticsScreen
 import com.fleetmanager.ui.screens.dashboard.DashboardScreen
@@ -61,13 +60,10 @@ fun MainScreen(
     }
 
     // Swipe -> Tab highlight (update NavigationState)
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }
-            .distinctUntilChanged()
-            .filter { !isAnimatingToTarget }
-            .collectLatest { page ->
-                NavigationState.setCurrentPage(page)
-            }
+    LaunchedEffect(pagerState.currentPage, isAnimatingToTarget) {
+        if (!isAnimatingToTarget) {
+            NavigationState.setCurrentPage(pagerState.currentPage)
+        }
     }
 
     Scaffold(
