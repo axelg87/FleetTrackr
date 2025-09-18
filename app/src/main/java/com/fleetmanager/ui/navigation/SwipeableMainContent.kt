@@ -5,13 +5,11 @@ package com.fleetmanager.ui.navigation
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerScope
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntSize
 import com.fleetmanager.ui.screens.analytics.AnalyticsScreen
 import com.fleetmanager.ui.screens.dashboard.DashboardScreen
 import com.fleetmanager.ui.screens.entry.EntryListScreen
@@ -19,48 +17,112 @@ import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 
 /**
- * Professional Swipeable Main Content
+ * Swipeable Main Content with Centralized Navigation Management
  * 
- * Ensures single-screen rendering, proper constraints, and stable layout.
- * Uses BoxWithConstraints and defensive sizing to prevent overlapping content.
+ * Uses NavigationStateManager as single source of truth for perfect bidirectional sync
+ * between swipe gestures and bottom navigation tabs.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SwipeableMainContent(
-    swipeNavigationState: SwipeNavigationState,
-    currentRoute: String?,
-    bottomNavItems: List<BottomNavItem>,
+    navigationStateManager: NavigationStateManager,
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onEntryClick: (String) -> Unit
 ) {
-    // Sync pager state with navigation changes
-    swipeNavigationState.SyncWithNavigation(currentRoute)
+    val currentPageIndex by navigationStateManager.currentPageIndex.collectAsState()
     
-    // Only show pager for main tab screens
-    if (swipeNavigationState.swipeManager.shouldEnableSwipe(currentRoute)) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val containerSize = IntSize(
-                width = with(LocalDensity.current) { maxWidth.roundToPx() },
-                height = with(LocalDensity.current) { maxHeight.roundToPx() }
-            )
-            
-            HorizontalPager(
-                state = swipeNavigationState.pagerState,
-                modifier = Modifier.fillMaxSize(),
-                beyondBoundsPageCount = 0, // Critical: Only render current page
-                key = { pageIndex -> 
-                    // Stable key for proper state preservation
-                    bottomNavItems.getOrNull(pageIndex)?.screen?.route ?: "page_$pageIndex"
-                }
-            ) { pageIndex ->
-                PagerPage(
-                    pageIndex = pageIndex,
-                    bottomNavItems = bottomNavItems,
-                    containerSize = containerSize,
+    // Initialize PagerState with current page index
+    val pagerState = rememberPagerState(
+        initialPage = currentPageIndex,
+        pageCount = { navigationStateManager.pageCount }
+    )
+    
+    // Bidirectional synchronization
+    SyncPagerWithNavigationState(
+        pagerState = pagerState,
+        navigationStateManager = navigationStateManager,
+        currentPageIndex = currentPageIndex
+    )
+    
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+        beyondBoundsPageCount = 0 // Only render current page for performance
+    ) { pageIndex ->
+        SwipeablePage(
+            pageIndex = pageIndex,
+            onAddEntryClick = onAddEntryClick,
+            onAddExpenseClick = onAddExpenseClick,
+            onNavigateToProfile = onNavigateToProfile,
+            onEntryClick = onEntryClick
+        )
+    }
+}
+
+/**
+ * Handles bidirectional synchronization between PagerState and NavigationStateManager
+ */
+@Composable
+private fun SyncPagerWithNavigationState(
+    pagerState: PagerState,
+    navigationStateManager: NavigationStateManager,
+    currentPageIndex: Int
+) {
+    // Navigation State -> Pager (when user taps bottom nav)
+    LaunchedEffect(currentPageIndex) {
+        if (pagerState.currentPage != currentPageIndex) {
+            pagerState.animateScrollToPage(currentPageIndex)
+        }
+    }
+    
+    // Pager -> Navigation State (when user swipes)
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != currentPageIndex) {
+            navigationStateManager.onSwipeChanged(pagerState.currentPage)
+        }
+    }
+}
+
+/**
+ * Individual swipeable page content
+ */
+@Composable
+private fun SwipeablePage(
+    pageIndex: Int,
+    onAddEntryClick: () -> Unit,
+    onAddExpenseClick: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onEntryClick: (String) -> Unit
+) {
+    // Use stable key for state preservation
+    val pageKey = rememberSaveable { "page_$pageIndex" }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        key(pageKey) {
+            when (pageIndex) {
+                0 -> DashboardScreen(
+                    onAddEntryClick = onAddEntryClick,
+                    onAddExpenseClick = onAddExpenseClick,
+                    onNavigateToProfile = onNavigateToProfile,
+                    onEntryClick = onEntryClick
+                )
+                1 -> EntryListScreen(
+                    onAddEntryClick = onAddEntryClick,
+                    onAddExpenseClick = onAddExpenseClick,
+                    onEntryClick = onEntryClick,
+                    onNavigateToProfile = onNavigateToProfile
+                )
+                2 -> AnalyticsScreen(
+                    onNavigateToProfile = onNavigateToProfile
+                )
+                3 -> ReportScreen(
+                    onNavigateToProfile = onNavigateToProfile
+                )
+                4 -> SettingsScreen(
+                    onNavigateToProfile = onNavigateToProfile
+                )
+                else -> DashboardScreen(
                     onAddEntryClick = onAddEntryClick,
                     onAddExpenseClick = onAddExpenseClick,
                     onNavigateToProfile = onNavigateToProfile,
@@ -68,102 +130,5 @@ fun SwipeableMainContent(
                 )
             }
         }
-    }
-}
-
-/**
- * Individual Pager Page with defensive sizing and state preservation
- */
-@Composable
-private fun PagerScope.PagerPage(
-    pageIndex: Int,
-    bottomNavItems: List<BottomNavItem>,
-    containerSize: IntSize,
-    onAddEntryClick: () -> Unit,
-    onAddExpenseClick: () -> Unit,
-    onNavigateToProfile: () -> Unit,
-    onEntryClick: (String) -> Unit
-) {
-    val screenRoute = bottomNavItems.getOrNull(pageIndex)?.screen?.route
-    
-    // Use rememberSaveable to preserve screen state without keeping screens mounted
-    val screenStateKey = rememberSaveable(screenRoute) { screenRoute ?: "unknown" }
-    
-    // Defensive Box with exact constraints to prevent layout issues
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .onSizeChanged { size ->
-                // Ensure size stability - could add logging here for debugging
-            }
-    ) {
-        when (screenRoute) {
-            Screen.Dashboard.route -> {
-                key(screenStateKey) {
-                    DashboardScreen(
-                        onAddEntryClick = onAddEntryClick,
-                        onAddExpenseClick = onAddExpenseClick,
-                        onNavigateToProfile = onNavigateToProfile,
-                        onEntryClick = onEntryClick
-                    )
-                }
-            }
-            Screen.History.route -> {
-                key(screenStateKey) {
-                    EntryListScreen(
-                        onAddEntryClick = onAddEntryClick,
-                        onAddExpenseClick = onAddExpenseClick,
-                        onEntryClick = onEntryClick,
-                        onNavigateToProfile = onNavigateToProfile
-                    )
-                }
-            }
-            Screen.Analytics.route -> {
-                key(screenStateKey) {
-                    AnalyticsScreen(
-                        onNavigateToProfile = onNavigateToProfile
-                    )
-                }
-            }
-            Screen.Reports.route -> {
-                key(screenStateKey) {
-                    ReportScreen(
-                        onNavigateToProfile = onNavigateToProfile
-                    )
-                }
-            }
-            Screen.Settings.route -> {
-                key(screenStateKey) {
-                    SettingsScreen(
-                        onNavigateToProfile = onNavigateToProfile
-                    )
-                }
-            }
-            else -> {
-                // Fallback to Dashboard for unknown routes
-                key("fallback_dashboard") {
-                    DashboardScreen(
-                        onAddEntryClick = onAddEntryClick,
-                        onAddExpenseClick = onAddExpenseClick,
-                        onNavigateToProfile = onNavigateToProfile,
-                        onEntryClick = onEntryClick
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Check if current route supports swipe navigation
- */
-fun isSwipeableRoute(route: String?): Boolean {
-    return when (route) {
-        Screen.Dashboard.route,
-        Screen.History.route,
-        Screen.Analytics.route,
-        Screen.Reports.route,
-        Screen.Settings.route -> true
-        else -> false
     }
 }

@@ -31,14 +31,14 @@ fun SplashScreen(
         logoScale.animateTo(
             targetValue = 1.2f,
             animationSpec = tween(
-                durationMillis = 800,
+                durationMillis = 400,
                 easing = FastOutSlowInEasing
             )
         )
         logoScale.animateTo(
             targetValue = 1f,
             animationSpec = tween(
-                durationMillis = 400,
+                durationMillis = 200,
                 easing = FastOutSlowInEasing
             )
         )
@@ -47,14 +47,14 @@ fun SplashScreen(
         scale.animateTo(
             targetValue = 1f,
             animationSpec = tween(
-                durationMillis = 600,
-                delayMillis = 400,
+                durationMillis = 300,
+                delayMillis = 200,
                 easing = FastOutSlowInEasing
             )
         )
         
-        // Wait for animations to complete, then navigate
-        delay(750)
+        // Wait for animations to complete, then navigate - reduced to 375ms total
+        delay(375)
         onSplashComplete()
     }
     

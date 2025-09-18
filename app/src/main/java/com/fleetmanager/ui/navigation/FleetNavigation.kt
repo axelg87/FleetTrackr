@@ -123,20 +123,31 @@ private fun MainNavigation(
     val userRole by userNavigationViewModel.userRole.collectAsState()
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
-    // Swipe navigation setup with proper state management
-    val swipeManager = rememberSwipeNavigationManager(navigationState, bottomNavItems)
-    val swipeNavigationState = rememberSwipeNavigationState(
-        swipeManager = swipeManager,
-        currentRoute = currentRoute
-    )
+    // Create NavigationStateManager
+    val navigationStateManager = remember(bottomNavItems) {
+        NavigationStateManager(bottomNavItems)
+    }
+    
+    // Sync NavigationStateManager with current route
+    LaunchedEffect(currentRoute) {
+        navigationStateManager.setCurrentPageByRoute(currentRoute)
+    }
+    
+    // Sync NavController with NavigationStateManager
+    val currentPageIndex by navigationStateManager.currentPageIndex.collectAsState()
+    LaunchedEffect(currentPageIndex) {
+        val targetRoute = bottomNavItems.getOrNull(currentPageIndex)?.screen?.route
+        if (targetRoute != null && targetRoute != currentRoute) {
+            navigationState.navigateTo(targetRoute)
+        }
+    }
     
     Scaffold(
         bottomBar = {
             if (shouldShowBottomNav(currentRoute)) {
                 BottomNavigationBar(
-                    currentRoute = currentRoute,
-                    bottomNavItems = bottomNavItems,
-                    onNavigate = { route -> navigationState.navigateTo(route) }
+                    navigationStateManager = navigationStateManager,
+                    bottomNavItems = bottomNavItems
                 )
             }
         }
@@ -150,9 +161,7 @@ private fun MainNavigation(
             bottomNavItems.forEach { navItem ->
                 composable(navItem.screen.route) {
                     SwipeableMainContent(
-                        swipeNavigationState = swipeNavigationState,
-                        currentRoute = currentRoute,
-                        bottomNavItems = bottomNavItems,
+                        navigationStateManager = navigationStateManager,
                         onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
                         onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
                         onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
@@ -218,17 +227,17 @@ private fun SignInOnlyNavigation(
 }
 
 /**
- * Clean Bottom Navigation Bar
+ * Bottom Navigation Bar with NavigationStateManager Integration
  */
 @Composable
 private fun BottomNavigationBar(
-    currentRoute: String?,
-    bottomNavItems: List<BottomNavItem>,
-    onNavigate: (String) -> Unit
+    navigationStateManager: NavigationStateManager,
+    bottomNavItems: List<BottomNavItem>
 ) {
+    val selectedIndex by navigationStateManager.currentPageIndex.collectAsState()
+    
     NavigationBar {
-        bottomNavItems.forEach { item ->
-            val isSelected = currentRoute == item.screen.route
+        bottomNavItems.forEachIndexed { index, item ->
             NavigationBarItem(
                 icon = { 
                     Icon(
@@ -237,8 +246,8 @@ private fun BottomNavigationBar(
                     )
                 },
                 label = { Text(item.title) },
-                selected = isSelected,
-                onClick = { onNavigate(item.screen.route) }
+                selected = (index == selectedIndex),
+                onClick = { navigationStateManager.onTabClicked(index) }
             )
         }
     }
