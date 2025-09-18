@@ -109,34 +109,34 @@ fun AppNavigation(
 
 /**
  * Main Navigation for Signed-in Users
+ * Now using Enterprise-Grade Centralized Navigation Manager
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainNavigation(
     navController: NavHostController
 ) {
-    val navigationState = rememberNavigationState(navController)
-    val currentRoute = navigationState.currentRoute
-    
     // Get user role for bottom nav filtering
     val userNavigationViewModel: UserNavigationViewModel = hiltViewModel()
     val userRole by userNavigationViewModel.userRole.collectAsState()
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
-    // Swipe navigation setup with proper state management
-    val swipeManager = rememberSwipeNavigationManager(navigationState, bottomNavItems)
-    val swipeNavigationState = rememberSwipeNavigationState(
-        swipeManager = swipeManager,
+    // Enterprise-grade centralized navigation management
+    val navigationManager = rememberCentralizedNavigationManager(navController, bottomNavItems)
+    val currentRoute = navigationManager.currentRoute
+    
+    // Enterprise swipe navigation state with perfect bi-directional sync
+    val swipeNavigationState = rememberEnterpriseSwipeNavigationState(
+        navigationManager = navigationManager,
         currentRoute = currentRoute
     )
     
     Scaffold(
         bottomBar = {
             if (shouldShowBottomNav(currentRoute)) {
-                BottomNavigationBar(
-                    currentRoute = currentRoute,
-                    bottomNavItems = bottomNavItems,
-                    onNavigate = { route -> navigationState.navigateTo(route) }
+                EnterpriseBottomNavigationBar(
+                    navigationManager = navigationManager,
+                    bottomNavItems = bottomNavItems
                 )
             }
         }
@@ -146,17 +146,17 @@ private fun MainNavigation(
             startDestination = Screen.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Main tab screens with swipe navigation
+            // Main tab screens with enterprise swipe navigation
             bottomNavItems.forEach { navItem ->
                 composable(navItem.screen.route) {
-                    SwipeableMainContent(
+                    EnterpriseSwipeableMainContent(
                         swipeNavigationState = swipeNavigationState,
-                        currentRoute = currentRoute,
+                        navigationManager = navigationManager,
                         bottomNavItems = bottomNavItems,
-                        onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
-                        onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
-                        onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
-                        onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) }
+                        onAddEntryClick = { navigationManager.navigateToRoute(Screen.AddEntry.route) },
+                        onAddExpenseClick = { navigationManager.navigateToRoute(Screen.AddExpense.route) },
+                        onNavigateToProfile = { navigationManager.navigateToRoute(Screen.Profile.route) },
+                        onEntryClick = { entryId -> navigationManager.navigateToRoute(Screen.EntryDetail.createRoute(entryId)) }
                     )
                 }
             }
@@ -164,19 +164,19 @@ private fun MainNavigation(
             // Secondary screens
             composable(Screen.Profile.route) {
                 ProfileScreen(
-                    onNavigateBack = { navigationState.navigateBack() }
+                    onNavigateBack = { navigationManager.navigateBack() }
                 )
             }
             
             composable(Screen.AddEntry.route) {
                 AddEntryScreen(
-                    onNavigateBack = { navigationState.navigateBack() }
+                    onNavigateBack = { navigationManager.navigateBack() }
                 )
             }
             
             composable(Screen.AddExpense.route) {
                 NewExpenseEntryScreen(
-                    onNavigateBack = { navigationState.navigateBack() }
+                    onNavigateBack = { navigationManager.navigateBack() }
                 )
             }
             
@@ -187,7 +187,7 @@ private fun MainNavigation(
                 val entryId = backStackEntry.arguments?.getString("entryId") ?: ""
                 EntryDetailScreen(
                     entryId = entryId,
-                    onNavigateBack = { navigationState.navigateBack() }
+                    onNavigateBack = { navigationManager.navigateBack() }
                 )
             }
         }
@@ -218,7 +218,37 @@ private fun SignInOnlyNavigation(
 }
 
 /**
- * Clean Bottom Navigation Bar
+ * Enterprise Bottom Navigation Bar
+ * Perfectly synchronized with CentralizedNavigationManager
+ */
+@Composable
+private fun EnterpriseBottomNavigationBar(
+    navigationManager: CentralizedNavigationManager,
+    bottomNavItems: List<BottomNavItem>
+) {
+    val currentPageIndex by navigationManager.currentPageIndex.collectAsState()
+    val currentRoute = navigationManager.currentRoute
+    
+    NavigationBar {
+        bottomNavItems.forEachIndexed { index, item ->
+            val isSelected = currentRoute == item.screen.route || currentPageIndex == index
+            NavigationBarItem(
+                icon = { 
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.title
+                    )
+                },
+                label = { Text(item.title) },
+                selected = isSelected,
+                onClick = { navigationManager.navigateToRoute(item.screen.route) }
+            )
+        }
+    }
+}
+
+/**
+ * Legacy Bottom Navigation Bar (kept for backward compatibility)
  */
 @Composable
 private fun BottomNavigationBar(
