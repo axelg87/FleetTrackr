@@ -6,6 +6,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerScope
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -19,54 +20,82 @@ import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 
 /**
- * Professional Swipeable Main Content
+ * Swipeable Main Content
  * 
- * Ensures single-screen rendering, proper constraints, and stable layout.
- * Uses BoxWithConstraints and defensive sizing to prevent overlapping content.
+ * Clean implementation using NavigationStateManager as single source of truth.
+ * Features:
+ * - HorizontalPager with proper state synchronization
+ * - LaunchedEffect for bidirectional sync with NavigationStateManager
+ * - Single-screen rendering with beyondBoundsPageCount = 0
+ * - 60fps smooth animations
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SwipeableMainContent(
-    swipeNavigationState: SwipeNavigationState,
-    currentRoute: String?,
+    navigationStateManager: NavigationStateManager,
     bottomNavItems: List<BottomNavItem>,
+    currentRoute: String?,
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onEntryClick: (String) -> Unit
 ) {
-    // Sync pager state with navigation changes
-    swipeNavigationState.SyncWithNavigation(currentRoute)
+    // Only show pager for swipeable routes
+    if (!navigationStateManager.isSwipeableRoute(currentRoute)) return
     
-    // Only show pager for main tab screens
-    if (swipeNavigationState.swipeManager.shouldEnableSwipe(currentRoute)) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val containerSize = IntSize(
-                width = with(LocalDensity.current) { maxWidth.roundToPx() },
-                height = with(LocalDensity.current) { maxHeight.roundToPx() }
-            )
-            
-            HorizontalPager(
-                state = swipeNavigationState.pagerState,
-                modifier = Modifier.fillMaxSize(),
-                beyondBoundsPageCount = 0, // Critical: Only render current page
-                key = { pageIndex -> 
-                    // Stable key for proper state preservation
-                    bottomNavItems.getOrNull(pageIndex)?.screen?.route ?: "page_$pageIndex"
-                }
-            ) { pageIndex ->
-                PagerPage(
-                    pageIndex = pageIndex,
-                    bottomNavItems = bottomNavItems,
-                    containerSize = containerSize,
-                    onAddEntryClick = onAddEntryClick,
-                    onAddExpenseClick = onAddExpenseClick,
-                    onNavigateToProfile = onNavigateToProfile,
-                    onEntryClick = onEntryClick
-                )
+    val currentPageIndex by navigationStateManager.currentPageIndex.collectAsState()
+    
+    // Create PagerState with proper initialization
+    val pagerState = rememberPagerState(
+        initialPage = currentPageIndex,
+        pageCount = { navigationStateManager.pageCount }
+    )
+    
+    // Sync NavigationStateManager -> PagerState (bottom nav clicks)
+    LaunchedEffect(currentPageIndex) {
+        if (pagerState.currentPage != currentPageIndex) {
+            pagerState.animateScrollToPage(currentPageIndex)
+        }
+    }
+    
+    // Sync PagerState -> NavigationStateManager (swipe gestures)
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != currentPageIndex && !pagerState.isScrollInProgress) {
+            navigationStateManager.updatePage(pagerState.currentPage)
+        }
+    }
+    
+    // Sync with external route changes
+    LaunchedEffect(currentRoute) {
+        navigationStateManager.syncWithRoute(currentRoute)
+    }
+    
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        val containerSize = IntSize(
+            width = with(LocalDensity.current) { maxWidth.roundToPx() },
+            height = with(LocalDensity.current) { maxHeight.roundToPx() }
+        )
+        
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            beyondBoundsPageCount = 0, // Only render current page for performance
+            key = { pageIndex -> 
+                // Stable key for proper state preservation
+                bottomNavItems.getOrNull(pageIndex)?.screen?.route ?: "page_$pageIndex"
             }
+        ) { pageIndex ->
+            PagerPage(
+                pageIndex = pageIndex,
+                bottomNavItems = bottomNavItems,
+                containerSize = containerSize,
+                onAddEntryClick = onAddEntryClick,
+                onAddExpenseClick = onAddExpenseClick,
+                onNavigateToProfile = onNavigateToProfile,
+                onEntryClick = onEntryClick
+            )
         }
     }
 }

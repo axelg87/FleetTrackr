@@ -123,20 +123,15 @@ private fun MainNavigation(
     val userRole by userNavigationViewModel.userRole.collectAsState()
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
-    // Swipe navigation setup with proper state management
-    val swipeManager = rememberSwipeNavigationManager(navigationState, bottomNavItems)
-    val swipeNavigationState = rememberSwipeNavigationState(
-        swipeManager = swipeManager,
-        currentRoute = currentRoute
-    )
+    // Centralized navigation state management
+    val navigationStateManager = rememberNavigationStateManager(bottomNavItems, navigationState)
     
     Scaffold(
         bottomBar = {
             if (shouldShowBottomNav(currentRoute)) {
                 BottomNavigationBar(
-                    currentRoute = currentRoute,
-                    bottomNavItems = bottomNavItems,
-                    onNavigate = { route -> navigationState.navigateTo(route) }
+                    navigationStateManager = navigationStateManager,
+                    bottomNavItems = bottomNavItems
                 )
             }
         }
@@ -150,9 +145,9 @@ private fun MainNavigation(
             bottomNavItems.forEach { navItem ->
                 composable(navItem.screen.route) {
                     SwipeableMainContent(
-                        swipeNavigationState = swipeNavigationState,
-                        currentRoute = currentRoute,
+                        navigationStateManager = navigationStateManager,
                         bottomNavItems = bottomNavItems,
+                        currentRoute = currentRoute,
                         onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
                         onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
                         onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
@@ -217,32 +212,6 @@ private fun SignInOnlyNavigation(
     }
 }
 
-/**
- * Clean Bottom Navigation Bar
- */
-@Composable
-private fun BottomNavigationBar(
-    currentRoute: String?,
-    bottomNavItems: List<BottomNavItem>,
-    onNavigate: (String) -> Unit
-) {
-    NavigationBar {
-        bottomNavItems.forEach { item ->
-            val isSelected = currentRoute == item.screen.route
-            NavigationBarItem(
-                icon = { 
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.title
-                    )
-                },
-                label = { Text(item.title) },
-                selected = isSelected,
-                onClick = { onNavigate(item.screen.route) }
-            )
-        }
-    }
-}
 
 /**
  * Determine if bottom navigation should be shown
