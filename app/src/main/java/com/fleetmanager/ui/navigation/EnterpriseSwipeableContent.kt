@@ -19,14 +19,14 @@ import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 
 /**
- * Enterprise-Grade Swipeable Main Content
+ * Clean Swipeable Main Content
  * 
- * Uses CentralizedNavigationManager for perfect bi-directional synchronization.
+ * Uses clean architecture with single source of truth.
  * Ensures single-screen rendering, proper constraints, and stable layout.
  */
 @Composable
-fun EnterpriseSwipeableMainContent(
-    swipeNavigationState: EnterpriseSwipeNavigationState,
+fun CleanSwipeableMainContent(
+    swipeNavigationState: SwipeNavigationState,
     navigationManager: CentralizedNavigationManager,
     bottomNavItems: List<BottomNavItem>,
     onAddEntryClick: () -> Unit,
@@ -34,7 +34,7 @@ fun EnterpriseSwipeableMainContent(
     onNavigateToProfile: () -> Unit,
     onEntryClick: (String) -> Unit
 ) {
-    // Set up bi-directional synchronization
+    // Set up reactive synchronization
     swipeNavigationState.SetupSynchronization()
     
     // Only show pager for main tab screens
@@ -57,7 +57,7 @@ fun EnterpriseSwipeableMainContent(
                     bottomNavItems.getOrNull(pageIndex)?.screen?.route ?: "page_$pageIndex"
                 }
             ) { pageIndex ->
-                EnterprisePagerPage(
+                CleanPagerPage(
                     pageIndex = pageIndex,
                     bottomNavItems = bottomNavItems,
                     containerSize = containerSize,
@@ -75,7 +75,7 @@ fun EnterpriseSwipeableMainContent(
  * Individual Pager Page with defensive sizing and state preservation
  */
 @Composable
-private fun PagerScope.EnterprisePagerPage(
+private fun PagerScope.CleanPagerPage(
     pageIndex: Int,
     bottomNavItems: List<BottomNavItem>,
     containerSize: IntSize,

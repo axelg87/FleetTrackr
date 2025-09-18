@@ -125,8 +125,8 @@ private fun MainNavigation(
     val navigationManager = rememberCentralizedNavigationManager(navController, bottomNavItems)
     val currentRoute = navigationManager.currentRoute
     
-    // Enterprise swipe navigation state with perfect bi-directional sync
-    val swipeNavigationState = rememberEnterpriseSwipeNavigationState(
+    // Clean swipe navigation state with single source of truth
+    val swipeNavigationState = rememberSwipeNavigationState(
         navigationManager = navigationManager,
         currentRoute = currentRoute
     )
@@ -134,7 +134,7 @@ private fun MainNavigation(
     Scaffold(
         bottomBar = {
             if (shouldShowBottomNav(currentRoute)) {
-                EnterpriseBottomNavigationBar(
+                CleanBottomNavigationBar(
                     navigationManager = navigationManager,
                     bottomNavItems = bottomNavItems
                 )
@@ -146,10 +146,10 @@ private fun MainNavigation(
             startDestination = Screen.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Main tab screens with enterprise swipe navigation
+            // Main tab screens with clean swipe navigation
             bottomNavItems.forEach { navItem ->
                 composable(navItem.screen.route) {
-                    EnterpriseSwipeableMainContent(
+                    CleanSwipeableMainContent(
                         swipeNavigationState = swipeNavigationState,
                         navigationManager = navigationManager,
                         bottomNavItems = bottomNavItems,
@@ -218,20 +218,19 @@ private fun SignInOnlyNavigation(
 }
 
 /**
- * Enterprise Bottom Navigation Bar
- * Perfectly synchronized with CentralizedNavigationManager
+ * Clean Bottom Navigation Bar
+ * Uses StateFlow as single source of truth for selection
  */
 @Composable
-private fun EnterpriseBottomNavigationBar(
+private fun CleanBottomNavigationBar(
     navigationManager: CentralizedNavigationManager,
     bottomNavItems: List<BottomNavItem>
 ) {
     val currentPageIndex by navigationManager.currentPageIndex.collectAsState()
-    val currentRoute = navigationManager.currentRoute
     
     NavigationBar {
         bottomNavItems.forEachIndexed { index, item ->
-            val isSelected = currentRoute == item.screen.route || currentPageIndex == index
+            val isSelected = currentPageIndex == index
             NavigationBarItem(
                 icon = { 
                     Icon(
@@ -241,7 +240,7 @@ private fun EnterpriseBottomNavigationBar(
                 },
                 label = { Text(item.title) },
                 selected = isSelected,
-                onClick = { navigationManager.navigateToRoute(item.screen.route) }
+                onClick = { navigationManager.onBottomNavTap(item.screen.route) }
             )
         }
     }
