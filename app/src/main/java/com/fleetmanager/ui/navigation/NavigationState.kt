@@ -1,56 +1,39 @@
 package com.fleetmanager.ui.navigation
 
-import androidx.compose.runtime.*
-import androidx.navigation.NavHostController
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.currentBackStackEntryAsState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
- * Centralized Navigation State Management
- * Single source of truth for navigation state
+ * Enterprise-grade Navigation State Singleton
+ * Single source of truth for navigation state using StateFlow<Int>
+ * 
+ * This is the ONLY component allowed to mutate the current page index.
+ * All navigation (swipe + tab click) must update this shared state.
  */
-@Stable
-class NavigationState(
-    val navController: NavHostController
-) {
+@Singleton
+class NavigationState @Inject constructor() {
+    
+    // Private mutable state - only this class can modify it
+    private val _currentPageIndex = MutableStateFlow(0)
+    
+    // Public read-only state for observers
+    val currentPageIndex: StateFlow<Int> = _currentPageIndex.asStateFlow()
     
     /**
-     * Navigate to a screen by route
-     * Simple, clean navigation without complex state management
+     * Update the current page index
+     * This is the single point of mutation for navigation state
      */
-    fun navigateTo(route: String) {
-        navController.navigate(route) {
-            // Standard navigation behavior
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
+    fun updatePageIndex(index: Int) {
+        if (index >= 0 && _currentPageIndex.value != index) {
+            _currentPageIndex.value = index
         }
     }
     
     /**
-     * Navigate back
+     * Get current page index value
      */
-    fun navigateBack() {
-        navController.popBackStack()
-    }
-    
-    /**
-     * Get current route
-     */
-    val currentRoute: String?
-        @Composable get() = navController.currentBackStackEntryAsState().value?.destination?.route
-}
-
-/**
- * Remember navigation state
- */
-@Composable
-fun rememberNavigationState(
-    navController: NavHostController
-): NavigationState {
-    return remember(navController) {
-        NavigationState(navController)
-    }
+    fun getCurrentPageIndex(): Int = _currentPageIndex.value
 }
