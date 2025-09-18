@@ -35,6 +35,7 @@ import com.fleetmanager.ui.viewmodel.NavigationViewModel as UserNavigationViewMo
  * Clean Navigation Routes
  */
 sealed class Screen(val route: String) {
+    object Main : Screen("main")
     object Splash : Screen("splash")
     object SignIn : Screen("sign_in")
     object Dashboard : Screen("dashboard")
@@ -115,81 +116,54 @@ fun AppNavigation(
 private fun MainNavigation(
     navController: NavHostController
 ) {
-    val navigationState = rememberNavigationState(navController)
-    val currentRoute = navigationState.currentRoute
-    
     // Get user role for bottom nav filtering
     val userNavigationViewModel: UserNavigationViewModel = hiltViewModel()
     val userRole by userNavigationViewModel.userRole.collectAsState()
     val bottomNavItems = userRole?.let { getBottomNavItemsForRole(it) } ?: allBottomNavItems
     
-    // Swipe navigation setup with proper state management
-    val swipeManager = rememberSwipeNavigationManager(navigationState, bottomNavItems)
-    val swipeNavigationState = rememberSwipeNavigationState(
-        swipeManager = swipeManager,
-        currentRoute = currentRoute
-    )
-    
-    Scaffold(
-        bottomBar = {
-            if (shouldShowBottomNav(currentRoute)) {
-                BottomNavigationBar(
-                    currentRoute = currentRoute,
-                    bottomNavItems = bottomNavItems,
-                    onNavigate = { route -> navigationState.navigateTo(route) }
-                )
-            }
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Main.route
+    ) {
+        // Single main route hosting pager + bottom bar (no NavController tab navigation)
+        composable(Screen.Main.route) {
+            MainScreen(
+                bottomNavItems = bottomNavItems,
+                onAddEntryClick = { navController.navigate(Screen.AddEntry.route) },
+                onAddExpenseClick = { navController.navigate(Screen.AddExpense.route) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onEntryClick = { entryId -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) }
+            )
         }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Dashboard.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            // Main tab screens with swipe navigation
-            bottomNavItems.forEach { navItem ->
-                composable(navItem.screen.route) {
-                    SwipeableMainContent(
-                        swipeNavigationState = swipeNavigationState,
-                        currentRoute = currentRoute,
-                        bottomNavItems = bottomNavItems,
-                        onAddEntryClick = { navigationState.navigateTo(Screen.AddEntry.route) },
-                        onAddExpenseClick = { navigationState.navigateTo(Screen.AddExpense.route) },
-                        onNavigateToProfile = { navigationState.navigateTo(Screen.Profile.route) },
-                        onEntryClick = { entryId -> navigationState.navigateTo(Screen.EntryDetail.createRoute(entryId)) }
-                    )
-                }
-            }
-            
-            // Secondary screens
-            composable(Screen.Profile.route) {
-                ProfileScreen(
-                    onNavigateBack = { navigationState.navigateBack() }
-                )
-            }
-            
-            composable(Screen.AddEntry.route) {
-                AddEntryScreen(
-                    onNavigateBack = { navigationState.navigateBack() }
-                )
-            }
-            
-            composable(Screen.AddExpense.route) {
-                NewExpenseEntryScreen(
-                    onNavigateBack = { navigationState.navigateBack() }
-                )
-            }
-            
-            composable(
-                route = Screen.EntryDetail.route,
-                arguments = listOf(navArgument("entryId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val entryId = backStackEntry.arguments?.getString("entryId") ?: ""
-                EntryDetailScreen(
-                    entryId = entryId,
-                    onNavigateBack = { navigationState.navigateBack() }
-                )
-            }
+        
+        // Secondary screens
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.AddEntry.route) {
+            AddEntryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.AddExpense.route) {
+            NewExpenseEntryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.EntryDetail.route,
+            arguments = listOf(navArgument("entryId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getString("entryId") ?: ""
+            EntryDetailScreen(
+                entryId = entryId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
@@ -208,52 +182,11 @@ private fun SignInOnlyNavigation(
         composable(Screen.SignIn.route) {
             SignInScreen(
                 onSignInSuccess = {
-                    navController.navigate(Screen.Dashboard.route) {
+                    navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.SignIn.route) { inclusive = true }
                     }
                 }
             )
         }
-    }
-}
-
-/**
- * Clean Bottom Navigation Bar
- */
-@Composable
-private fun BottomNavigationBar(
-    currentRoute: String?,
-    bottomNavItems: List<BottomNavItem>,
-    onNavigate: (String) -> Unit
-) {
-    NavigationBar {
-        bottomNavItems.forEach { item ->
-            val isSelected = currentRoute == item.screen.route
-            NavigationBarItem(
-                icon = { 
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.title
-                    )
-                },
-                label = { Text(item.title) },
-                selected = isSelected,
-                onClick = { onNavigate(item.screen.route) }
-            )
-        }
-    }
-}
-
-/**
- * Determine if bottom navigation should be shown
- */
-private fun shouldShowBottomNav(currentRoute: String?): Boolean {
-    return when (currentRoute) {
-        Screen.Dashboard.route,
-        Screen.History.route,
-        Screen.Analytics.route,
-        Screen.Reports.route,
-        Screen.Settings.route -> true
-        else -> false
     }
 }
