@@ -401,6 +401,7 @@ private fun DailyPaceDetails(
     }
 }
 
+@Composable
 private fun MetricItem(
     label: String,
     value: String,
