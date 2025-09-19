@@ -18,8 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.SignInViewModel
 import com.fleetmanager.R
+import com.fleetmanager.ui.components.AgMotionLogo
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.delay
@@ -37,7 +36,6 @@ fun SignInScreen(
     onSignInSuccess: () -> Unit,
     viewModel: SignInViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     
     // Animation states
@@ -126,25 +124,18 @@ fun SignInScreen(
                 modifier = Modifier.scale(logoScale.value)
             ) {
                 /*
-                 * PNG Logo Integration Instructions:
-                 * 1. Place your PNG file in the following directories:
-                 *    - /app/src/main/res/drawable-xxxhdpi/ (480dpi) - largest size
-                 *    - /app/src/main/res/drawable-xxhdpi/ (320dpi)
-                 *    - /app/src/main/res/drawable-xhdpi/ (240dpi)
-                 *    - /app/src/main/res/drawable-hdpi/ (160dpi)
-                 *    - /app/src/main/res/drawable-mdpi/ (120dpi) - smallest size
-                 * 2. Name the file consistently (e.g., "ag_motion_logo.png")
-                 * 3. Replace the painterResource below with your PNG filename
-                 * 4. Adjust the size modifier if needed based on your logo dimensions
+                 * SVG Logo Integration Instructions:
+                 * 1. Place your SVG file at /app/src/main/res/drawable/ag_motion_logo.svg.
+                 * 2. The AgMotionLogo composable below uses Coil's SVG decoder to render
+                 *    the resource without crashes when the splash screen transitions.
+                 * 3. If you rename the asset, update AgMotionLogo so it references the
+                 *    new resource identifier in one place.
                  */
-                
-                // Current logo - replace with your PNG logo
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_company_logo),
-                    // When integrating PNG, use: painterResource(id = R.drawable.your_logo_name)
-                    contentDescription = "AG Motion Logo",
+
+                // Current logo - rendered from ag_motion_logo.svg
+                AgMotionLogo(
                     modifier = Modifier.size(120.dp),
-                    tint = Color.Unspecified
+                    contentDescription = "AG Motion Logo"
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
