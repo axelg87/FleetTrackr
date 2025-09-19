@@ -11,8 +11,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsCategory
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsPanel
-import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 
 /**
  * GENERALIZATION: Analytics menu system for panel navigation
@@ -37,11 +34,12 @@ import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 @Composable
 fun AnalyticsMenu(
     selectedPanel: AnalyticsPanel?,
+    selectedCategory: AnalyticsCategory,
+    onCategorySelected: (AnalyticsCategory) -> Unit,
     onPanelSelected: (AnalyticsPanel) -> Unit,
     onShowAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedCategory by remember { mutableStateOf<AnalyticsCategory?>(null) }
     var isExpanded by remember { mutableStateOf(false) }
     
     Card(
@@ -102,30 +100,22 @@ fun AnalyticsMenu(
                     onShowAll = onShowAll,
                     onPanelSelected = onPanelSelected
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Category tabs
                 CategoryTabs(
                     selectedCategory = selectedCategory,
-                    onCategorySelected = { selectedCategory = it }
+                    onCategorySelected = onCategorySelected
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                // Panel grid
-                selectedCategory?.let { category ->
-                    PanelGrid(
-                        category = category,
-                        selectedPanel = selectedPanel,
-                        onPanelSelected = onPanelSelected
-                    )
-                } ?: run {
-                    AllPanelsOverview(
-                        selectedPanel = selectedPanel,
-                        onPanelSelected = onPanelSelected
-                    )
-                }
+
+                PanelGrid(
+                    category = selectedCategory,
+                    selectedPanel = selectedPanel,
+                    onPanelSelected = onPanelSelected
+                )
             }
         }
     }
@@ -185,21 +175,12 @@ private fun QuickActions(
 
 @Composable
 private fun CategoryTabs(
-    selectedCategory: AnalyticsCategory?,
-    onCategorySelected: (AnalyticsCategory?) -> Unit
+    selectedCategory: AnalyticsCategory,
+    onCategorySelected: (AnalyticsCategory) -> Unit
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // All categories option
-        item {
-            CategoryTab(
-                category = null,
-                isSelected = selectedCategory == null,
-                onClick = { onCategorySelected(null) }
-            )
-        }
-        
         items(AnalyticsCategory.values()) { category ->
             CategoryTab(
                 category = category,
@@ -212,7 +193,7 @@ private fun CategoryTabs(
 
 @Composable
 private fun CategoryTab(
-    category: AnalyticsCategory?,
+    category: AnalyticsCategory,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -249,13 +230,13 @@ private fun CategoryTab(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Icon(
-                imageVector = category?.icon ?: Icons.Default.Dashboard,
+                imageVector = category.icon,
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text = category?.displayName ?: "All",
+                text = category.displayName,
                 style = MaterialTheme.typography.labelMedium,
                 color = contentColor,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
@@ -294,67 +275,6 @@ private fun PanelGrid(
                 if (panelRow.size == 1) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AllPanelsOverview(
-    selectedPanel: AnalyticsPanel?,
-    onPanelSelected: (AnalyticsPanel) -> Unit
-) {
-    LazyColumn(
-        modifier = Modifier.heightIn(max = 300.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(AnalyticsCategory.values()) { category ->
-            CategorySection(
-                category = category,
-                selectedPanel = selectedPanel,
-                onPanelSelected = onPanelSelected
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategorySection(
-    category: AnalyticsCategory,
-    selectedPanel: AnalyticsPanel?,
-    onPanelSelected: (AnalyticsPanel) -> Unit
-) {
-    Column {
-        // Category header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = category.displayName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        // Panels in this category
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(AnalyticsPanel.getByCategory(category)) { panel ->
-                CompactPanelCard(
-                    panel = panel,
-                    isSelected = selectedPanel == panel,
-                    onClick = { onPanelSelected(panel) }
-                )
             }
         }
     }
@@ -415,60 +335,6 @@ private fun PanelCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2
-            )
-        }
-    }
-}
-
-@Composable
-private fun CompactPanelCard(
-    panel: AnalyticsPanel,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        },
-        animationSpec = tween(300),
-        label = "compact_bg"
-    )
-    
-    val contentColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        animationSpec = tween(300),
-        label = "compact_content"
-    )
-    
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .clickable { onClick() }
-            .padding(12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = panel.icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = panel.displayName,
-                style = MaterialTheme.typography.labelSmall,
-                color = contentColor,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
             )
         }
     }
