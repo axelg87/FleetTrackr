@@ -78,7 +78,9 @@ data class ProjectionData(
     val daysElapsed: Int,
     val totalDaysInMonth: Int,
     val dailyAverage: Double,
-    val comparisonToPrevious: Double
+    val comparisonToPrevious: Double,
+    val activeRevenueDays: Int = 0,
+    val activeDayAverage: Double = 0.0
 )
 
 /**
