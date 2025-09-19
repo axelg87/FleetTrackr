@@ -28,6 +28,7 @@ import com.fleetmanager.ui.components.charts.SimplePieChart
 import com.fleetmanager.ui.components.CalendarFilterComponent
 import com.fleetmanager.ui.model.ChartDataGenerator
 import com.fleetmanager.ui.model.ReportEntry
+import com.fleetmanager.ui.navigation.NavigationState
 import com.fleetmanager.ui.utils.ReportExporter
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.viewmodel.EntryTypeFilter
@@ -45,10 +46,16 @@ fun ReportScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val context = LocalContext.current
     val reportExporter = remember { ReportExporter() }
-    
+
     // Track current tab for charts/totals
     var selectedTab by remember { mutableStateOf(0) }
-    
+
+    LaunchedEffect(Unit) {
+        NavigationState.reportShortcuts.collect { shortcut ->
+            viewModel.applyDashboardShortcut(shortcut)
+        }
+    }
+
     // Use ViewModel state for filter panel collapse
     val isFilterExpanded = uiState.isFilterPanelExpanded
     

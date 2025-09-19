@@ -11,10 +11,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -25,6 +26,7 @@ import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
@@ -40,6 +42,12 @@ fun MainScreen(
         initialPage = currentIndex,
         pageCount = { bottomNavItems.size }
     )
+
+    val reportsPageIndex = remember(bottomNavItems) {
+        bottomNavItems.indexOfFirst { it.screen == Screen.Reports }
+    }
+
+    val coroutineScope = rememberCoroutineScope()
 
     // Gate flag to prevent feedback loops
     var isAnimatingToTarget by remember { mutableStateOf(false) }
@@ -84,7 +92,15 @@ fun MainScreen(
                         onAddEntryClick = onAddEntryClick,
                         onAddExpenseClick = onAddExpenseClick,
                         onNavigateToProfile = onNavigateToProfile,
-                        onEntryClick = onEntryClick
+                        onEntryClick = onEntryClick,
+                        onReportShortcut = { shortcut ->
+                            if (reportsPageIndex >= 0) {
+                                NavigationState.setCurrentPage(reportsPageIndex)
+                                coroutineScope.launch {
+                                    NavigationState.emitReportShortcut(shortcut)
+                                }
+                            }
+                        }
                     )
                     Screen.History -> EntryListScreen(
                         onAddEntryClick = onAddEntryClick,

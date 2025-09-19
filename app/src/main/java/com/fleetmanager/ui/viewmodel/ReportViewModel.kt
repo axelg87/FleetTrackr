@@ -16,11 +16,13 @@ import com.fleetmanager.domain.usecase.GetReportDataRealtimeUseCase
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.model.toReportEntries
 import com.fleetmanager.ui.model.toReportEntry
+import com.fleetmanager.ui.navigation.DashboardShortcut
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 enum class SortOption(val displayName: String) {
@@ -252,6 +254,62 @@ class ReportViewModel @Inject constructor(
         }
         saveCurrentPreferences()
     }
+
+    fun applyDashboardShortcut(shortcut: DashboardShortcut) {
+        updateState { currentState ->
+            val now = Date()
+            val (startDate, endDate, typeFilter, entryTypeFilter) = when (shortcut) {
+                DashboardShortcut.AllEntries -> Quadruple(null, null, null, EntryTypeFilter.ALL)
+                DashboardShortcut.TimeRange.Last24Hours -> Quadruple(
+                    Date(now.time - TimeUnit.HOURS.toMillis(24)),
+                    now,
+                    null,
+                    EntryTypeFilter.ALL
+                )
+                DashboardShortcut.TimeRange.ThisWeek -> Quadruple(
+                    calculateStartOfCurrentWeek(),
+                    now,
+                    null,
+                    EntryTypeFilter.ALL
+                )
+                DashboardShortcut.TimeRange.ThisMonth -> Quadruple(
+                    calculateStartOfCurrentMonth(),
+                    now,
+                    null,
+                    EntryTypeFilter.ALL
+                )
+                DashboardShortcut.IncomeSource.Uber -> Quadruple(
+                    calculateStartOfCurrentMonth(),
+                    now,
+                    "Uber",
+                    EntryTypeFilter.INCOME_ONLY
+                )
+                DashboardShortcut.IncomeSource.Yango -> Quadruple(
+                    calculateStartOfCurrentMonth(),
+                    now,
+                    "Yango",
+                    EntryTypeFilter.INCOME_ONLY
+                )
+                DashboardShortcut.IncomeSource.Private -> Quadruple(
+                    calculateStartOfCurrentMonth(),
+                    now,
+                    "Private",
+                    EntryTypeFilter.INCOME_ONLY
+                )
+            }
+
+            val newState = currentState.copy(
+                selectedDriver = null,
+                selectedVehicle = null,
+                selectedType = typeFilter,
+                selectedEntryType = entryTypeFilter,
+                startDate = startDate,
+                endDate = endDate
+            )
+            newState.copy(filteredEntries = applySortingAndFilters(newState))
+        }
+        saveCurrentPreferences()
+    }
     
     fun clearAllFilters() {
         updateState { currentState ->
@@ -442,4 +500,29 @@ class ReportViewModel @Inject constructor(
             SortOption.TYPE -> filtered.sortedBy { it.typeDisplayName }
         }
     }
+
+    private fun calculateStartOfCurrentWeek(): Date {
+        val calendar = Calendar.getInstance().apply {
+            firstDayOfWeek = Calendar.MONDAY
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+        }
+        return calendar.time
+    }
+
+    private fun calculateStartOfCurrentMonth(): Date {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return calendar.time
+    }
+
+    private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 }
