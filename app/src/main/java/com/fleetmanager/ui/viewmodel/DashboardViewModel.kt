@@ -14,6 +14,7 @@ import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
+import com.fleetmanager.ui.navigation.DashboardShortcut
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -114,25 +115,28 @@ class DashboardViewModel @Inject constructor(
                     add(StatItem(
                         icon = Icons.Default.CalendarToday,
                         value = "$${String.format("%.0f", dashboardData.thisMonthEarnings)}",
-                        label = "This Month"
+                        label = "This Month",
+                        shortcut = DashboardShortcut.TimeRange.ThisMonth
                     ))
                     add(StatItem(
                         icon = Icons.Default.TrendingUp,
                         value = "$${String.format("%.0f", dashboardData.thisWeekEarnings)}",
-                        label = "This Week"
+                        label = "This Week",
+                        shortcut = DashboardShortcut.TimeRange.ThisWeek
                     ))
                     add(StatItem(
                         icon = Icons.Default.Schedule,
                         value = "$${String.format("%.0f", dashboardData.last24hEarnings)}",
-                        label = "Last 24h"
+                        label = "Last 24h",
+                        shortcut = DashboardShortcut.TimeRange.Last24Hours
                     ))
                     // Only show Active Drivers tile for admin users
                     if (isAdmin) {
                         add(StatItem(
                             icon = Icons.Default.People,
                             value = dashboardData.activeDriversCount.toString(),
-                            label = "Active Drivers"
-                            // No click action for active drivers count
+                            label = "Active Drivers",
+                            shortcut = DashboardShortcut.AllEntries
                         ))
                     }
                 }
@@ -143,23 +147,26 @@ class DashboardViewModel @Inject constructor(
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
-                            label = "Uber (Month)"
+                            label = "Uber (Month)",
+                            shortcut = DashboardShortcut.IncomeSource.Uber
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
-                            label = "Yango (Month)"
+                            label = "Yango (Month)",
+                            shortcut = DashboardShortcut.IncomeSource.Yango
                         ),
                         StatItem(
                             icon = Icons.Default.AttachMoney,
                             value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
-                            label = "Private (Month)"
+                            label = "Private (Month)",
+                            shortcut = DashboardShortcut.IncomeSource.Private
                         ),
                         StatItem(
                             icon = Icons.Default.Assignment,
                             value = "${dashboardData.recentEntries.size}",
-                            label = "Recent Entries"
-                            // No click action for recent entries count
+                            label = "Recent Entries",
+                            shortcut = DashboardShortcut.AllEntries
                         )
                     )
                 } else {

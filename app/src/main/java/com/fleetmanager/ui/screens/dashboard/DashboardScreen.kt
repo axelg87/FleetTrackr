@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.components.*
+import com.fleetmanager.ui.navigation.DashboardShortcut
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.DashboardViewModel
@@ -25,6 +26,7 @@ fun DashboardScreen(
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: (() -> Unit)? = null,
     onEntryClick: ((String) -> Unit)? = null,
+    onReportShortcut: (DashboardShortcut) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -56,7 +58,9 @@ fun DashboardScreen(
         item {
             StatsGrid(
                 stats = uiState.quickStats,
-                onStatClick = { /* Tile clicks disabled - clean dashboard */ }
+                onStatClick = { stat ->
+                    stat.shortcut?.let(onReportShortcut)
+                }
             )
         }
 
@@ -69,7 +73,9 @@ fun DashboardScreen(
             item {
                 StatsGrid(
                     stats = uiState.earningsStats,
-                    onStatClick = { /* Tile clicks disabled - clean dashboard */ }
+                    onStatClick = { stat ->
+                        stat.shortcut?.let(onReportShortcut)
+                    }
                 )
             }
         }
