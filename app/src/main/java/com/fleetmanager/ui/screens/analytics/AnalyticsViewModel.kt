@@ -282,7 +282,7 @@ class AnalyticsViewModel @Inject constructor(
         
         // Calculate projection using d-1 logic
         val projection = if (currentMonthEntries.isNotEmpty()) {
-            AnalyticsCalculator.calculateProjection(currentMonthEntries, yesterday)
+            AnalyticsCalculator.calculateProjection(currentMonthEntries, dayOfWeekAnalysis, yesterday)
         } else null
         
         return AnalyticsData(

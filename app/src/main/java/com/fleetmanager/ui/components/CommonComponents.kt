@@ -29,11 +29,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import com.fleetmanager.R
+import com.fleetmanager.ui.navigation.DashboardShortcut
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import com.fleetmanager.R
 
 // Screen Header Component with Company Logo and Profile Icon
 @Composable
@@ -417,7 +421,8 @@ data class StatItem(
     val icon: ImageVector,
     val value: String,
     val label: String,
-    val onClick: (() -> Unit)? = null
+    val onClick: (() -> Unit)? = null,
+    val shortcut: DashboardShortcut? = null
 )
 
 data class ActionItem(

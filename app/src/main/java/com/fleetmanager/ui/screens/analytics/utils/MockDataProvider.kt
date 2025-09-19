@@ -75,19 +75,22 @@ object MockDataProvider {
         val endDate = LocalDate.now().minusDays(1) // d-1 logic: exclude today
         val startDate = endDate.minusDays(30)
 
+        val dayOfWeekAnalysis = AnalyticsCalculator.calculateDayOfWeekAnalysis(entries)
+
         return AnalyticsData(
             trendData = AnalyticsCalculator.calculateTrendData(entries, expenses, startDate, endDate),
             driverPerformance = AnalyticsCalculator.calculateDriverPerformance(entries),
             vehicleROI = AnalyticsCalculator.calculateVehicleROI(entries, expenses),
-            dayOfWeekAnalysis = AnalyticsCalculator.calculateDayOfWeekAnalysis(entries),
+            dayOfWeekAnalysis = dayOfWeekAnalysis,
             expenseBreakdown = AnalyticsCalculator.calculateExpenseBreakdown(expenses),
             anomalies = AnalyticsCalculator.detectAnomalies(entries, expenses),
             monthlyComparison = generateMockMonthlyComparison(),
             projection = AnalyticsCalculator.calculateProjection(
-                entries.filter { 
+                entries.filter {
                     val entryDate = AnalyticsUtils.dateToLocalDate(it.date)
                     AnalyticsUtils.isCurrentMonth(entryDate)
                 },
+                dayOfWeekAnalysis,
                 endDate // Use yesterday instead of today
             )
         )
