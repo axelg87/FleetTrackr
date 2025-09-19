@@ -258,6 +258,7 @@ class ReportViewModel @Inject constructor(
     fun applyDashboardShortcut(shortcut: DashboardShortcut) {
         updateState { currentState ->
             val now = Date()
+            val endOfToday = calculateEndOfDay(now)
             val (startDate, endDate, typeFilter, entryTypeFilter) = when (shortcut) {
                 DashboardShortcut.AllEntries -> Quadruple(null, null, null, EntryTypeFilter.ALL)
                 DashboardShortcut.TimeRange.Last24Hours -> Quadruple(
@@ -268,31 +269,31 @@ class ReportViewModel @Inject constructor(
                 )
                 DashboardShortcut.TimeRange.ThisWeek -> Quadruple(
                     calculateStartOfCurrentWeek(),
-                    now,
+                    endOfToday,
                     null,
                     EntryTypeFilter.ALL
                 )
                 DashboardShortcut.TimeRange.ThisMonth -> Quadruple(
                     calculateStartOfCurrentMonth(),
-                    now,
+                    endOfToday,
                     null,
                     EntryTypeFilter.ALL
                 )
                 DashboardShortcut.IncomeSource.Uber -> Quadruple(
                     calculateStartOfCurrentMonth(),
-                    now,
+                    endOfToday,
                     "Uber",
                     EntryTypeFilter.INCOME_ONLY
                 )
                 DashboardShortcut.IncomeSource.Yango -> Quadruple(
                     calculateStartOfCurrentMonth(),
-                    now,
+                    endOfToday,
                     "Yango",
                     EntryTypeFilter.INCOME_ONLY
                 )
                 DashboardShortcut.IncomeSource.Private -> Quadruple(
                     calculateStartOfCurrentMonth(),
-                    now,
+                    endOfToday,
                     "Private",
                     EntryTypeFilter.INCOME_ONLY
                 )
@@ -522,6 +523,16 @@ class ReportViewModel @Inject constructor(
             set(Calendar.MILLISECOND, 0)
         }
         return calendar.time
+    }
+
+    private fun calculateEndOfDay(date: Date): Date {
+        return Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
     }
 
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

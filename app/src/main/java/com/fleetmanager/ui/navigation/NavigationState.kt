@@ -17,7 +17,7 @@ object NavigationState {
     private val _currentPageIndex = MutableStateFlow(0)
     val currentPageIndex: StateFlow<Int> = _currentPageIndex.asStateFlow()
 
-    private val _reportShortcuts = MutableSharedFlow<DashboardShortcut>(extraBufferCapacity = 1)
+    private val _reportShortcuts = MutableSharedFlow<DashboardShortcut>(replay = 1)
     val reportShortcuts: SharedFlow<DashboardShortcut> = _reportShortcuts.asSharedFlow()
 
     fun setCurrentPage(index: Int) {
@@ -28,5 +28,9 @@ object NavigationState {
 
     suspend fun emitReportShortcut(shortcut: DashboardShortcut) {
         _reportShortcuts.emit(shortcut)
+    }
+
+    fun clearReportShortcut() {
+        _reportShortcuts.resetReplayCache()
     }
 }

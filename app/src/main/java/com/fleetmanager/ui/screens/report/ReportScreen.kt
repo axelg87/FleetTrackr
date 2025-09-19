@@ -53,6 +53,7 @@ fun ReportScreen(
     LaunchedEffect(Unit) {
         NavigationState.reportShortcuts.collect { shortcut ->
             viewModel.applyDashboardShortcut(shortcut)
+            NavigationState.clearReportShortcut()
         }
     }
 
