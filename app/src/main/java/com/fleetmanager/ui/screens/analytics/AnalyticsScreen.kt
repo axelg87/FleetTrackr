@@ -108,6 +108,8 @@ fun AnalyticsScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
+    }
+
     // Handle day selection dialog
     if (uiState.selectedDayEntries != null) {
         DayEntriesDialog(
