@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -139,12 +141,12 @@ fun SignInScreen(
                  */
                 
                 // Current logo - replace with your PNG logo
-                Icon(
+                Image(
                     painter = painterResource(id = R.drawable.ic_company_logo),
                     // When integrating PNG, use: painterResource(id = R.drawable.your_logo_name)
                     contentDescription = "AG Motion Logo",
                     modifier = Modifier.size(120.dp),
-                    tint = Color.Unspecified
+                    contentScale = ContentScale.Fit
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
