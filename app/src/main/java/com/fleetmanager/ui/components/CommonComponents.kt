@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,14 +22,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.fleetmanager.R
 
@@ -53,11 +55,9 @@ fun ScreenHeader(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (showLogo) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_company_logo),
-                    contentDescription = "AG Motion Logo",
+                AgMotionLogo(
                     modifier = Modifier.size(40.dp),
-                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                    contentDescription = "AG Motion Logo"
                 )
             }
             Text(
@@ -84,6 +84,35 @@ fun ScreenHeader(
             }
         }
     }
+}
+
+@Composable
+fun AgMotionLogo(
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    contentScale: ContentScale = ContentScale.Fit,
+    logoResId: Int = R.raw.ag_motion_logo
+) {
+    val context = LocalContext.current
+    val fallbackPainter = painterResource(id = R.drawable.ic_company_logo)
+    val imageRequest = remember(context, logoResId) {
+        ImageRequest.Builder(context)
+            .data(logoResId)
+            .decoderFactory(SvgDecoder.Factory())
+            .build()
+    }
+    val painter = rememberAsyncImagePainter(
+        model = imageRequest,
+        placeholder = fallbackPainter,
+        error = fallbackPainter
+    )
+
+    Image(
+        painter = painter,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        contentScale = contentScale
+    )
 }
 
 // Stat Card Component
