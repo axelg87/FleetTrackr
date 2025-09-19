@@ -266,19 +266,58 @@ object AnalyticsCalculator {
      */
     fun calculateProjection(
         currentMonthEntries: List<DailyEntry>,
+        weeklyPattern: List<DayOfWeekAnalysis>,
         currentDate: LocalDate
     ): ProjectionData {
-        val currentTotal = currentMonthEntries.sumOf { it.totalEarnings }
-        val dayOfMonth = currentDate.dayOfMonth
+        val incomeByDate = currentMonthEntries.groupBy {
+            AnalyticsUtils.dateToLocalDate(it.date)
+        }.mapValues { (_, entries) ->
+            entries.sumOf { it.totalEarnings }
+        }
+
+        val currentTotal = incomeByDate.values.sum()
+        val daysElapsed = currentDate.dayOfMonth
         val totalDaysInMonth = currentDate.lengthOfMonth()
-        
-        val dailyAverage = if (dayOfMonth > 0) currentTotal / dayOfMonth else 0.0
-        val projectedTotal = dailyAverage * totalDaysInMonth
-        
+        val recordedDays = incomeByDate.size
+
+        val dailyAverage = if (recordedDays > 0) currentTotal / recordedDays else 0.0
+
+        val weeklyAverages = weeklyPattern
+            .filter { it.totalDays > 0 && it.averageIncome > 0.0 }
+            .associate { it.dayOfWeek to it.averageIncome }
+
+        val currentMonthDayAverages = incomeByDate.entries
+            .groupBy { it.key.dayOfWeek }
+            .mapValues { (_, dayEntries) ->
+                val totalForDay = dayEntries.sumOf { it.value }
+                val occurrences = dayEntries.size
+                if (occurrences > 0) totalForDay / occurrences else 0.0
+            }
+
+        val fallbackAverage = when {
+            weeklyAverages.isNotEmpty() -> weeklyAverages.values.average()
+            dailyAverage > 0 -> dailyAverage
+            else -> 0.0
+        }
+
+        val projectedFutureTotal = generateSequence(currentDate.plusDays(1)) { it.plusDays(1) }
+            .takeWhile { it.month == currentDate.month }
+            .sumOf { futureDate ->
+                val weeklyAverage = weeklyAverages[futureDate.dayOfWeek]
+                val currentAverage = currentMonthDayAverages[futureDate.dayOfWeek]
+                when {
+                    weeklyAverage != null && weeklyAverage > 0.0 -> weeklyAverage
+                    currentAverage != null && currentAverage > 0.0 -> currentAverage
+                    else -> fallbackAverage
+                }
+            }
+
+        val projectedTotal = currentTotal + projectedFutureTotal
+
         return ProjectionData(
             currentMonthTotal = currentTotal,
             projectedMonthTotal = projectedTotal,
-            daysElapsed = dayOfMonth,
+            daysElapsed = daysElapsed,
             totalDaysInMonth = totalDaysInMonth,
             dailyAverage = dailyAverage,
             comparisonToPrevious = 0.0 // Will be calculated when previous month data is available
