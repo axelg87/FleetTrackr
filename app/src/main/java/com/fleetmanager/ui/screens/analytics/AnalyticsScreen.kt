@@ -18,7 +18,6 @@ import java.time.DayOfWeek
 import com.fleetmanager.ui.screens.analytics.components.*
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsCategory
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsData
-import com.fleetmanager.ui.screens.analytics.model.AnalyticsPanel
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsAdapters
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 
@@ -34,7 +33,6 @@ fun AnalyticsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val analyticsData by viewModel.analyticsData.collectAsState()
-    val selectedPanel by viewModel.selectedPanel.collectAsState()
     val timeFilter by viewModel.timeFilter.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     
@@ -73,37 +71,13 @@ fun AnalyticsScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // GENERALIZATION: Analytics menu for panel selection
-            AnalyticsMenu(
-                selectedPanel = selectedPanel,
-                selectedCategory = selectedCategory,
-                onCategorySelected = { selectedCategory = it },
-                onPanelSelected = { panel ->
-                    selectedCategory = panel.category
-                    viewModel.selectPanel(panel)
-                },
-                onShowAll = { viewModel.showAllPanels() },
-                modifier = Modifier.padding(bottom = 16.dp)
+            // Show panels within the selected category for quicker access
+            ShowCategoryPanels(
+                category = selectedCategory,
+                uiState = uiState,
+                analyticsData = analyticsData,
+                viewModel = viewModel
             )
-
-            // GENERALIZATION: Conditional panel rendering based on selection
-            selectedPanel?.let { panel ->
-                // Show selected panel only
-                ShowSelectedPanel(
-                    panel = panel,
-                    uiState = uiState,
-                    analyticsData = analyticsData,
-                    viewModel = viewModel
-                )
-            } ?: run {
-                // Show panels within the selected category for quicker access
-                ShowCategoryPanels(
-                    category = selectedCategory,
-                    uiState = uiState,
-                    analyticsData = analyticsData,
-                    viewModel = viewModel
-                )
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -132,11 +106,8 @@ private fun ShowCategoryPanels(
 ) {
     when (category) {
         AnalyticsCategory.PERFORMANCE -> {
-            GenericChart(
-                title = "Trends Over Time",
-                subtitle = "Daily income and expense patterns",
-                chartType = ChartType.LINE,
-                series = AnalyticsAdapters.trendDataToChartSeries(analyticsData.trendData),
+            MonthlyGoalPlanner(
+                projectionData = analyticsData.projection,
                 isLoading = analyticsData.isLoading,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -238,238 +209,6 @@ private fun ShowCategoryPanels(
 /**
  * GENERALIZATION: Show individual selected panel with enhanced features
  */
-@Composable
-private fun ShowSelectedPanel(
-    panel: AnalyticsPanel,
-    uiState: AnalyticsUiState,
-    analyticsData: AnalyticsData,
-    viewModel: AnalyticsViewModel
-) {
-    when (panel) {
-        AnalyticsPanel.TRENDS -> {
-            GenericChart(
-                title = "Trends Over Time",
-                subtitle = "Daily income and expense patterns with detailed analysis",
-                chartType = ChartType.LINE,
-                series = AnalyticsAdapters.trendDataToChartSeries(analyticsData.trendData),
-                isLoading = analyticsData.isLoading,
-                height = 300.dp,
-                customContent = {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    TrendSummaryCard(analyticsData.trendData)
-                }
-            )
-        }
-        
-        AnalyticsPanel.DRIVER_PERFORMANCE -> {
-            DriverComparison(
-                driverPerformance = analyticsData.driverPerformance,
-                isLoading = analyticsData.isLoading
-            )
-        }
-        
-        AnalyticsPanel.TOP_DRIVERS -> {
-            GenericLeaderboard(
-                title = "Top Drivers Leaderboard",
-                subtitle = "Complete driver performance rankings",
-                data = AnalyticsAdapters.driverPerformanceToLeaderboard(analyticsData.driverPerformance),
-                style = LeaderboardStyle.PODIUM,
-                maxItems = 10,
-                isLoading = analyticsData.isLoading,
-                summaryContent = {
-                    DriverLeaderboardSummary(analyticsData.driverPerformance)
-                }
-            )
-        }
-        
-        AnalyticsPanel.VEHICLE_ROI -> {
-            VehicleROIAnalysis(
-                vehicleROI = analyticsData.vehicleROI,
-                isLoading = analyticsData.isLoading
-            )
-        }
-        
-        AnalyticsPanel.DAY_OF_WEEK -> {
-            GenericChart(
-                title = "Weekly Patterns Analysis",
-                subtitle = "Detailed day-of-week performance breakdown",
-                chartType = ChartType.BAR_HORIZONTAL,
-                data = AnalyticsAdapters.dayOfWeekToChartData(analyticsData.dayOfWeekAnalysis),
-                isLoading = analyticsData.isLoading,
-                height = 400.dp,
-                customContent = {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    WeeklyInsightsCard(analyticsData.dayOfWeekAnalysis)
-                }
-            )
-        }
-        
-        AnalyticsPanel.EXPENSE_BREAKDOWN -> {
-            ExpenseDeepDive(
-                expenseBreakdown = analyticsData.expenseBreakdown,
-                isLoading = analyticsData.isLoading
-            )
-        }
-        
-        AnalyticsPanel.MONTHLY_COMPARISON -> {
-            if (analyticsData.monthlyComparison != null) {
-                MonthlyComparisonCard(
-                    monthlyComparison = analyticsData.monthlyComparison,
-                    isLoading = analyticsData.isLoading
-                )
-            }
-        }
-        
-        AnalyticsPanel.PROJECTION -> {
-            if (analyticsData.projection != null) {
-                ProjectionEstimation(
-                    projectionData = analyticsData.projection,
-                    isLoading = analyticsData.isLoading
-                )
-            }
-        }
-        
-        AnalyticsPanel.ANOMALY_DETECTION -> {
-            AnomalyDetection(
-                anomalies = analyticsData.anomalies,
-                isLoading = analyticsData.isLoading
-            )
-        }
-        
-        AnalyticsPanel.CALENDAR_VIEW -> {
-            AnalyticsSection(
-                title = "Calendar Overview",
-                description = "Interactive daily earnings calendar"
-            ) {
-                CalendarView(
-                    entriesData = uiState.entriesData,
-                    isLoading = uiState.isLoading,
-                    onDayClick = { date, entries ->
-                        viewModel.onDaySelected(date, entries)
-                    }
-                )
-            }
-        }
-    }
-}
-
-/**
- * GENERALIZATION: Enhanced summary cards for detailed panel views
- */
-@Composable
-private fun TrendSummaryCard(trendData: List<com.fleetmanager.ui.screens.analytics.model.TrendData>) {
-    if (trendData.isEmpty()) return
-    
-    val totalIncome = trendData.sumOf { it.income }
-    val totalExpenses = trendData.sumOf { it.expenses }
-    val totalProfit = totalIncome - totalExpenses
-    val averageIncome = totalIncome / trendData.size
-    val bestDay = trendData.maxByOrNull { it.income }
-    val worstDay = trendData.minByOrNull { it.income }
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Text(
-                text = "Period Analysis",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Total Income",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = AnalyticsUtils.formatCurrency(totalIncome),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = AnalyticsUtils.Colors.SUCCESS
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "Total Expenses",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = AnalyticsUtils.formatCurrency(totalExpenses),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = AnalyticsUtils.Colors.ERROR
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "Net Profit",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = AnalyticsUtils.formatCurrency(totalProfit),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (totalProfit >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
-                    )
-                }
-            }
-            
-            if (bestDay != null && worstDay != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Best Day",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "${bestDay.date}: ${AnalyticsUtils.formatCurrency(bestDay.income)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AnalyticsUtils.Colors.SUCCESS
-                        )
-                    }
-                    
-                    Column {
-                        Text(
-                            text = "Daily Average",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = AnalyticsUtils.formatCurrency(averageIncome),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AnalyticsUtils.Colors.INFO
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun DriverLeaderboardSummary(driverPerformance: List<com.fleetmanager.ui.screens.analytics.model.DriverPerformance>) {
     if (driverPerformance.isEmpty()) return
