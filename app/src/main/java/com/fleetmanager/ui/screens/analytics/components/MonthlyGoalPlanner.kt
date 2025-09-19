@@ -113,60 +113,57 @@ fun MonthlyGoalPlanner(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                return
-            }
-
-            LinearProgressIndicator(
-                progress = progress.toFloat(),
-                modifier = Modifier.fillMaxWidth(),
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-            Text(
-                text = "${AnalyticsUtils.formatCurrency(currentTotal)} of ${AnalyticsUtils.formatCurrency(targetAmount)} (${AnalyticsUtils.formatPercentage(progress * 100)})",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            GoalStatRow(
-                primaryLabel = "Current total",
-                primaryValue = AnalyticsUtils.formatCurrency(currentTotal),
-                secondaryLabel = "Goal amount",
-                secondaryValue = AnalyticsUtils.formatCurrency(targetAmount)
-            )
-
-            GoalStatRow(
-                primaryLabel = "Amount left",
-                primaryValue = if (remainingAmount > 0) {
-                    AnalyticsUtils.formatCurrency(remainingAmount)
-                } else {
-                    "Goal reached"
-                },
-                primaryValueColor = if (remainingAmount > 0) {
-                    AnalyticsUtils.Colors.ERROR
-                } else {
-                    AnalyticsUtils.Colors.SUCCESS
-                },
-                secondaryLabel = if (remainingDays > 0) "Needed per day" else "Needed today",
-                secondaryValue = AnalyticsUtils.formatCurrency(requiredDailyAverage),
-                secondaryValueColor = if (remainingAmount > 0) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    AnalyticsUtils.Colors.SUCCESS
-                }
-            )
-
-            if (projectionData != null) {
-                GoalStatRow(
-                    primaryLabel = "Remaining days",
-                    primaryValue = AnalyticsUtils.formatWholeNumber(remainingDays.toDouble()),
-                    secondaryLabel = "Projected total",
-                    secondaryValue = AnalyticsUtils.formatCurrency(projectedTotal)
+            } else {
+                LinearProgressIndicator(
+                    progress = progress.toFloat(),
+                    modifier = Modifier.fillMaxWidth(),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                Text(
+                    text = "${AnalyticsUtils.formatCurrency(currentTotal)} of ${AnalyticsUtils.formatCurrency(targetAmount)} (${AnalyticsUtils.formatPercentage(progress * 100)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
 
-                if (targetAmount > 0.0) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                GoalStatRow(
+                    primaryLabel = "Current total",
+                    primaryValue = AnalyticsUtils.formatCurrency(currentTotal),
+                    secondaryLabel = "Goal amount",
+                    secondaryValue = AnalyticsUtils.formatCurrency(targetAmount)
+                )
+
+                GoalStatRow(
+                    primaryLabel = "Amount left",
+                    primaryValue = if (remainingAmount > 0) {
+                        AnalyticsUtils.formatCurrency(remainingAmount)
+                    } else {
+                        "Goal reached"
+                    },
+                    primaryValueColor = if (remainingAmount > 0) {
+                        AnalyticsUtils.Colors.ERROR
+                    } else {
+                        AnalyticsUtils.Colors.SUCCESS
+                    },
+                    secondaryLabel = if (remainingDays > 0) "Needed per day" else "Needed today",
+                    secondaryValue = AnalyticsUtils.formatCurrency(requiredDailyAverage),
+                    secondaryValueColor = if (remainingAmount > 0) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        AnalyticsUtils.Colors.SUCCESS
+                    }
+                )
+
+                if (projectionData != null) {
+                    GoalStatRow(
+                        primaryLabel = "Remaining days",
+                        primaryValue = AnalyticsUtils.formatWholeNumber(remainingDays.toDouble()),
+                        secondaryLabel = "Projected total",
+                        secondaryValue = AnalyticsUtils.formatCurrency(projectedTotal)
+                    )
+
                     GoalStatRow(
                         primaryLabel = if (projectedGap <= 0) "Projected surplus" else "Projected shortfall",
                         primaryValue = AnalyticsUtils.formatCurrency(abs(projectedGap)),
@@ -176,22 +173,22 @@ fun MonthlyGoalPlanner(
                         secondaryValueColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val statusMessage = when {
+                    remainingAmount <= 0.0 -> "Great job! You're already ahead of this month's goal."
+                    remainingDays == 0 -> "Goal deadline is here. Every additional ${AnalyticsUtils.formatCurrency(remainingAmount)} gets you to the finish line."
+                    else -> "You need ${AnalyticsUtils.formatCurrency(requiredDailyAverage)} per day for the next $remainingDays days to hit your goal."
+                }
+
+                Text(
+                    text = statusMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (remainingAmount <= 0.0) AnalyticsUtils.Colors.SUCCESS else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val statusMessage = when {
-                remainingAmount <= 0.0 -> "Great job! You're already ahead of this month's goal."
-                remainingDays == 0 -> "Goal deadline is here. Every additional ${AnalyticsUtils.formatCurrency(remainingAmount)} gets you to the finish line."
-                else -> "You need ${AnalyticsUtils.formatCurrency(requiredDailyAverage)} per day for the next $remainingDays days to hit your goal."
-            }
-
-            Text(
-                text = statusMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (remainingAmount <= 0.0) AnalyticsUtils.Colors.SUCCESS else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }
