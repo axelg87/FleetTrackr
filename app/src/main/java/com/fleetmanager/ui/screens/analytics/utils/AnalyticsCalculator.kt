@@ -280,7 +280,8 @@ object AnalyticsCalculator {
         val totalDaysInMonth = currentDate.lengthOfMonth()
         val recordedDays = incomeByDate.size
 
-        val dailyAverage = if (recordedDays > 0) currentTotal / recordedDays else 0.0
+        val activeDayAverage = if (recordedDays > 0) currentTotal / recordedDays else 0.0
+        val dailyAverage = if (daysElapsed > 0) currentTotal / daysElapsed else 0.0
 
         val weeklyAverages = weeklyPattern
             .filter { it.totalDays > 0 && it.averageIncome > 0.0 }
@@ -296,7 +297,7 @@ object AnalyticsCalculator {
 
         val fallbackAverage = when {
             weeklyAverages.isNotEmpty() -> weeklyAverages.values.average()
-            dailyAverage > 0 -> dailyAverage
+            activeDayAverage > 0 -> activeDayAverage
             else -> 0.0
         }
 
@@ -320,7 +321,9 @@ object AnalyticsCalculator {
             daysElapsed = daysElapsed,
             totalDaysInMonth = totalDaysInMonth,
             dailyAverage = dailyAverage,
-            comparisonToPrevious = 0.0 // Will be calculated when previous month data is available
+            comparisonToPrevious = 0.0, // Will be calculated when previous month data is available
+            activeRevenueDays = recordedDays,
+            activeDayAverage = activeDayAverage
         )
     }
 

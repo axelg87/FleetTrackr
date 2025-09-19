@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.ui.screens.analytics.model.ProjectionData
@@ -166,13 +167,35 @@ private fun ProjectionMainCard(projectionData: ProjectionData) {
             Spacer(modifier = Modifier.height(8.dp))
             
             val remainingDays = projectionData.totalDaysInMonth - projectionData.daysElapsed
-            val projectedRemaining = projectionData.dailyAverage * remainingDays
-            
+            val projectedRemaining = (projectionData.projectedMonthTotal - projectionData.currentMonthTotal).coerceAtLeast(0.0)
+            val patternDaily = if (remainingDays > 0) projectedRemaining / remainingDays else 0.0
+
             Text(
                 text = "Expected additional: ${AnalyticsCalculator.formatCurrency(projectedRemaining)} over $remainingDays days",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (projectionData.activeRevenueDays > 0) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Based on ${projectionData.activeRevenueDays} active revenue days and weekly day-of-week trends.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            if (patternDaily > 0.0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Aim for ~${AnalyticsCalculator.formatCurrency(patternDaily)} each remaining day to stay on projection.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -255,6 +278,8 @@ private fun ProjectionMetrics(projectionData: ProjectionData) {
                 modifier = Modifier.padding(bottom = 12.dp)
             )
             
+            val projectedRemaining = (projectionData.projectedMonthTotal - projectionData.currentMonthTotal).coerceAtLeast(0.0)
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -262,35 +287,45 @@ private fun ProjectionMetrics(projectionData: ProjectionData) {
                 MetricItem(
                     label = "Current Total",
                     value = AnalyticsCalculator.formatCurrency(projectionData.currentMonthTotal),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
                 )
-                
+
                 MetricItem(
                     label = "Daily Average",
                     value = AnalyticsCalculator.formatCurrency(projectionData.dailyAverage),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
             }
-            
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            DailyPaceDetails(
+                projectionData = projectionData,
+                projectedRemaining = projectedRemaining
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 val remainingDays = projectionData.totalDaysInMonth - projectionData.daysElapsed
-                val projectedRemaining = projectionData.dailyAverage * remainingDays
-                
+
                 MetricItem(
                     label = "Days Remaining",
                     value = remainingDays.toString(),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
-                
+
                 MetricItem(
                     label = "Projected Remaining",
                     value = AnalyticsCalculator.formatCurrency(projectedRemaining),
-                    color = Color(0xFF4CAF50)
+                    color = Color(0xFF4CAF50),
+                    modifier = Modifier.weight(1f)
                 )
             }
             
@@ -328,12 +363,52 @@ private fun ProjectionMetrics(projectionData: ProjectionData) {
 }
 
 @Composable
+private fun DailyPaceDetails(
+    projectionData: ProjectionData,
+    projectedRemaining: Double
+) {
+    val remainingDays = (projectionData.totalDaysInMonth - projectionData.daysElapsed).coerceAtLeast(0)
+    val weightedDaily = if (remainingDays > 0) projectedRemaining / remainingDays else 0.0
+    val averageSource = when {
+        projectionData.activeRevenueDays <= 0 -> "calendar pace"
+        projectionData.activeRevenueDays == projectionData.daysElapsed ->
+            "${projectionData.activeRevenueDays} recorded days"
+        else ->
+            "${projectionData.activeRevenueDays} revenue days over ${projectionData.daysElapsed} elapsed"
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Daily average is based on $averageSource with weekly trend weighting for gaps.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        if (weightedDaily > 0.0) {
+            Text(
+                text = "You need about ${AnalyticsCalculator.formatCurrency(weightedDaily)} per remaining day to match the projection.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
+}
+
 private fun MetricItem(
     label: String,
     value: String,
-    color: Color
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
     Column(
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
