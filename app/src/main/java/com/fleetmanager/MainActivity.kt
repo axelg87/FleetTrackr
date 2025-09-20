@@ -7,8 +7,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
 import com.fleetmanager.auth.AuthService
@@ -33,13 +37,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FleetManagerTheme {
-                val navController = rememberNavController()
-                val isSignedIn by authService.isSignedIn.collectAsState(initial = false)
-                
-                AppNavigation(
-                    navController = navController,
-                    isSignedIn = isSignedIn
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val navController = rememberNavController()
+                    val isSignedIn by authService.isSignedIn.collectAsState(initial = false)
+
+                    AppNavigation(
+                        navController = navController,
+                        isSignedIn = isSignedIn
+                    )
+                }
             }
         }
     }
