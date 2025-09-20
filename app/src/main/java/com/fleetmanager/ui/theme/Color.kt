@@ -2,13 +2,15 @@ package com.fleetmanager.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+val PrimaryBlue80 = Color(0xFF4D9DE0)
+val SecondarySlate80 = Color(0xFFA6B1C3)
+val AccentTeal80 = Color(0xFF40C4A3)
 
-val Purple40 = Color(0xFF6650A4)
-val PurpleGrey40 = Color(0xFF625B71)
-val Pink40 = Color(0xFF7D5260)
+val PrimaryBlue40 = Color(0xFF1B3A63)
+val SecondarySlate40 = Color(0xFF2D3545)
+val AccentTeal40 = Color(0xFF146354)
+
+val AccentNavy = Color(0xFF1B4F72)
 
 val AppBackgroundBlack = Color(0xFF08080B)
 val AppSurfaceDark = Color(0xFF111116)

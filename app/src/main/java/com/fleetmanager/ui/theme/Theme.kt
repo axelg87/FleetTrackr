@@ -20,18 +20,18 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    onPrimary = Color(0xFF2B1947),
-    primaryContainer = Color(0xFF4A3A7A),
-    onPrimaryContainer = Color(0xFFF3E3FF),
-    secondary = PurpleGrey80,
-    onSecondary = Color(0xFF1F1A2B),
-    secondaryContainer = Color(0xFF383248),
-    onSecondaryContainer = Color(0xFFE8DEF8),
-    tertiary = Pink80,
-    onTertiary = Color(0xFF420016),
-    tertiaryContainer = Color(0xFF65112F),
-    onTertiaryContainer = Color(0xFFFFD9E0),
+    primary = PrimaryBlue80,
+    onPrimary = Color(0xFF071425),
+    primaryContainer = AccentNavy,
+    onPrimaryContainer = Color(0xFFD9E7F8),
+    secondary = SecondarySlate80,
+    onSecondary = Color(0xFF0D141C),
+    secondaryContainer = SecondarySlate40,
+    onSecondaryContainer = Color(0xFFE2E6EB),
+    tertiary = AccentTeal80,
+    onTertiary = Color(0xFF00221B),
+    tertiaryContainer = AccentTeal40,
+    onTertiaryContainer = Color(0xFFD1F5EB),
     background = AppBackgroundBlack,
     onBackground = AppOnBackgroundDark,
     surface = AppSurfaceDark,
@@ -41,22 +41,22 @@ private val DarkColorScheme = darkColorScheme(
     outline = AppOutlineDark,
     inverseSurface = AppOnSurfaceDark,
     inverseOnSurface = AppSurfaceDark,
-    inversePrimary = Purple40
+    inversePrimary = PrimaryBlue40
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
+    primary = PrimaryBlue40,
     onPrimary = Color.White,
-    primaryContainer = Purple80,
-    onPrimaryContainer = Color(0xFF1F1147),
-    secondary = PurpleGrey40,
+    primaryContainer = PrimaryBlue80,
+    onPrimaryContainer = Color(0xFF04142A),
+    secondary = SecondarySlate40,
     onSecondary = Color.White,
-    secondaryContainer = PurpleGrey80,
-    onSecondaryContainer = Color(0xFF201B2C),
-    tertiary = Pink40,
+    secondaryContainer = SecondarySlate80,
+    onSecondaryContainer = Color(0xFF1A232E),
+    tertiary = AccentTeal40,
     onTertiary = Color.White,
-    tertiaryContainer = Pink80,
-    onTertiaryContainer = Color(0xFF3D001A),
+    tertiaryContainer = AccentTeal80,
+    onTertiaryContainer = Color(0xFF0A2F29),
     background = AppBackgroundBlack,
     onBackground = AppOnBackgroundDark,
     surface = AppSurfaceDark,
@@ -66,7 +66,7 @@ private val LightColorScheme = lightColorScheme(
     outline = AppOutlineDark,
     inverseSurface = AppOnSurfaceDark,
     inverseOnSurface = AppSurfaceDark,
-    inversePrimary = Purple80
+    inversePrimary = PrimaryBlue80
 )
 
 private fun enforceBackgroundPalette(colorScheme: ColorScheme): ColorScheme {

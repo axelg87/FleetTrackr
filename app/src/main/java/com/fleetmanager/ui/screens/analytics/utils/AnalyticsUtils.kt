@@ -3,6 +3,7 @@ package com.fleetmanager.ui.screens.analytics.utils
 import androidx.compose.ui.graphics.Color
 import com.fleetmanager.domain.model.ExpenseType
 import com.fleetmanager.ui.screens.analytics.model.AnomalyType
+import com.fleetmanager.ui.theme.AccentNavy
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
@@ -103,7 +104,7 @@ object AnalyticsUtils {
             ExpenseType.CAR_WASH -> Color(0xFF00BCD4) // Cyan
             ExpenseType.FINE -> Colors.ERROR // Red
             ExpenseType.MAINTENANCE -> Colors.WARNING // Orange
-            ExpenseType.OTHER -> Color(0xFF9C27B0) // Purple
+            ExpenseType.OTHER -> AccentNavy // Professional accent blue
         }
     }
     
@@ -115,7 +116,7 @@ object AnalyticsUtils {
         return when (type) {
             AnomalyType.LOW_INCOME -> Colors.ERROR
             AnomalyType.HIGH_EXPENSES -> Colors.WARNING
-            AnomalyType.ZERO_INCOME -> Color(0xFF9C27B0) // Purple
+            AnomalyType.ZERO_INCOME -> AccentNavy // Professional accent blue
             AnomalyType.UNUSUAL_PATTERN -> Colors.NEUTRAL
         }
     }
@@ -143,7 +144,7 @@ object AnalyticsUtils {
             DayOfWeek.MONDAY -> Colors.INFO
             DayOfWeek.TUESDAY -> Colors.SUCCESS
             DayOfWeek.WEDNESDAY -> Colors.WARNING
-            DayOfWeek.THURSDAY -> Color(0xFF9C27B0) // Purple
+            DayOfWeek.THURSDAY -> AccentNavy // Professional accent blue
             DayOfWeek.FRIDAY -> Colors.ERROR
             DayOfWeek.SATURDAY -> Colors.NEUTRAL
             DayOfWeek.SUNDAY -> Color(0xFF795548) // Brown
