@@ -7,11 +7,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +24,7 @@ import com.fleetmanager.ui.screens.analytics.model.AnomalyData
 import com.fleetmanager.ui.screens.analytics.model.AnomalyType
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
+import com.fleetmanager.ui.theme.AccentNavy
 import java.time.format.DateTimeFormatter
 
 /**
@@ -165,7 +166,7 @@ private fun AnomalySummary(anomalies: List<AnomalyData>) {
                 AnomalyStat(
                     label = "Zero Income",
                     count = anomalyCounts[AnomalyType.ZERO_INCOME] ?: 0,
-                    color = Color(0xFF9C27B0)
+                    color = AccentNavy
                 )
                 AnomalyStat(
                     label = "Other",
@@ -397,7 +398,7 @@ private fun getAnomalyIconAndColor(type: AnomalyType): Pair<ImageVector, Color> 
     return when (type) {
         AnomalyType.LOW_INCOME -> Icons.Default.TrendingDown to Color(0xFFF44336)
         AnomalyType.HIGH_EXPENSES -> Icons.Default.TrendingUp to Color(0xFFFF9800)
-        AnomalyType.ZERO_INCOME -> Icons.Default.Error to Color(0xFF9C27B0)
+        AnomalyType.ZERO_INCOME -> Icons.Default.Error to AccentNavy
         AnomalyType.UNUSUAL_PATTERN -> Icons.Default.Warning to Color(0xFF607D8B)
     }
 }

@@ -1,6 +1,8 @@
 package com.fleetmanager.ui.model
 
 import androidx.compose.ui.graphics.Color
+import com.fleetmanager.ui.theme.AccentNavy
+import com.fleetmanager.ui.theme.PrimaryBlue80
 import java.util.*
 
 /**
@@ -134,13 +136,13 @@ object ChartDataGenerator {
     
     private fun getColorForIndex(index: Int): Color {
         val colors = listOf(
-            Color(0xFF6750A4), // Material Purple
+            PrimaryBlue80, // Corporate Blue
             Color(0xFF1976D2), // Material Blue
             Color(0xFF388E3C), // Material Green
             Color(0xFFFF8F00), // Material Amber
             Color(0xFFD32F2F), // Material Red
             Color(0xFF0097A7), // Material Cyan
-            Color(0xFF7B1FA2), // Material Deep Purple
+            AccentNavy, // Corporate Navy
             Color(0xFF5D4037), // Material Brown
             Color(0xFFC2185B), // Material Pink
             Color(0xFF689F38), // Material Light Green
