@@ -4,15 +4,18 @@ import android.net.Uri
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
+import androidx.lifecycle.SavedStateHandle
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.validation.InputValidator
+import com.fleetmanager.ui.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import java.util.Calendar
@@ -73,13 +76,17 @@ class AddEntryViewModel @Inject constructor(
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val savedStateHandle: SavedStateHandle
 ) : BaseViewModel<AddEntryUiState>() {
-    
+
+    private val dubaiTimeZone: TimeZone = TimeZone.getTimeZone("Asia/Dubai")
+    private val prefilledDate: Date? = loadPrefilledDate()
+
     override fun getInitialState() = AddEntryUiState(
-        date = getDefaultDate()
+        date = prefilledDate ?: getDefaultDate()
     )
-    
+
     /**
      * Calculate the default date based on the 2PM rule:
      * - If current time is before 2:00 PM, use yesterday's date
@@ -98,7 +105,18 @@ class AddEntryViewModel @Inject constructor(
             now.time
         }
     }
-    
+
+    private fun loadPrefilledDate(): Date? {
+        val isoDate = savedStateHandle.get<String>(Screen.AddEntry.ARG_PREFILL_DATE)?.takeIf { it.isNotBlank() }
+            ?: return null
+
+        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+            timeZone = dubaiTimeZone
+        }
+
+        return runCatching { formatter.parse(isoDate) }.getOrNull()
+    }
+
     init {
         loadFirestoreData()
         loadUserProfile()

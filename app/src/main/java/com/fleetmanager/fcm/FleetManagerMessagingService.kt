@@ -4,6 +4,9 @@ import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.fleetmanager.auth.AuthService
+import com.fleetmanager.fcm.NotificationConstants
+import com.fleetmanager.fcm.NotificationConstants.ACTION_MISSING_INCOME
+import com.fleetmanager.fcm.NotificationConstants.KEY_ACTION
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +34,6 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
         // FCM payload keys
         private const val KEY_TITLE = "title"
         private const val KEY_BODY = "body"
-        private const val KEY_CHANNEL_ID = "channel_id"
         private const val KEY_NOTIFICATION_TYPE = "notification_type"
         private const val KEY_VEHICLE_ID = "vehicle_id"
         private const val KEY_DRIVER_ID = "driver_id"
@@ -68,7 +70,7 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
         val title = data[KEY_TITLE] ?: "Fleet Manager"
         val body = data[KEY_BODY] ?: "You have a new notification"
         val channelId = determineChannelId(data)
-        
+
         // Show notification
         notificationHelper.showNotification(
             title = title,
@@ -76,7 +78,9 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
             channelId = channelId,
             data = data
         )
-        
+
+        handleAction(data)
+
         // Handle specific notification types
         when (data[KEY_NOTIFICATION_TYPE]) {
             TYPE_MAINTENANCE_REMINDER -> handleMaintenanceReminder(data)
@@ -95,7 +99,7 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
         val title = notification.title ?: "Fleet Manager"
         val body = notification.body ?: "You have a new notification"
         val channelId = determineChannelId(data)
-        
+
         // Show notification
         notificationHelper.showNotification(
             title = title,
@@ -103,18 +107,33 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
             channelId = channelId,
             data = data
         )
+
+        handleAction(data)
     }
-    
+
     private fun determineChannelId(data: Map<String, String>): String {
         // Check if channel is explicitly specified
-        data[KEY_CHANNEL_ID]?.let { return it }
-        
+        data[NotificationConstants.KEY_CHANNEL_ID]?.let { return it }
+
         // Determine channel based on notification type
         return when (data[KEY_NOTIFICATION_TYPE]) {
             TYPE_MAINTENANCE_REMINDER -> NotificationHelper.CHANNEL_ID_REMINDERS
             TYPE_EXPENSE_ALERT, TYPE_VEHICLE_ALERT -> NotificationHelper.CHANNEL_ID_HIGH_PRIORITY
             else -> NotificationHelper.CHANNEL_ID_DEFAULT
         }
+    }
+
+    private fun handleAction(data: Map<String, String>) {
+        when (data[KEY_ACTION]) {
+            ACTION_MISSING_INCOME -> handleMissingIncomeReminder(data)
+        }
+    }
+
+    private fun handleMissingIncomeReminder(data: Map<String, String>) {
+        Log.d(TAG, "Handling missing income reminder: $data")
+        // No immediate UI side-effects here because navigation is orchestrated
+        // by MainActivity when the user opens the notification. Keeping this
+        // method allows us to extend the behaviour later (e.g., analytics).
     }
     
     private fun handleMaintenanceReminder(data: Map<String, String>) {

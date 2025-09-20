@@ -1,0 +1,22 @@
+{
+  "name": "fleettrackr-functions",
+  "version": "1.0.0",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint . --ext .ts",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.4.1",
+    "luxon": "^3.4.4"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.34",
+    "typescript": "^5.4.5"
+  }
+}

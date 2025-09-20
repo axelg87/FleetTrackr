@@ -44,7 +44,11 @@ sealed class Screen(val route: String) {
     object Reports : Screen("reports")
     object Settings : Screen("settings")
     object Profile : Screen("profile")
-    object AddEntry : Screen("add_entry")
+    object AddEntry : Screen("add_entry") {
+        const val ARG_PREFILL_DATE = "prefillDate"
+        val routeWithOptionalPrefill: String = "${route}?$ARG_PREFILL_DATE={$ARG_PREFILL_DATE}"
+        fun createRouteWithPrefill(dateIso: String): String = "${route}?$ARG_PREFILL_DATE=$dateIso"
+    }
     object AddExpense : Screen("add_expense")
     object EntryDetail : Screen("entry_detail/{entryId}") {
         fun createRoute(entryId: String) = "entry_detail/$entryId"
@@ -91,17 +95,23 @@ fun getBottomNavItemsForRole(userRole: UserRole): List<BottomNavItem> {
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    isSignedIn: Boolean
+    isSignedIn: Boolean,
+    notificationCommand: NotificationNavigationCommand? = null,
+    onNotificationCommandConsumed: () -> Unit = {}
 ) {
     var showSplash by remember { mutableStateOf(true) }
-    
+
     if (showSplash) {
         SplashScreen(
             onSplashComplete = { showSplash = false }
         )
     } else {
         if (isSignedIn) {
-            MainNavigation(navController = navController)
+            MainNavigation(
+                navController = navController,
+                notificationCommand = notificationCommand,
+                onNotificationCommandConsumed = onNotificationCommandConsumed
+            )
         } else {
             SignInOnlyNavigation(navController = navController)
         }
@@ -114,7 +124,9 @@ fun AppNavigation(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainNavigation(
-    navController: NavHostController
+    navController: NavHostController,
+    notificationCommand: NotificationNavigationCommand?,
+    onNotificationCommandConsumed: () -> Unit
 ) {
     // Get user role for bottom nav filtering
     val userNavigationViewModel: UserNavigationViewModel = hiltViewModel()
@@ -130,6 +142,11 @@ private fun MainNavigation(
             MainScreen(
                 bottomNavItems = bottomNavItems,
                 onAddEntryClick = { navController.navigate(Screen.AddEntry.route) },
+                onAddEntryForDate = { dateIso ->
+                    navController.navigate(Screen.AddEntry.createRouteWithPrefill(dateIso)) {
+                        launchSingleTop = true
+                    }
+                },
                 onAddExpenseClick = { navController.navigate(Screen.AddExpense.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onEntryClick = { entryId -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) }
@@ -143,7 +160,15 @@ private fun MainNavigation(
             )
         }
         
-        composable(Screen.AddEntry.route) {
+        composable(
+            route = Screen.AddEntry.routeWithOptionalPrefill,
+            arguments = listOf(
+                navArgument(Screen.AddEntry.ARG_PREFILL_DATE) {
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
             AddEntryScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
@@ -165,6 +190,29 @@ private fun MainNavigation(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+    }
+
+    LaunchedEffect(notificationCommand) {
+        val command = notificationCommand ?: return@LaunchedEffect
+        when (command) {
+            is NotificationNavigationCommand.OpenMissingIncome -> {
+                val route = command.missingDateIso?.let { date ->
+                    Screen.AddEntry.createRouteWithPrefill(date)
+                } ?: Screen.AddEntry.route
+
+                navController.navigate(route) {
+                    launchSingleTop = true
+                }
+            }
+
+            NotificationNavigationCommand.OpenDashboard -> {
+                navController.navigate(Screen.Main.route) {
+                    launchSingleTop = true
+                }
+            }
+        }
+
+        onNotificationCommandConsumed()
     }
 }
 

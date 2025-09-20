@@ -1,6 +1,7 @@
 package com.fleetmanager
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -13,8 +14,12 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
 import com.fleetmanager.auth.AuthService
 import com.fleetmanager.ui.navigation.AppNavigation
+import com.fleetmanager.ui.navigation.NotificationNavigationCommand
 import com.fleetmanager.ui.theme.FleetManagerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -26,22 +31,37 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authService: AuthService
 
+    private val notificationNavigationState: MutableStateFlow<NotificationNavigationCommand?> =
+        MutableStateFlow(null)
+
+    private val notificationNavigationCommands: StateFlow<NotificationNavigationCommand?>
+        get() = notificationNavigationState.asStateFlow()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         requestNotificationPermissionIfNeeded()
+        handleNotificationIntent(intent)
 
         setContent {
             FleetManagerTheme {
                 val navController = rememberNavController()
                 val isSignedIn by authService.isSignedIn.collectAsState(initial = false)
-                
+                val notificationCommand by notificationNavigationCommands.collectAsState(initial = null)
+
                 AppNavigation(
                     navController = navController,
-                    isSignedIn = isSignedIn
+                    isSignedIn = isSignedIn,
+                    notificationCommand = notificationCommand,
+                    onNotificationCommandConsumed = { notificationNavigationState.value = null }
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -54,6 +74,13 @@ class MainActivity : ComponentActivity() {
             if (!isGranted) {
                 requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
+        }
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        val command = NotificationNavigationCommand.fromIntent(intent)
+        if (command != null) {
+            notificationNavigationState.value = command
         }
     }
 }

@@ -23,6 +23,7 @@ import com.fleetmanager.ui.viewmodel.DashboardViewModel
 @Composable
 fun DashboardScreen(
     onAddEntryClick: () -> Unit,
+    onAddEntryForDate: (String) -> Unit,
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: (() -> Unit)? = null,
     onEntryClick: ((String) -> Unit)? = null,
@@ -86,16 +87,29 @@ fun DashboardScreen(
         }
 
         item {
-            QuickActionsRow(
-                actions = listOf(
-                    ActionItem(
-                        text = "Sync",
-                        icon = Icons.Default.Refresh,
-                        onClick = onSyncClick,
-                        isPrimary = false
+            val quickActions = remember(uiState.missingIncomeDateIso, onSyncClick, onAddEntryForDate) {
+                buildList {
+                    uiState.missingIncomeDateIso?.let { isoDate ->
+                        add(
+                            ActionItem(
+                                text = "Enter yesterday's income",
+                                icon = Icons.Default.Add,
+                                onClick = { onAddEntryForDate(isoDate) }
+                            )
+                        )
+                    }
+                    add(
+                        ActionItem(
+                            text = "Sync",
+                            icon = Icons.Default.Refresh,
+                            onClick = onSyncClick,
+                            isPrimary = uiState.missingIncomeDateIso == null
+                        )
                     )
-                )
-            )
+                }
+            }
+
+            QuickActionsRow(actions = quickActions)
         }
 
         // Recent Activity

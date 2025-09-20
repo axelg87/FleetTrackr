@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     bottomNavItems: List<BottomNavItem>,
     onAddEntryClick: () -> Unit,
+    onAddEntryForDate: (String) -> Unit,
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onEntryClick: (String) -> Unit
@@ -90,6 +91,7 @@ fun MainScreen(
                 when (bottomNavItems[index].screen) {
                     Screen.Dashboard -> DashboardScreen(
                         onAddEntryClick = onAddEntryClick,
+                        onAddEntryForDate = onAddEntryForDate,
                         onAddExpenseClick = onAddExpenseClick,
                         onNavigateToProfile = onNavigateToProfile,
                         onEntryClick = onEntryClick,
@@ -119,6 +121,7 @@ fun MainScreen(
                     )
                     else -> DashboardScreen(
                         onAddEntryClick = onAddEntryClick,
+                        onAddEntryForDate = onAddEntryForDate,
                         onAddExpenseClick = onAddExpenseClick,
                         onNavigateToProfile = onNavigateToProfile,
                         onEntryClick = onEntryClick

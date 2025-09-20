@@ -12,13 +12,16 @@ import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
+import com.fleetmanager.domain.usecase.ObserveMissingIncomeStatusUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
 import com.fleetmanager.ui.navigation.DashboardShortcut
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.inject.Inject
 
@@ -29,7 +32,8 @@ data class DashboardUiState(
     val recentEntries: List<com.fleetmanager.domain.model.DailyEntry> = emptyList(),
     val userProfile: UserDto? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val missingIncomeDateIso: String? = null
 )
 
 @HiltViewModel
@@ -37,7 +41,8 @@ class DashboardViewModel @Inject constructor(
     private val getDashboardDataRealtimeUseCase: GetDashboardDataRealtimeUseCase,
     private val syncManager: SyncManager,
     private val userFirestoreService: UserFirestoreService,
-    private val authRepository: com.fleetmanager.domain.repository.AuthRepository
+    private val authRepository: com.fleetmanager.domain.repository.AuthRepository,
+    private val observeMissingIncomeStatusUseCase: ObserveMissingIncomeStatusUseCase
 ) : BaseViewModel<DashboardUiState>() {
 
     override fun getInitialState() = DashboardUiState()
@@ -53,10 +58,15 @@ class DashboardViewModel @Inject constructor(
             initialValue = UserRole.DRIVER
         )
 
+    private val dubaiZoneId: ZoneId = ZoneId.of("Asia/Dubai")
+    private val isoFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE
+    private var lastKnownMissingIncomeIso: String? = null
+
     init {
         observeAuthStateChanges()
         loadDashboardData()
         loadUserProfile()
+        observeMissingIncomeStatus()
     }
     
     private fun observeAuthStateChanges() {
@@ -64,6 +74,7 @@ class DashboardViewModel @Inject constructor(
             authRepository.isSignedIn.collect { isSignedIn ->
                 if (!isSignedIn) {
                     // User signed out, reset the ViewModel
+                    lastKnownMissingIncomeIso = null
                     resetToInitialState()
                 } else {
                     // User signed in, reload data
@@ -94,6 +105,7 @@ class DashboardViewModel @Inject constructor(
         ) {
             userFirestoreService.getCurrentUserProfile().collect { userProfile ->
                 updateState { it.copy(userProfile = userProfile) }
+                updateMissingIncomeUiState()
             }
         }
     }
@@ -186,6 +198,31 @@ class DashboardViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    private fun observeMissingIncomeStatus() {
+        val targetDateIso = ZonedDateTime.now(dubaiZoneId)
+            .minusDays(1)
+            .toLocalDate()
+            .format(isoFormatter)
+
+        executeAsync(onError = { /* ignore errors to avoid UI noise */ }) {
+            observeMissingIncomeStatusUseCase(targetDateIso).collect { isMissing ->
+                lastKnownMissingIncomeIso = if (isMissing) targetDateIso else null
+                updateMissingIncomeUiState()
+            }
+        }
+    }
+
+    private fun updateMissingIncomeUiState() {
+        val shouldShow = lastKnownMissingIncomeIso != null &&
+            (uiState.value.userProfile?.role == UserRole.DRIVER)
+
+        updateState { currentState ->
+            currentState.copy(
+                missingIncomeDateIso = if (shouldShow) lastKnownMissingIncomeIso else null
+            )
         }
     }
 }
