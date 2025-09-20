@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -24,13 +26,24 @@ android {
     }
 
     signingConfigs {
-        create("externalOverride") {
-            val keystorePath = System.getenv("KEYSTORE_PATH")
-            if (keystorePath != null) {
-                storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
+        create("releaseConfig") {
+            // Charger local.properties
+            val props = Properties()
+            val file = rootProject.file("local.properties")
+            if (file.exists()) {
+                props.load(file.inputStream())
+            }
+
+            val ksPath = System.getenv("KEYSTORE_PATH") ?: props.getProperty("KEYSTORE_PATH")
+            val ksPassword = System.getenv("KEYSTORE_PASSWORD") ?: props.getProperty("KEYSTORE_PASSWORD")
+            val keyAlias = System.getenv("KEY_ALIAS") ?: props.getProperty("KEY_ALIAS")
+            val keyPassword = System.getenv("KEY_PASSWORD") ?: props.getProperty("KEY_PASSWORD")
+
+            if (ksPath != null && ksPassword != null && keyAlias != null && keyPassword != null) {
+                storeFile = file(ksPath)
+                storePassword = ksPassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
             }
         }
     }
@@ -38,14 +51,14 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("externalOverride")
+            signingConfig = signingConfigs.getByName("releaseConfig")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-            signingConfig = signingConfigs.getByName("externalOverride") // ← AJOUTE ÇA SI TU SIGNES AUSSI LES DEBUG
+            signingConfig = signingConfigs.getByName("releaseConfig") // si tu veux tester avec le vrai keystore
         }
     }
     compileOptions {
@@ -90,7 +103,7 @@ dependencies {
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
-    
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
     ksp("com.google.dagger:hilt-android-compiler:2.48")
@@ -136,19 +149,19 @@ dependencies {
     
     // Pager for swipe navigation
     implementation("androidx.compose.foundation:foundation:1.5.4")
-    
+
     // Date picker for Compose
     implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
     
     // Calendar View for Analytics
     implementation("com.kizitonwose.calendar:compose:2.4.1")
-    
+
     // CSV parsing for Excel import (more Android-compatible)
     implementation("com.opencsv:opencsv:5.8")
-    
+
     // Core library desugaring for Java 8+ APIs
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
