@@ -1,8 +1,6 @@
 package com.fleetmanager.ui.screens.splash
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -11,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.fleetmanager.R
+import com.fleetmanager.ui.components.ScreenBackground
 import kotlinx.coroutines.delay
 
 @Composable
@@ -22,10 +21,7 @@ fun SplashScreen(
         onSplashComplete()
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+    ScreenBackground(contentAlignment = Alignment.Center) {
         Image(
             painter = painterResource(id = R.drawable.ag_motion_logo),
             contentDescription = "AG Motion Logo",

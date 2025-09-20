@@ -30,6 +30,7 @@ import coil.request.ImageRequest
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.ui.components.StatusCard
 import com.fleetmanager.ui.components.StatusType
+import com.fleetmanager.ui.components.ScreenBackground
 
 @Composable
 fun ProfileScreen(
@@ -46,97 +47,98 @@ fun ProfileScreen(
         uri?.let { viewModel.updateProfilePicture(it) }
     }
     
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        // Header with back button
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back"
+    ScreenBackground {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // Header with back button
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Profile",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Profile",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
             }
-        }
-        
-        // Profile Picture Section
-        item {
-            ProfilePictureSection(
-                profilePictureUrl = uiState.userProfile?.profilePictureUrl,
-                userName = uiState.userProfile?.name ?: "",
-                isUploading = uiState.isUploadingPicture,
-                onPictureClick = { imagePickerLauncher.launch("image/*") }
-            )
-        }
-        
-        // User Information Section
-        uiState.userProfile?.let { user ->
+
+            // Profile Picture Section
             item {
-                UserInfoSection(
-                    name = user.name,
-                    email = user.email,
-                    role = user.role,
-                    onEditClick = { viewModel.setEditMode(true) }
+                ProfilePictureSection(
+                    profilePictureUrl = uiState.userProfile?.profilePictureUrl,
+                    userName = uiState.userProfile?.name ?: "",
+                    isUploading = uiState.isUploadingPicture,
+                    onPictureClick = { imagePickerLauncher.launch("image/*") }
                 )
             }
-        }
         
-        // Edit Mode Dialog
-        if (uiState.isEditMode) {
-            item {
-                EditProfileDialog(
-                    currentName = uiState.userProfile?.name ?: "",
-                    currentEmail = uiState.userProfile?.email ?: "",
-                    isLoading = uiState.isUpdating,
-                    onDismiss = { viewModel.setEditMode(false) },
-                    onSave = { name, email -> viewModel.updateProfile(name, email) }
-                )
+            // User Information Section
+            uiState.userProfile?.let { user ->
+                item {
+                    UserInfoSection(
+                        name = user.name,
+                        email = user.email,
+                        role = user.role,
+                        onEditClick = { viewModel.setEditMode(true) }
+                    )
+                }
             }
-        }
-        
-        // Loading State
-        if (uiState.isLoading) {
-            item {
-                StatusCard(
-                    type = StatusType.Loading,
-                    message = "Loading profile..."
-                )
+
+            // Edit Mode Dialog
+            if (uiState.isEditMode) {
+                item {
+                    EditProfileDialog(
+                        currentName = uiState.userProfile?.name ?: "",
+                        currentEmail = uiState.userProfile?.email ?: "",
+                        isLoading = uiState.isUpdating,
+                        onDismiss = { viewModel.setEditMode(false) },
+                        onSave = { name, email -> viewModel.updateProfile(name, email) }
+                    )
+                }
             }
-        }
-        
-        // Error State
-        uiState.error?.let { error ->
-            item {
-                StatusCard(
-                    type = StatusType.Error,
-                    message = error
-                )
+
+            // Loading State
+            if (uiState.isLoading) {
+                item {
+                    StatusCard(
+                        type = StatusType.Loading,
+                        message = "Loading profile..."
+                    )
+                }
             }
-        }
-        
-        // Success State
-        uiState.successMessage?.let { message ->
-            item {
-                StatusCard(
-                    type = StatusType.Success,
-                    message = message
-                )
+
+            // Error State
+            uiState.error?.let { error ->
+                item {
+                    StatusCard(
+                        type = StatusType.Error,
+                        message = error
+                    )
+                }
             }
-        }
+
+            // Success State
+            uiState.successMessage?.let { message ->
+                item {
+                    StatusCard(
+                        type = StatusType.Success,
+                        message = message
+                    )
+                }
+            }
     }
 }
 
