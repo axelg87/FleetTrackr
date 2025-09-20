@@ -152,3 +152,12 @@ Regression prevention when working on critical flows
 
 
 
+
+---
+
+🧪 Test Authoring Rules
+
+- Tests must follow the Arrange-Act-Assert structure with clear `// Arrange`, `// Act`, and `// Assert` sections in every test method.
+- Use descriptive test names that state the expected outcome and context using backticked function names where appropriate.
+- Favor deterministic inputs and cover both success and failure paths for critical validations and business logic.
+- Keep assertions focused: prefer a small number of precise expectations that verify behavior without duplicating production logic.
