@@ -1,7 +1,6 @@
 package com.fleetmanager.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
@@ -48,12 +47,7 @@ fun SettingsScreen(
         onError = { error -> viewModel.setError(error) }
     )
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    FleetScreenContainer {
         item {
             ScreenHeader(
                 title = "Settings",
