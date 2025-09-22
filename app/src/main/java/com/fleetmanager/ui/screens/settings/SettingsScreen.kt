@@ -407,7 +407,7 @@ private fun AddDriverDialog(
                         )
                     }
                     Switch(checked = isActive, onCheckedChange = { isActive = it })
-                )
+                }
             }
         },
         confirmButton = {
