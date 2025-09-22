@@ -1,5 +1,6 @@
 package com.fleetmanager.domain.model
 
+import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.PropertyName
 import java.util.Date
 
@@ -18,11 +19,17 @@ data class DailyEntry(
     
     @get:PropertyName("date")
     val date: Date = Date(),
-    
-    @get:PropertyName("driver")
+
+    @get:PropertyName("driverId")
+    val driverId: String = "",
+
+    @get:Exclude
     val driverName: String = "",
-    
-    @get:PropertyName("vehicle") 
+
+    @get:PropertyName("vehicleId")
+    val vehicleId: String = "",
+
+    @get:Exclude
     val vehicle: String = "",
     
     @get:PropertyName("uberEarnings")
@@ -57,8 +64,8 @@ data class DailyEntry(
 
     fun isValid(): Boolean {
         return id.isNotBlank() &&
-                driverName.isNotBlank() &&
-                vehicle.isNotBlank() &&
+                driverId.isNotBlank() &&
+                vehicleId.isNotBlank() &&
                 uberEarnings >= 0 &&
                 yangoEarnings >= 0 &&
                 privateJobsEarnings >= 0 &&
@@ -69,13 +76,13 @@ data class DailyEntry(
                 careemEarnings <= 999999.99 &&
                 notes.length <= 5000
     }
-    
+
     fun getValidationErrors(): List<String> {
         val errors = mutableListOf<String>()
         
         if (id.isBlank()) errors.add("ID cannot be blank")
-        if (driverName.isBlank()) errors.add("Driver name cannot be blank")
-        if (vehicle.isBlank()) errors.add("Vehicle cannot be blank")
+        if (driverId.isBlank()) errors.add("Driver ID cannot be blank")
+        if (vehicleId.isBlank()) errors.add("Vehicle ID cannot be blank")
         if (uberEarnings < 0) errors.add("Uber earnings cannot be negative")
         if (yangoEarnings < 0) errors.add("Yango earnings cannot be negative")
         if (privateJobsEarnings < 0) errors.add("Private jobs earnings cannot be negative")
@@ -85,7 +92,25 @@ data class DailyEntry(
         if (privateJobsEarnings > 999999.99) errors.add("Private jobs earnings is too large")
         if (careemEarnings > 999999.99) errors.add("Careem earnings is too large")
         if (notes.length > 5000) errors.add("Notes too long (max 5000 characters)")
-        
+
         return errors
+    }
+
+    fun withResolvedDisplayData(
+        driverDisplayName: String?,
+        vehicleDisplayName: String?
+    ): DailyEntry {
+        val resolvedDriverName = driverDisplayName?.takeIf { it.isNotBlank() }
+            ?: driverName.takeIf { it.isNotBlank() }
+            ?: driverId
+
+        val resolvedVehicleName = vehicleDisplayName?.takeIf { it.isNotBlank() }
+            ?: vehicle.takeIf { it.isNotBlank() }
+            ?: vehicleId
+
+        return copy(
+            driverName = resolvedDriverName,
+            vehicle = resolvedVehicleName
+        )
     }
 }

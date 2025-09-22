@@ -21,7 +21,9 @@ class CsvEntryFactory {
             id = UUID.randomUUID().toString(),
             userId = "PLACEHOLDER", // Will be corrected by ImportManager
             date = rowData.date, // Already parsed as UTC from American CSV format
+            driverId = rowData.driver.trim().lowercase(),
             driverName = rowData.driver,
+            vehicleId = rowData.vehicle.trim().lowercase(),
             vehicle = rowData.vehicle,
             uberEarnings = rowData.uber,
             yangoEarnings = rowData.yango,

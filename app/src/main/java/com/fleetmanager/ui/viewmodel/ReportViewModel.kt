@@ -164,13 +164,22 @@ class ReportViewModel @Inject constructor(
                 vehicleFirestoreService.getVehiclesFlow(),
                 expenseTypeFirestoreService.getExpenseTypesFlow()
             ) { reportData, driverUsers, vehicles, expenseTypes ->
+                val driverNameMap = driverUsers.associateBy({ it.id }, { it.name })
+                val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
                 val allEntries = mutableListOf<ReportEntry>()
-                
+
+                val enrichedEntries = reportData.dailyEntries.map { dailyEntry ->
+                    dailyEntry.withResolvedDisplayData(
+                        driverDisplayName = driverNameMap[dailyEntry.driverId],
+                        vehicleDisplayName = vehicleNameMap[dailyEntry.vehicleId]
+                    )
+                }
+
                 // Convert daily entries to report entries
-                reportData.dailyEntries.forEach { dailyEntry ->
+                enrichedEntries.forEach { dailyEntry ->
                     allEntries.addAll(dailyEntry.toReportEntries())
                 }
-                
+
                 // Convert expenses to report entries
                 reportData.expenses.forEach { expense ->
                     allEntries.add(expense.toReportEntry())

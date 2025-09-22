@@ -39,15 +39,17 @@ sealed class ReportEntryType {
  */
 fun DailyEntry.toReportEntries(): List<ReportEntry> {
     val entries = mutableListOf<ReportEntry>()
-    
+    val driverLabel = driverName.ifBlank { driverId }
+    val vehicleLabel = vehicle.ifBlank { vehicleId }
+
     if (uberEarnings > 0) {
         entries.add(
             ReportEntry(
                 id = "${id}_uber",
                 type = ReportEntryType.Income("Uber"),
                 amount = uberEarnings,
-                driverName = driverName,
-                vehicle = vehicle,
+                driverName = driverLabel,
+                vehicle = vehicleLabel,
                 date = date,
                 notes = notes,
                 isIncome = true
@@ -61,8 +63,8 @@ fun DailyEntry.toReportEntries(): List<ReportEntry> {
                 id = "${id}_yango",
                 type = ReportEntryType.Income("Yango"),
                 amount = yangoEarnings,
-                driverName = driverName,
-                vehicle = vehicle,
+                driverName = driverLabel,
+                vehicle = vehicleLabel,
                 date = date,
                 notes = notes,
                 isIncome = true
@@ -76,8 +78,8 @@ fun DailyEntry.toReportEntries(): List<ReportEntry> {
                 id = "${id}_private",
                 type = ReportEntryType.Income("Private"),
                 amount = privateJobsEarnings,
-                driverName = driverName,
-                vehicle = vehicle,
+                driverName = driverLabel,
+                vehicle = vehicleLabel,
                 date = date,
                 notes = notes,
                 isIncome = true

@@ -41,8 +41,8 @@ class SaveDailyEntryUseCase @Inject constructor(
     private fun validateEntry(entry: DailyEntry): com.fleetmanager.domain.validation.ValidationResult {
         return validator.validateAll(
             { validator.validateText(entry.id, "Entry ID") },
-            { validator.validateName(entry.driverName, "Driver name") },
-            { validator.validateText(entry.vehicle, "Vehicle") },
+            { validator.validateText(entry.driverId, "Driver ID") },
+            { validator.validateText(entry.vehicleId, "Vehicle ID") },
             { validator.validateEarnings(entry.uberEarnings.toString(), "Uber earnings") },
             { validator.validateEarnings(entry.yangoEarnings.toString(), "Yango earnings") },
             { validator.validateEarnings(entry.privateJobsEarnings.toString(), "Private jobs earnings") },
@@ -53,8 +53,6 @@ class SaveDailyEntryUseCase @Inject constructor(
     
     private fun sanitizeEntry(entry: DailyEntry): DailyEntry {
         return entry.copy(
-            driverName = validator.sanitizeText(entry.driverName),
-            vehicle = validator.sanitizeText(entry.vehicle),
             notes = validator.sanitizeText(entry.notes)
         )
     }

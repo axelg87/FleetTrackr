@@ -15,7 +15,9 @@ import java.util.Date
 data class UiDailyEntry(
     val id: String,
     val date: Date,
+    val driverId: String,
     val driverName: String,
+    val vehicleId: String,
     val vehicle: String,
     val uberEarnings: Double,
     val yangoEarnings: Double,
@@ -32,7 +34,10 @@ data class UiDailyEntry(
 data class UiDriver(
     val id: String,
     val name: String,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val salary: Double,
+    val annualLicenseCost: Double,
+    val annualVisaCost: Double
 )
 
 @Stable
@@ -43,7 +48,16 @@ data class UiVehicle(
     val year: Int,
     val licensePlate: String,
     val isActive: Boolean,
-    val displayName: String
+    val displayName: String,
+    val price: Double,
+    val deposit: Double?,
+    val installment: Double?,
+    val installmentDurationMonths: Int?,
+    val serviceStartDate: Date?,
+    val serviceEndDate: Date?,
+    val annualInsuranceAmount: Double,
+    val fuelTankCapacity: Double?,
+    val fuelConsumptionPer100Km: Double?
 )
 
 /**
@@ -53,7 +67,9 @@ fun DailyEntry.toUiModel(dateFormatter: java.text.SimpleDateFormat): UiDailyEntr
     return UiDailyEntry(
         id = id,
         date = date,
+        driverId = driverId,
         driverName = driverName,
+        vehicleId = vehicleId,
         vehicle = vehicle,
         uberEarnings = uberEarnings,
         yangoEarnings = yangoEarnings,
@@ -71,7 +87,10 @@ fun Driver.toUiModel(): UiDriver {
     return UiDriver(
         id = id,
         name = name,
-        isActive = isActive
+        isActive = isActive,
+        salary = salary,
+        annualLicenseCost = annualLicenseCost,
+        annualVisaCost = annualVisaCost
     )
 }
 
@@ -83,6 +102,15 @@ fun Vehicle.toUiModel(): UiVehicle {
         year = year,
         licensePlate = licensePlate,
         isActive = isActive,
-        displayName = displayName
+        displayName = displayName,
+        price = price,
+        deposit = deposit,
+        installment = installment,
+        installmentDurationMonths = installmentDurationMonths,
+        serviceStartDate = serviceStartDate,
+        serviceEndDate = serviceEndDate,
+        annualInsuranceAmount = annualInsuranceAmount,
+        fuelTankCapacity = fuelTankCapacity,
+        fuelConsumptionPer100Km = fuelConsumptionPer100Km
     )
 }

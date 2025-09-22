@@ -19,7 +19,10 @@ class SaveDriverUseCase @Inject constructor(
             // Validate the driver
             val validationResult = validator.validateAll(
                 { validator.validateText(driver.id, "Driver ID") },
-                { validator.validateName(driver.name, "Driver name") }
+                { validator.validateName(driver.name, "Driver name") },
+                { validator.validateNonNegativeAmount(driver.salary, "Driver salary") },
+                { validator.validateNonNegativeAmount(driver.annualLicenseCost, "Annual license cost") },
+                { validator.validateNonNegativeAmount(driver.annualVisaCost, "Annual visa cost") }
             )
             
             if (validationResult.isError) {

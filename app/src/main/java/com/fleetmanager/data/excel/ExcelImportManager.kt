@@ -283,7 +283,11 @@ class ExcelImportManager @Inject constructor(
                     }
 
                     // Update entry with correct userId
-                    val entryWithCorrectUserId = entry.copy(userId = correctUserId)
+                    val entryWithCorrectUserId = entry.copy(
+                        userId = correctUserId,
+                        driverId = correctUserId,
+                        vehicleId = if (entry.vehicleId.isNotBlank()) entry.vehicleId else entry.vehicle
+                    )
                     
                     Log.d(TAG, "Saving entry: driver='${entry.driverName}', date='${entry.date}', userId='$correctUserId'")
                     firestoreService.saveDailyEntry(entryWithCorrectUserId)

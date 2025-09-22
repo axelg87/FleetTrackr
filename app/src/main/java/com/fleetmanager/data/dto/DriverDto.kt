@@ -13,5 +13,8 @@ data class DriverDto(
     val id: String,
     val userId: String = "",
     val name: String,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val salary: Double = 0.0,
+    val annualLicenseCost: Double = 0.0,
+    val annualVisaCost: Double = 0.0
 )

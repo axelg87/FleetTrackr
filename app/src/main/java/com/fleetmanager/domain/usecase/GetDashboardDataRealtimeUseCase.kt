@@ -2,6 +2,7 @@ package com.fleetmanager.domain.usecase
 
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.repository.FleetRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -20,16 +21,30 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
     operator fun invoke(): Flow<DashboardData> {
         return combine(
             repository.getAllDailyEntriesRealtime(),
-            repository.getAllDrivers()
-        ) { entries, drivers ->
-            calculateDashboardData(entries, drivers)
+            repository.getAllDrivers(),
+            repository.getAllActiveVehicles()
+        ) { entries, drivers, vehicles ->
+            calculateDashboardData(entries, drivers, vehicles)
         }
     }
-    
-    private fun calculateDashboardData(entries: List<DailyEntry>, drivers: List<Driver>): DashboardData {
+
+    private fun calculateDashboardData(
+        entries: List<DailyEntry>,
+        drivers: List<Driver>,
+        vehicles: List<Vehicle>
+    ): DashboardData {
+        val driverNameMap = drivers.associateBy({ it.id }, { it.name })
+        val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
+        val enrichedEntries = entries.map { entry ->
+            entry.withResolvedDisplayData(
+                driverDisplayName = driverNameMap[entry.driverId],
+                vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+            )
+        }
+
         val now = Date()
         val calendar = Calendar.getInstance()
-        
+
         // This month
         calendar.time = now
         calendar.set(Calendar.DAY_OF_MONTH, 1)
@@ -38,7 +53,7 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val startOfMonth = calendar.time
-        val thisMonthEntries = entries.filter { it.date >= startOfMonth }
+        val thisMonthEntries = enrichedEntries.filter { it.date >= startOfMonth }
         val thisMonthEarnings = thisMonthEntries.sumOf { it.totalEarnings }
         val thisMonthUberEarnings = thisMonthEntries.sumOf { it.uberEarnings }
         val thisMonthYangoEarnings = thisMonthEntries.sumOf { it.yangoEarnings }
@@ -54,7 +69,7 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val startOfWeek = calendar.time
-        val thisWeekEntries = entries.filter { it.date >= startOfWeek }
+        val thisWeekEntries = enrichedEntries.filter { it.date >= startOfWeek }
         val thisWeekEarnings = thisWeekEntries.sumOf { it.totalEarnings }
         val thisWeekUberEarnings = thisWeekEntries.sumOf { it.uberEarnings }
         val thisWeekYangoEarnings = thisWeekEntries.sumOf { it.yangoEarnings }
@@ -62,15 +77,15 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
         
         // Last 40 hours (but labeled as 24h in UI)
         val last40Hours = Date(now.time - TimeUnit.HOURS.toMillis(40))
-        val last24hEarnings = entries
+        val last24hEarnings = enrichedEntries
             .filter { it.date >= last40Hours }
             .sumOf { it.totalEarnings }
-        
+
         // Active drivers count
-        val activeDriversCount = entries.distinctBy { it.driverName }.size
-        
+        val activeDriversCount = entries.distinctBy { it.driverId }.size
+
         // Recent entries (last 5)
-        val recentEntries = entries
+        val recentEntries = enrichedEntries
             .sortedByDescending { it.date }
             .take(5)
         

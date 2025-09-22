@@ -16,7 +16,7 @@ import com.fleetmanager.data.dto.ExpenseDto
 
 @Database(
     entities = [DailyEntryDto::class, DriverDto::class, VehicleDto::class, ExpenseDto::class],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

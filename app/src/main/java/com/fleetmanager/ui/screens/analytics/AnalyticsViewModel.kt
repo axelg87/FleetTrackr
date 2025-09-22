@@ -101,8 +101,20 @@ class AnalyticsViewModel @Inject constructor(
                     .toInstant()
                     .let { Date.from(it) }
                 
-                // Use realtime data source for calendar - load ALL entries, not just current month
-                fleetRepository.getAllDailyEntriesRealtime()
+                combine(
+                    fleetRepository.getAllDailyEntriesRealtime(),
+                    fleetRepository.getAllDrivers(),
+                    fleetRepository.getAllActiveVehicles()
+                ) { entries, drivers, vehicles ->
+                    val driverNameMap = drivers.associateBy({ it.id }, { it.name })
+                    val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
+                    entries.map { entry ->
+                        entry.withResolvedDisplayData(
+                            driverDisplayName = driverNameMap[entry.driverId],
+                            vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                        )
+                    }
+                }
                     .collect { allEntries ->
                         // Apply d-1 logic: exclude current day from all calculations
                         val today = LocalDate.now()
@@ -149,9 +161,19 @@ class AnalyticsViewModel @Inject constructor(
                 combine(
                     fleetRepository.getAllDailyEntriesRealtime(),
                     fleetRepository.getAllExpensesRealtime(),
+                    fleetRepository.getAllDrivers(),
+                    fleetRepository.getAllActiveVehicles(),
                     _timeFilter
-                ) { entries, expenses, timeFilter ->
-                    Triple(entries, expenses, timeFilter)
+                ) { entries, expenses, drivers, vehicles, timeFilter ->
+                    val driverNameMap = drivers.associateBy({ it.id }, { it.name })
+                    val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
+                    val enrichedEntries = entries.map { entry ->
+                        entry.withResolvedDisplayData(
+                            driverDisplayName = driverNameMap[entry.driverId],
+                            vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                        )
+                    }
+                    Triple(enrichedEntries, expenses, timeFilter)
                 }.collect { (allEntries, allExpenses, timeFilter) ->
                     
                     // Apply d-1 logic: exclude current day from all calculations

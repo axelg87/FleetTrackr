@@ -45,7 +45,7 @@ data class AddEntryUiState(
     val currentUserProfile: UserDto? = null
 ) {
     val canSave: Boolean
-        get() = driverInput.isNotBlank() && 
+        get() = driverInput.isNotBlank() &&
                 vehicleInput.isNotBlank() &&
                 uberEarningsError == null &&
                 yangoEarningsError == null &&
@@ -253,7 +253,21 @@ class AddEntryViewModel @Inject constructor(
     fun saveEntry() {
         val currentState = uiState.value
         if (!currentState.canSave) return
-        
+
+        val driverId = currentState.selectedDriver?.id
+            ?: currentState.driverUsers.firstOrNull { it.name.equals(currentState.driverInput, ignoreCase = true) }?.id
+            ?: ""
+        val vehicleId = currentState.selectedVehicle?.id
+            ?: currentState.vehicles.firstOrNull { it.displayName == currentState.vehicleInput }?.id
+            ?: ""
+
+        if (driverId.isBlank() || vehicleId.isBlank()) {
+            updateState {
+                it.copy(errorMessage = "Please select a valid driver and vehicle")
+            }
+            return
+        }
+
         executeAsync(
             onLoading = { isLoading ->
                 updateState { it.copy(isSaving = isLoading, errorMessage = null) }
@@ -265,7 +279,9 @@ class AddEntryViewModel @Inject constructor(
             val entry = DailyEntry(
                 id = UUID.randomUUID().toString(),
                 date = currentState.date,
+                driverId = driverId,
                 driverName = currentState.driverInput,
+                vehicleId = vehicleId,
                 vehicle = currentState.vehicleInput,
                 uberEarnings = currentState.uberEarnings.toDoubleOrNull() ?: 0.0,
                 yangoEarnings = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0,
