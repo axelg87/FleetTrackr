@@ -2,6 +2,8 @@ package com.fleetmanager.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
@@ -26,9 +28,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.ui.viewmodel.SettingsViewModel
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.data.excel.ImportProgress
@@ -86,12 +92,10 @@ fun SettingsScreen(
         if (uiState.canSeeAdminControls) {
             item {
                 AdminSection(
-                    onAddDriver = { name, email -> viewModel.addDriver(name, email) },
-                    onAddVehicle = { make, model, year, licensePlate -> 
-                        viewModel.addVehicle(make, model, year, licensePlate) 
-                    },
-                    onAddExpenseType = { name, displayName -> 
-                        viewModel.addExpenseType(name, displayName) 
+                    onAddDriver = { driver -> viewModel.addDriver(driver) },
+                    onAddVehicle = { vehicle -> viewModel.addVehicle(vehicle) },
+                    onAddExpenseType = { name, displayName ->
+                        viewModel.addExpenseType(name, displayName)
                     },
                     onImportExcel = { pickExcelFile() }
                 )
@@ -243,8 +247,8 @@ fun SettingsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AdminSection(
-    onAddDriver: (String, String) -> Unit,
-    onAddVehicle: (String, String, Int, String) -> Unit,
+    onAddDriver: (Driver) -> Unit,
+    onAddVehicle: (Vehicle) -> Unit,
     onAddExpenseType: (String, String) -> Unit,
     onImportExcel: () -> Unit
 ) {
@@ -256,7 +260,7 @@ private fun AdminSection(
         SettingsItem(
             icon = Icons.Default.PersonAdd,
             title = "Add Driver",
-            subtitle = "Create a new user with DRIVER role",
+            subtitle = "Add a driver profile with cost details",
             onClick = { showAddDriverDialog = true }
         )
         
@@ -286,8 +290,8 @@ private fun AdminSection(
     if (showAddDriverDialog) {
         AddDriverDialog(
             onDismiss = { showAddDriverDialog = false },
-            onConfirm = { name, email ->
-                onAddDriver(name, email)
+            onConfirm = { driver ->
+                onAddDriver(driver)
                 showAddDriverDialog = false
             }
         )
@@ -297,8 +301,8 @@ private fun AdminSection(
     if (showAddVehicleDialog) {
         AddVehicleDialog(
             onDismiss = { showAddVehicleDialog = false },
-            onConfirm = { make, model, year, licensePlate ->
-                onAddVehicle(make, model, year, licensePlate)
+            onConfirm = { vehicle ->
+                onAddVehicle(vehicle)
                 showAddVehicleDialog = false
             }
         )
@@ -320,22 +324,43 @@ private fun AdminSection(
 @Composable
 private fun AddDriverDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (Driver) -> Unit
 ) {
+    var driverId by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
+    var salary by remember { mutableStateOf("") }
+    var annualLicenseCost by remember { mutableStateOf("") }
+    var annualVisaCost by remember { mutableStateOf("") }
+    var isActive by remember { mutableStateOf(true) }
+
+    val salaryValue = salary.trim().toDoubleOrNull()
+    val licenseCostValue = annualLicenseCost.trim().toDoubleOrNull()
+    val visaCostValue = annualVisaCost.trim().toDoubleOrNull()
+    val isFormValid = driverId.isNotBlank() &&
+            name.isNotBlank() &&
+            salaryValue != null &&
+            licenseCostValue != null &&
+            visaCostValue != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add New Driver User") },
+        title = { Text("Add New Driver") },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "This will create a new user with DRIVER role in the users collection.",
+                    text = "Provide the driver's full profile and compensation details.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = driverId,
+                    onValueChange = { driverId = it },
+                    label = { Text("Driver ID *") },
+                    placeholder = { Text("e.g., DRV-001") },
+                    modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = name,
@@ -345,20 +370,63 @@ private fun AddDriverDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email Address *") },
-                    placeholder = { Text("e.g., john@example.com") },
+                    value = salary,
+                    onValueChange = { salary = it },
+                    label = { Text("Monthly Salary (AED) *") },
+                    placeholder = { Text("e.g., 3500") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = annualLicenseCost,
+                    onValueChange = { annualLicenseCost = it },
+                    label = { Text("Annual License Cost (AED) *") },
+                    placeholder = { Text("e.g., 1200") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = annualVisaCost,
+                    onValueChange = { annualVisaCost = it },
+                    label = { Text("Annual Visa Cost (AED) *") },
+                    placeholder = { Text("e.g., 2000") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Active Driver")
+                        Text(
+                            text = "Inactive drivers are kept for record only.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = isActive, onCheckedChange = { isActive = it })
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name, email) },
-                enabled = name.isNotBlank() && email.isNotBlank()
+                onClick = {
+                    onConfirm(
+                        Driver(
+                            id = driverId.trim(),
+                            name = name.trim(),
+                            salary = salaryValue ?: 0.0,
+                            annualLicenseCost = licenseCostValue ?: 0.0,
+                            annualVisaCost = visaCostValue ?: 0.0,
+                            isActive = isActive
+                        )
+                    )
+                },
+                enabled = isFormValid
             ) {
-                Text("Create Driver")
+                Text("Save Driver")
             }
         },
         dismissButton = {
@@ -373,20 +441,72 @@ private fun AddDriverDialog(
 @Composable
 private fun AddVehicleDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Int, String) -> Unit
+    onConfirm: (Vehicle) -> Unit
 ) {
+    var vehicleId by remember { mutableStateOf("") }
     var make by remember { mutableStateOf("") }
     var model by remember { mutableStateOf("") }
     var year by remember { mutableStateOf("") }
     var licensePlate by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf("") }
+    var deposit by remember { mutableStateOf("") }
+    var installment by remember { mutableStateOf("") }
+    var installmentDuration by remember { mutableStateOf("") }
+    var serviceStartDate by remember { mutableStateOf("") }
+    var serviceEndDate by remember { mutableStateOf("") }
+    var annualInsuranceAmount by remember { mutableStateOf("") }
+    var fuelTankCapacity by remember { mutableStateOf("") }
+    var fuelConsumption by remember { mutableStateOf("") }
+    var isActive by remember { mutableStateOf(true) }
+
+    val yearValue = year.trim().toIntOrNull()
+    val priceValue = price.trim().toDoubleOrNull()
+    val depositValue = deposit.trim().toDoubleOrNull()
+    val installmentValue = installment.trim().toDoubleOrNull()
+    val installmentDurationValue = installmentDuration.trim().toIntOrNull()
+    val annualInsuranceValue = annualInsuranceAmount.trim().toDoubleOrNull()
+    val fuelTankValue = fuelTankCapacity.trim().toDoubleOrNull()
+    val fuelConsumptionValue = fuelConsumption.trim().toDoubleOrNull()
+
+    fun parseDate(input: String): java.util.Date? {
+        if (input.isBlank()) return null
+        return try {
+            val localDate = java.time.LocalDate.parse(input)
+            java.util.Date.from(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+        } catch (e: java.time.format.DateTimeParseException) {
+            null
+        }
+    }
+
+    val serviceStartDateValue = parseDate(serviceStartDate)
+    val serviceEndDateValue = parseDate(serviceEndDate)
+    val areDatesValid = (serviceStartDate.isBlank() || serviceStartDateValue != null) &&
+            (serviceEndDate.isBlank() || serviceEndDateValue != null)
+
+    val isFormValid = vehicleId.isNotBlank() &&
+            make.isNotBlank() &&
+            model.isNotBlank() &&
+            yearValue != null &&
+            licensePlate.isNotBlank() &&
+            priceValue != null &&
+            annualInsuranceValue != null &&
+            areDatesValid
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add New Vehicle") },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
+                OutlinedTextField(
+                    value = vehicleId,
+                    onValueChange = { vehicleId = it },
+                    label = { Text("Vehicle ID *") },
+                    placeholder = { Text("e.g., VEH-1001") },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 OutlinedTextField(
                     value = make,
                     onValueChange = { make = it },
@@ -403,6 +523,7 @@ private fun AddVehicleDialog(
                     value = year,
                     onValueChange = { year = it },
                     label = { Text("Year *") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -411,18 +532,129 @@ private fun AddVehicleDialog(
                     label = { Text("License Plate *") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Purchase Price (AED) *") },
+                    placeholder = { Text("e.g., 85000") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = deposit,
+                    onValueChange = { deposit = it },
+                    label = { Text("Deposit (AED)") },
+                    placeholder = { Text("Optional") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = installment,
+                    onValueChange = { installment = it },
+                    label = { Text("Monthly Installment (AED)") },
+                    placeholder = { Text("Optional") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = installmentDuration,
+                    onValueChange = { installmentDuration = it },
+                    label = { Text("Installment Duration (months)") },
+                    placeholder = { Text("Optional") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = serviceStartDate,
+                    onValueChange = { serviceStartDate = it },
+                    label = { Text("Service Start Date (YYYY-MM-DD)") },
+                    placeholder = { Text("Optional") },
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = {
+                        if (serviceStartDate.isNotBlank() && serviceStartDateValue == null) {
+                            Text("Invalid date format")
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = serviceEndDate,
+                    onValueChange = { serviceEndDate = it },
+                    label = { Text("Service End Date (YYYY-MM-DD)") },
+                    placeholder = { Text("Optional") },
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = {
+                        if (serviceEndDate.isNotBlank() && serviceEndDateValue == null) {
+                            Text("Invalid date format")
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = annualInsuranceAmount,
+                    onValueChange = { annualInsuranceAmount = it },
+                    label = { Text("Annual Insurance Amount (AED) *") },
+                    placeholder = { Text("e.g., 4500") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = fuelTankCapacity,
+                    onValueChange = { fuelTankCapacity = it },
+                    label = { Text("Fuel Tank Capacity (L)") },
+                    placeholder = { Text("Optional") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = fuelConsumption,
+                    onValueChange = { fuelConsumption = it },
+                    label = { Text("Fuel Consumption (L/100km)") },
+                    placeholder = { Text("Optional") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Active Vehicle")
+                        Text(
+                            text = "Inactive vehicles stay archived for history.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = isActive, onCheckedChange = { isActive = it })
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { 
-                    val yearInt = year.toIntOrNull() ?: 0
-                    onConfirm(make, model, yearInt, licensePlate) 
+                onClick = {
+                    onConfirm(
+                        Vehicle(
+                            id = vehicleId.trim(),
+                            make = make.trim(),
+                            model = model.trim(),
+                            year = yearValue ?: 0,
+                            licensePlate = licensePlate.trim(),
+                            isActive = isActive,
+                            price = priceValue ?: 0.0,
+                            deposit = depositValue,
+                            installment = installmentValue,
+                            installmentDurationMonths = installmentDurationValue,
+                            serviceStartDate = serviceStartDateValue,
+                            serviceEndDate = serviceEndDateValue,
+                            annualInsuranceAmount = annualInsuranceValue ?: 0.0,
+                            fuelTankCapacity = fuelTankValue,
+                            fuelConsumptionPer100Km = fuelConsumptionValue
+                        )
+                    )
                 },
-                enabled = make.isNotBlank() && model.isNotBlank() && 
-                         year.toIntOrNull() != null && licensePlate.isNotBlank()
+                enabled = isFormValid
             ) {
-                Text("Add Vehicle")
+                Text("Save Vehicle")
             }
         },
         dismissButton = {

@@ -6,18 +6,20 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import com.fleetmanager.domain.repository.AuthRepository
-import com.fleetmanager.domain.repository.FleetRepository
-import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
-import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
 import com.fleetmanager.data.excel.ExcelImportManager
 import com.fleetmanager.data.excel.ImportProgress
 import com.fleetmanager.data.preferences.SettingsPreferencesDataStore
 import com.fleetmanager.data.preferences.SettingsPreferences
+import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.domain.repository.AuthRepository
+import com.fleetmanager.domain.repository.FleetRepository
+import com.fleetmanager.domain.usecase.SaveDriverUseCase
+import com.fleetmanager.domain.usecase.SaveVehicleUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.utils.ReportExporter
 import com.fleetmanager.ui.utils.ExportResult
@@ -56,13 +58,14 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userFirestoreService: UserFirestoreService,
-    private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val syncManager: SyncManager,
     private val excelImportManager: ExcelImportManager,
     private val settingsPreferencesDataStore: SettingsPreferencesDataStore,
     private val fleetRepository: FleetRepository,
     private val reportExporter: ReportExporter,
+    private val saveDriverUseCase: SaveDriverUseCase,
+    private val saveVehicleUseCase: SaveVehicleUseCase,
     @ApplicationContext private val context: Context
 ) : BaseViewModel<SettingsUiState>() {
 
@@ -262,46 +265,62 @@ class SettingsViewModel @Inject constructor(
     }
     
     // Admin-only functions with permission checks
-    fun addDriver(name: String, email: String) {
+    fun addDriver(driver: Driver) {
         val currentRole = _uiState.value.currentUserRole
         if (currentRole == null || !PermissionManager.canCreateDrivers(currentRole)) {
             updateState { it.copy(error = "You don't have permission to create drivers") }
             return
         }
-        
-        if (name.isBlank() || email.isBlank()) {
-            updateState { it.copy(error = "Name and email are required") }
-            return
-        }
-        
-        executeAsync(
-            onError = { error ->
-                updateState { it.copy(error = "Failed to add driver: $error") }
-            }
-        ) {
-            val driver = userFirestoreService.createDriverUser(name, email)
-            updateState { 
-                it.copy(message = "Driver user '${driver.name}' created successfully with email: $email") 
-            }
+        executeAsync {
+            val result = saveDriverUseCase(driver)
+            result.fold(
+                onSuccess = {
+                    updateState {
+                        it.copy(
+                            message = "Driver '${driver.name}' saved successfully",
+                            error = null
+                        )
+                    }
+                },
+                onFailure = { throwable ->
+                    updateState {
+                        it.copy(
+                            error = "Failed to add driver: ${throwable.message ?: "Unknown error"}",
+                            message = null
+                        )
+                    }
+                }
+            )
         }
     }
-    
-    fun addVehicle(make: String, model: String, year: Int, licensePlate: String) {
+
+    fun addVehicle(vehicle: Vehicle) {
         val currentRole = _uiState.value.currentUserRole
         if (currentRole == null || !PermissionManager.canCreateVehicles(currentRole)) {
             updateState { it.copy(error = "You don't have permission to create vehicles") }
             return
         }
-        
-        executeAsync(
-            onError = { error ->
-                updateState { it.copy(error = "Failed to add vehicle: $error") }
-            }
-        ) {
-            val vehicle = vehicleFirestoreService.createVehicle(make, model, year, licensePlate)
-            updateState { 
-                it.copy(message = "Vehicle '${vehicle.displayName}' added successfully") 
-            }
+
+        executeAsync {
+            val result = saveVehicleUseCase(vehicle)
+            result.fold(
+                onSuccess = {
+                    updateState {
+                        it.copy(
+                            message = "Vehicle '${vehicle.displayName}' added successfully",
+                            error = null
+                        )
+                    }
+                },
+                onFailure = { throwable ->
+                    updateState {
+                        it.copy(
+                            error = "Failed to add vehicle: ${throwable.message ?: "Unknown error"}",
+                            message = null
+                        )
+                    }
+                }
+            )
         }
     }
     
