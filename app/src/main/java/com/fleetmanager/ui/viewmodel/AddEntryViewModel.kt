@@ -12,7 +12,6 @@ import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 import java.util.Calendar
@@ -31,6 +30,7 @@ data class AddEntryUiState(
     val notes: String = "",
     val photoUri: Uri? = null,
     val photoUris: List<Uri> = emptyList(),
+    val existingPhotoUrls: List<String> = emptyList(),
     val driverDropdownExpanded: Boolean = false,
     val vehicleDropdownExpanded: Boolean = false,
     val showDatePicker: Boolean = false,
@@ -42,7 +42,11 @@ data class AddEntryUiState(
     val privateJobsEarningsError: String? = null,
     val notesError: String? = null,
     val userRole: UserRole? = null,
-    val currentUserProfile: UserDto? = null
+    val currentUserProfile: UserDto? = null,
+    val entryId: String? = null,
+    val userId: String = "",
+    val createdAt: Date? = null,
+    val isEditing: Boolean = false
 ) {
     val canSave: Boolean
         get() = driverInput.isNotBlank() &&
@@ -73,7 +77,8 @@ class AddEntryViewModel @Inject constructor(
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val getEntryByIdUseCase: com.fleetmanager.domain.usecase.GetEntryByIdUseCase
 ) : BaseViewModel<AddEntryUiState>() {
     
     override fun getInitialState() = AddEntryUiState(
@@ -276,8 +281,13 @@ class AddEntryViewModel @Inject constructor(
                 updateState { it.copy(isSaving = false, errorMessage = error) }
             }
         ) {
+            val now = Date()
+            val entryIdToUse = currentState.entryId ?: UUID.randomUUID().toString()
+            val createdAt = currentState.createdAt ?: now
+
             val entry = DailyEntry(
-                id = UUID.randomUUID().toString(),
+                id = entryIdToUse,
+                userId = currentState.userId,
                 date = currentState.date,
                 driverId = driverId,
                 driverName = currentState.driverInput,
@@ -287,24 +297,62 @@ class AddEntryViewModel @Inject constructor(
                 yangoEarnings = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0,
                 privateJobsEarnings = currentState.privateJobsEarnings.toDoubleOrNull() ?: 0.0,
                 notes = currentState.notes,
-                createdAt = Date(),
-                updatedAt = Date()
+                photoUrls = currentState.existingPhotoUrls,
+                createdAt = createdAt,
+                updatedAt = now
             )
-            
+
             val result = saveDailyEntryUseCase(entry, currentState.photoUri, currentState.photoUris)
             result.fold(
                 onSuccess = {
                     updateState { it.copy(isSaving = false, isSaved = true) }
                 },
                 onFailure = { error ->
-                    updateState { 
+                    updateState {
                         it.copy(
-                            isSaving = false, 
+                            isSaving = false,
                             errorMessage = error.message ?: "Failed to save entry"
-                        ) 
+                        )
                     }
                 }
             )
+        }
+    }
+
+    fun loadEntryForEdit(entryId: String) {
+        executeAsync(
+            onLoading = { isLoading ->
+                updateState { it.copy(isSaving = false, errorMessage = null) }
+            },
+            onError = { error ->
+                updateState { it.copy(errorMessage = error) }
+            }
+        ) {
+            getEntryByIdUseCase(entryId)
+                .filterNotNull()
+                .firstOrNull()
+                ?.let { entry ->
+                    updateState { state ->
+                        state.copy(
+                            entryId = entry.id,
+                            userId = entry.userId,
+                            isEditing = true,
+                            date = entry.date,
+                            driverInput = entry.driverName,
+                            vehicleInput = entry.vehicle,
+                            uberEarnings = entry.uberEarnings.takeIf { it != 0.0 }?.toString() ?: "",
+                            yangoEarnings = entry.yangoEarnings.takeIf { it != 0.0 }?.toString() ?: "",
+                            privateJobsEarnings = entry.privateJobsEarnings.takeIf { it != 0.0 }?.toString() ?: "",
+                            notes = entry.notes,
+                            existingPhotoUrls = entry.photoUrls,
+                            createdAt = entry.createdAt,
+                            errorMessage = null,
+                            isSaved = false
+                        )
+                    }
+                } ?: updateState {
+                it.copy(errorMessage = "Entry not found")
+            }
         }
     }
 }

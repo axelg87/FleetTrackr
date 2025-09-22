@@ -49,6 +49,12 @@ sealed class Screen(val route: String) {
     object EntryDetail : Screen("entry_detail/{entryId}") {
         fun createRoute(entryId: String) = "entry_detail/$entryId"
     }
+    object EditEntry : Screen("edit_entry/{entryId}") {
+        fun createRoute(entryId: String) = "edit_entry/$entryId"
+    }
+    object EditExpense : Screen("edit_expense/{expenseId}") {
+        fun createRoute(expenseId: String) = "edit_expense/$expenseId"
+    }
 }
 
 /**
@@ -132,7 +138,9 @@ private fun MainNavigation(
                 onAddEntryClick = { navController.navigate(Screen.AddEntry.route) },
                 onAddExpenseClick = { navController.navigate(Screen.AddExpense.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                onEntryClick = { entryId -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) }
+                onEntryClick = { entryId -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) },
+                onEditEntry = { entryId -> navController.navigate(Screen.EditEntry.createRoute(entryId)) },
+                onEditExpense = { expenseId -> navController.navigate(Screen.EditExpense.createRoute(expenseId)) }
             )
         }
         
@@ -162,6 +170,29 @@ private fun MainNavigation(
             val entryId = backStackEntry.arguments?.getString("entryId") ?: ""
             EntryDetailScreen(
                 entryId = entryId,
+                onNavigateBack = { navController.popBackStack() },
+                onEditEntry = { navController.navigate(Screen.EditEntry.createRoute(entryId)) }
+            )
+        }
+
+        composable(
+            route = Screen.EditEntry.route,
+            arguments = listOf(navArgument("entryId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getString("entryId") ?: ""
+            AddEntryScreen(
+                entryId = entryId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.EditExpense.route,
+            arguments = listOf(navArgument("expenseId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val expenseId = backStackEntry.arguments?.getString("expenseId") ?: ""
+            NewExpenseEntryScreen(
+                expenseId = expenseId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

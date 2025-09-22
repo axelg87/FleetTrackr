@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
@@ -511,34 +512,62 @@ fun DailyEntryTile(
     entry: com.fleetmanager.domain.model.DailyEntry,
     onClick: () -> Unit,
     onDelete: (() -> Unit)? = null,
-    showDeleteButton: Boolean = false
+    showDeleteButton: Boolean = false,
+    showEditButton: Boolean = false,
+    onEdit: (() -> Unit)? = null,
+    selectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectionChange: (() -> Unit)? = null
 ) {
     val dateFormatter = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
-    
-    ListItemCard(onClick = onClick) {
+
+    ListItemCard(
+        onClick = {
+            if (selectionMode) {
+                onSelectionChange?.invoke()
+            } else {
+                onClick()
+            }
+        }
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = entry.driverName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = entry.vehicle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = dateFormatter.format(entry.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Top
+            ) {
+                if (selectionMode) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onSelectionChange?.invoke() },
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .align(Alignment.Top)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = entry.driverName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = entry.vehicle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = dateFormatter.format(entry.date),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            
+
             Column(horizontalAlignment = Alignment.End) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -559,9 +588,22 @@ fun DailyEntryTile(
                             )
                         }
                     }
-                    
-                    // Delete button for admin users
-                    if (showDeleteButton && onDelete != null) {
+
+                    if (showEditButton && onEdit != null && !selectionMode) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit entry",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    if (showDeleteButton && onDelete != null && !selectionMode) {
                         IconButton(
                             onClick = { onDelete() },
                             modifier = Modifier.size(24.dp)
@@ -577,7 +619,7 @@ fun DailyEntryTile(
                 }
             }
         }
-        
+
         if (entry.notes.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -586,9 +628,9 @@ fun DailyEntryTile(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         EarningsChips(
             earnings = listOf(
                 com.fleetmanager.ui.components.EarningItem("Uber", entry.uberEarnings),

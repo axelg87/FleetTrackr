@@ -15,7 +15,6 @@ import com.fleetmanager.domain.usecase.SaveExpenseUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
@@ -33,6 +32,7 @@ data class AddExpenseUiState(
     val notes: String = "",
     val photoUri: Uri? = null,
     val photoUris: List<Uri> = emptyList(),
+    val existingPhotoUrls: List<String> = emptyList(),
     val driverDropdownExpanded: Boolean = false,
     val vehicleDropdownExpanded: Boolean = false,
     val expenseTypeDropdownExpanded: Boolean = false,
@@ -43,7 +43,11 @@ data class AddExpenseUiState(
     val amountError: String? = null,
     val notesError: String? = null,
     val userRole: UserRole? = null,
-    val currentUserProfile: UserDto? = null
+    val currentUserProfile: UserDto? = null,
+    val expenseId: String? = null,
+    val userId: String = "",
+    val createdAt: Date? = null,
+    val isEditing: Boolean = false
 ) {
     val canSave: Boolean
         get() = driverInput.isNotBlank() && 
@@ -75,7 +79,8 @@ class AddExpenseViewModel @Inject constructor(
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
     private val saveExpenseUseCase: SaveExpenseUseCase,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val getExpenseByIdUseCase: com.fleetmanager.domain.usecase.GetExpenseByIdUseCase
 ) : BaseViewModel<AddExpenseUiState>() {
     
     override fun getInitialState() = AddExpenseUiState()
@@ -240,18 +245,24 @@ class AddExpenseViewModel @Inject constructor(
                 updateState { it.copy(isSaving = false, errorMessage = error) }
             }
         ) {
+            val now = Date()
+            val expenseId = currentState.expenseId ?: UUID.randomUUID().toString()
+            val createdAt = currentState.createdAt ?: now
+
             val expense = Expense(
-                id = UUID.randomUUID().toString(),
+                id = expenseId,
+                userId = currentState.userId,
                 type = currentState.selectedExpenseType,
                 amount = currentState.amount.toDoubleOrNull() ?: 0.0,
                 date = currentState.date,
                 driverName = currentState.driverInput,
                 vehicle = currentState.vehicleInput,
                 notes = currentState.notes,
-                createdAt = Date(),
-                updatedAt = Date()
+                photoUrls = currentState.existingPhotoUrls,
+                createdAt = createdAt,
+                updatedAt = now
             )
-            
+
             val result = saveExpenseUseCase(expense, currentState.photoUri, currentState.photoUris)
             result.fold(
                 onSuccess = {
@@ -266,6 +277,42 @@ class AddExpenseViewModel @Inject constructor(
                     }
                 }
             )
+        }
+    }
+
+    fun loadExpenseForEdit(expenseId: String) {
+        executeAsync(
+            onLoading = { isLoading ->
+                updateState { it.copy(isSaving = false, errorMessage = null) }
+            },
+            onError = { error ->
+                updateState { it.copy(errorMessage = error) }
+            }
+        ) {
+            getExpenseByIdUseCase(expenseId)
+                .filterNotNull()
+                .firstOrNull()
+                ?.let { expense ->
+                    updateState { state ->
+                        state.copy(
+                            expenseId = expense.id,
+                            userId = expense.userId,
+                            isEditing = true,
+                            date = expense.date,
+                            selectedExpenseType = expense.type,
+                            amount = expense.amount.takeIf { it != 0.0 }?.toString() ?: "",
+                            driverInput = expense.driverName,
+                            vehicleInput = expense.vehicle,
+                            notes = expense.notes,
+                            existingPhotoUrls = expense.photoUrls,
+                            createdAt = expense.createdAt,
+                            errorMessage = null,
+                            isSaved = false
+                        )
+                    }
+                } ?: updateState {
+                it.copy(errorMessage = "Expense not found")
+            }
         }
     }
 }

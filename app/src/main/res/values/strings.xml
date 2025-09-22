@@ -6,6 +6,7 @@
     <string name="welcome">Welcome to Fleet Manager</string>
     <string name="manage_your_fleet">Manage your fleet earnings and expenses</string>
     <string name="add_entry">Add Entry</string>
+    <string name="edit_entry">Edit Entry</string>
     <string name="entries">Entries</string>
     <string name="driver_name">Driver Name</string>
     <string name="vehicle">Vehicle</string>
@@ -15,6 +16,7 @@
     <string name="notes">Notes</string>
     <string name="date">Date</string>
     <string name="save">Save</string>
+    <string name="update_entry">Update</string>
     <string name="cancel">Cancel</string>
     <string name="photo">Photo</string>
     <string name="take_photo">Take Photo</string>

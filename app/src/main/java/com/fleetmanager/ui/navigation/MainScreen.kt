@@ -34,7 +34,9 @@ fun MainScreen(
     onAddEntryClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onEntryClick: (String) -> Unit
+    onEntryClick: (String) -> Unit,
+    onEditEntry: (String) -> Unit,
+    onEditExpense: (String) -> Unit
 ) {
     val currentIndex by NavigationState.currentPageIndex.collectAsState()
 
@@ -106,6 +108,8 @@ fun MainScreen(
                         onAddEntryClick = onAddEntryClick,
                         onAddExpenseClick = onAddExpenseClick,
                         onEntryClick = onEntryClick,
+                        onEditEntry = onEditEntry,
+                        onEditExpense = onEditExpense,
                         onNavigateToProfile = onNavigateToProfile
                     )
                     Screen.Analytics -> AnalyticsScreen(
