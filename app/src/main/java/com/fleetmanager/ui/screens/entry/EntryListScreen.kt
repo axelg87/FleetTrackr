@@ -408,6 +408,7 @@ private fun BulkEditSelectionBar(
     }
 }
 
+// Using ExposedDropdownMenuBox for dropdown selectors; API is still marked experimental.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BulkEditDialog(
@@ -541,7 +542,8 @@ private fun ExpenseListItem(
     onEdit: () -> Unit
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
-    val itemClick: () -> Unit = if (showEditButton) onClick else {}
+    val disabledClick: () -> Unit = {}
+    val itemClick: () -> Unit = if (showEditButton) onClick else disabledClick
     ListItemCard(onClick = itemClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
