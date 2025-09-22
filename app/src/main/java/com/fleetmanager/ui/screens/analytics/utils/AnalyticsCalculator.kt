@@ -67,7 +67,9 @@ object AnalyticsCalculator {
      * Calculate driver performance metrics
      */
     fun calculateDriverPerformance(entries: List<DailyEntry>): List<DriverPerformance> {
-        return entries.groupBy { it.driverName.ifBlank { it.driverId } }
+        return entries.groupBy { entry ->
+            entry.driverName.takeUnless { it.isBlank() } ?: entry.driverId
+        }
             .map { (driverName, driverEntries) ->
                 val totalRevenue = driverEntries.sumOf { it.totalEarnings }
                 val uniqueDates = driverEntries.map {
@@ -93,10 +95,14 @@ object AnalyticsCalculator {
         entries: List<DailyEntry>,
         expenses: List<Expense>
     ): List<VehicleROI> {
-        val incomeByVehicle = entries.groupBy { it.vehicle.ifBlank { it.vehicleId } }
+        val incomeByVehicle = entries.groupBy { entry ->
+            entry.vehicle.takeUnless { it.isBlank() } ?: entry.vehicleId
+        }
             .mapValues { (_, entries) -> entries.sumOf { it.totalEarnings } }
 
-        val expensesByVehicle = expenses.groupBy { it.vehicle.ifBlank { it.vehicleId } }
+        val expensesByVehicle = expenses.groupBy { expense ->
+            expense.vehicle.takeUnless { it.isBlank() } ?: "Unknown Vehicle"
+        }
             .mapValues { (_, expenses) -> expenses.sumOf { it.amount } }
 
         val allVehicles = (incomeByVehicle.keys + expensesByVehicle.keys).toSet()
