@@ -165,8 +165,16 @@ class SettingsViewModel @Inject constructor(
             
             // Get all daily entries and convert to report entries
             val dailyEntries = fleetRepository.getAllDailyEntries().first()
+            val drivers = fleetRepository.getAllDrivers().first()
+            val vehicles = fleetRepository.getAllActiveVehicles().first()
+            val driverNameMap = drivers.associateBy({ it.id }, { it.name })
+            val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
             dailyEntries.forEach { dailyEntry ->
-                allReportEntries.addAll(dailyEntry.toReportEntries())
+                val enrichedEntry = dailyEntry.withResolvedDisplayData(
+                    driverDisplayName = driverNameMap[dailyEntry.driverId],
+                    vehicleDisplayName = vehicleNameMap[dailyEntry.vehicleId]
+                )
+                allReportEntries.addAll(enrichedEntry.toReportEntries())
             }
             
             // Get all expenses and convert to report entries

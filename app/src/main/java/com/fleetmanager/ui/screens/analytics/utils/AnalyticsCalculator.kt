@@ -67,10 +67,10 @@ object AnalyticsCalculator {
      * Calculate driver performance metrics
      */
     fun calculateDriverPerformance(entries: List<DailyEntry>): List<DriverPerformance> {
-        return entries.groupBy { it.driverName }
+        return entries.groupBy { it.driverName.ifBlank { it.driverId } }
             .map { (driverName, driverEntries) ->
                 val totalRevenue = driverEntries.sumOf { it.totalEarnings }
-                val uniqueDates = driverEntries.map { 
+                val uniqueDates = driverEntries.map {
                     AnalyticsUtils.dateToLocalDate(it.date)
                 }.toSet()
                 val activeDays = uniqueDates.size
@@ -93,10 +93,10 @@ object AnalyticsCalculator {
         entries: List<DailyEntry>,
         expenses: List<Expense>
     ): List<VehicleROI> {
-        val incomeByVehicle = entries.groupBy { it.vehicle }
+        val incomeByVehicle = entries.groupBy { it.vehicle.ifBlank { it.vehicleId } }
             .mapValues { (_, entries) -> entries.sumOf { it.totalEarnings } }
-        
-        val expensesByVehicle = expenses.groupBy { it.vehicle }
+
+        val expensesByVehicle = expenses.groupBy { it.vehicle.ifBlank { it.vehicleId } }
             .mapValues { (_, expenses) -> expenses.sumOf { it.amount } }
 
         val allVehicles = (incomeByVehicle.keys + expensesByVehicle.keys).toSet()

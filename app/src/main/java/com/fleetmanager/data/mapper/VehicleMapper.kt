@@ -16,10 +16,19 @@ object VehicleMapper {
             model = dto.model,
             year = dto.year,
             licensePlate = dto.licensePlate,
-            isActive = dto.isActive
+            isActive = dto.isActive,
+            price = dto.price,
+            deposit = dto.deposit,
+            installment = dto.installment,
+            installmentDurationMonths = dto.installmentDurationMonths,
+            serviceStartDate = dto.serviceStartDate,
+            serviceEndDate = dto.serviceEndDate,
+            annualInsuranceAmount = dto.annualInsuranceAmount,
+            fuelTankCapacity = dto.fuelTankCapacity,
+            fuelConsumptionPer100Km = dto.fuelConsumptionPer100Km
         )
     }
-    
+
     fun toDto(domain: Vehicle): VehicleDto {
         return VehicleDto(
             id = domain.id,
@@ -28,7 +37,16 @@ object VehicleMapper {
             model = domain.model,
             year = domain.year,
             licensePlate = domain.licensePlate,
-            isActive = domain.isActive
+            isActive = domain.isActive,
+            price = domain.price,
+            deposit = domain.deposit,
+            installment = domain.installment,
+            installmentDurationMonths = domain.installmentDurationMonths,
+            serviceStartDate = domain.serviceStartDate,
+            serviceEndDate = domain.serviceEndDate,
+            annualInsuranceAmount = domain.annualInsuranceAmount,
+            fuelTankCapacity = domain.fuelTankCapacity,
+            fuelConsumptionPer100Km = domain.fuelConsumptionPer100Km
         )
     }
     

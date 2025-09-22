@@ -3,6 +3,7 @@ package com.fleetmanager.domain.usecase
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.domain.validation.InputValidator
+import com.fleetmanager.domain.validation.ValidationResult
 import javax.inject.Inject
 
 /**
@@ -22,7 +23,36 @@ class SaveVehicleUseCase @Inject constructor(
                 { validator.validateText(vehicle.make, "Vehicle make") },
                 { validator.validateText(vehicle.model, "Vehicle model") },
                 { validator.validateYear(vehicle.year) },
-                { validator.validateLicensePlate(vehicle.licensePlate) }
+                { validator.validateLicensePlate(vehicle.licensePlate) },
+                { validator.validateNonNegativeAmount(vehicle.price, "Vehicle price") },
+                { validator.validateNonNegativeAmount(vehicle.deposit, "Deposit", required = false) },
+                { validator.validateNonNegativeAmount(vehicle.installment, "Installment", required = false) },
+                {
+                    if (vehicle.installment != null || vehicle.installmentDurationMonths != null) {
+                        validator.validatePositiveInt(
+                            vehicle.installmentDurationMonths,
+                            "Installment duration",
+                            required = true
+                        )
+                    } else {
+                        ValidationResult.Success
+                    }
+                },
+                { validator.validateNonNegativeAmount(vehicle.annualInsuranceAmount, "Annual insurance amount") },
+                {
+                    validator.validatePositiveAmount(
+                        vehicle.fuelTankCapacity,
+                        "Fuel tank capacity",
+                        required = false
+                    )
+                },
+                {
+                    validator.validatePositiveAmount(
+                        vehicle.fuelConsumptionPer100Km,
+                        "Fuel consumption",
+                        required = false
+                    )
+                }
             )
             
             if (validationResult.isError) {

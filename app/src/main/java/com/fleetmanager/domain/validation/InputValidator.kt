@@ -65,22 +65,61 @@ class InputValidator @Inject constructor() {
         if (amount.isNullOrBlank()) {
             return ValidationResult.Error("$fieldName is required")
         }
-        
+
         val sanitized = sanitizeNumericInput(amount)
         val value = sanitized.toDoubleOrNull()
-        
+
         if (value == null) {
             return ValidationResult.Error("$fieldName must be a valid number")
         }
-        
+
         if (value < 0) {
             return ValidationResult.Error("$fieldName cannot be negative")
         }
-        
+
         if (value > 999999.99) {
             return ValidationResult.Error("$fieldName is too large")
         }
-        
+
+        return ValidationResult.Success
+    }
+
+    /**
+     * Validates that a numeric value is not negative and optionally required.
+     */
+    fun validateNonNegativeAmount(
+        amount: Double?,
+        fieldName: String,
+        required: Boolean = true
+    ): ValidationResult {
+        val value = amount ?: if (required) {
+            return ValidationResult.Error("$fieldName is required")
+        } else {
+            return ValidationResult.Success
+        }
+
+        if (value < 0.0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validatePositiveAmount(
+        amount: Double?,
+        fieldName: String,
+        required: Boolean = true
+    ): ValidationResult {
+        val value = amount ?: if (required) {
+            return ValidationResult.Error("$fieldName is required")
+        } else {
+            return ValidationResult.Success
+        }
+
+        if (value <= 0.0) {
+            return ValidationResult.Error("$fieldName must be greater than 0")
+        }
+
         return ValidationResult.Success
     }
     
@@ -104,7 +143,7 @@ class InputValidator @Inject constructor() {
      */
     fun validateLicensePlate(plate: String?): ValidationResult {
         val sanitized = sanitizeText(plate).uppercase()
-        
+
         if (sanitized.isBlank()) {
             return ValidationResult.Error("License plate is required")
         }
@@ -113,6 +152,20 @@ class InputValidator @Inject constructor() {
             return ValidationResult.Error("License plate format is invalid")
         }
         
+        return ValidationResult.Success
+    }
+
+    fun validatePositiveInt(value: Int?, fieldName: String, required: Boolean = true): ValidationResult {
+        val result = value ?: if (required) {
+            return ValidationResult.Error("$fieldName is required")
+        } else {
+            return ValidationResult.Success
+        }
+
+        if (result <= 0) {
+            return ValidationResult.Error("$fieldName must be greater than 0")
+        }
+
         return ValidationResult.Success
     }
     

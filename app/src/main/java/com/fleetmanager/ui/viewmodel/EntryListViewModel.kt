@@ -6,6 +6,8 @@ import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
 import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -21,6 +23,8 @@ data class EntryListUiState(
 class EntryListViewModel @Inject constructor(
     private val getAllEntriesRealtimeUseCase: GetAllEntriesRealtimeUseCase,
     private val firestoreService: FirestoreService,
+    private val userFirestoreService: UserFirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService,
     private val authRepository: com.fleetmanager.domain.repository.AuthRepository,
     private val deleteDailyEntryUseCase: com.fleetmanager.domain.usecase.DeleteDailyEntryUseCase
 ) : BaseViewModel<EntryListUiState>() {
@@ -78,20 +82,34 @@ class EntryListViewModel @Inject constructor(
             }
         ) {
             userRole.collect { role ->
-                firestoreService.getDailyEntriesFlowForRole(role)
+                combine(
+                    firestoreService.getDailyEntriesFlowForRole(role),
+                    userFirestoreService.getDriverUsersFlow(),
+                    vehicleFirestoreService.getVehiclesFlow()
+                ) { entries, driverUsers, vehicles ->
+                    Triple(entries, driverUsers, vehicles)
+                }
                     .catch { e ->
                         Log.e(TAG, "Firestore snapshot listener error", e)
-                        updateState { 
+                        updateState {
                             it.copy(
-                                isLoading = false, 
+                                isLoading = false,
                                 errorMessage = "Failed to load entries: ${e.message}"
                             ) 
                         }
                     }
-                    .collect { entries ->
+                    .collect { (entries, driverUsers, vehicles) ->
                         Log.d(TAG, "Received ${entries.size} entries for role $role")
+                        val driverNameMap = driverUsers.associateBy({ it.id }, { it.name })
+                        val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
+                        val enrichedEntries = entries.map { entry ->
+                            entry.withResolvedDisplayData(
+                                driverDisplayName = driverNameMap[entry.driverId],
+                                vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                            )
+                        }
                         // Sort entries by date descending (most recent first)
-                        val sortedEntries = entries.sortedByDescending { it.date }
+                        val sortedEntries = enrichedEntries.sortedByDescending { it.date }
                         updateState {
                             it.copy(
                                 entries = sortedEntries,
