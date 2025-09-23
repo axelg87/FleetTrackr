@@ -10,6 +10,9 @@ import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -63,8 +66,24 @@ class UserFirestoreService @Inject constructor(
     
     // Get current user's profile
     fun getCurrentUserProfile(): Flow<UserDto> {
-        val userId = authService.getCurrentUserId() ?: ""
-        return getUserProfile(userId)
+        return authService.currentUser
+            .map { firebaseUser -> firebaseUser?.uid }
+            .distinctUntilChanged()
+            .flatMapLatest { userId ->
+                if (userId != null) {
+                    getUserProfile(userId)
+                } else {
+                    flowOf(
+                        UserDto(
+                            id = "",
+                            name = "Unknown User",
+                            email = "",
+                            role = UserRole.DRIVER,
+                            profilePictureUrl = null
+                        )
+                    )
+                }
+            }
     }
     
     // Simple method to get current user's role (default to DRIVER if not found)
