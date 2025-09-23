@@ -6,6 +6,7 @@ import com.fleetmanager.domain.model.ExpenseType
 import com.fleetmanager.domain.model.ExpenseTypeItem
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
@@ -19,7 +20,7 @@ import java.util.*
 import javax.inject.Inject
 
 data class AddExpenseUiState(
-    val driverUsers: List<UserDto> = emptyList(),
+    val drivers: List<Driver> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val expenseTypes: List<ExpenseTypeItem> = emptyList(),
     val selectedDriver: Driver? = null,
@@ -62,7 +63,7 @@ data class AddExpenseUiState(
     
     // Driver names from Firestore only
     val allDriverNames: List<String>
-        get() = driverUsers.map { it.name }.sorted()
+        get() = drivers.map { it.name }.sorted()
     
     // Vehicle names from Firestore only
     val allVehicleNames: List<String>
@@ -75,6 +76,7 @@ data class AddExpenseUiState(
 
 @HiltViewModel
 class AddExpenseViewModel @Inject constructor(
+    private val firestoreService: FirestoreService,
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
@@ -98,12 +100,12 @@ class AddExpenseViewModel @Inject constructor(
             }
         ) {
             combine(
-                userFirestoreService.getDriverUsersFlow(),
+                firestoreService.getDriversFlow(),
                 vehicleFirestoreService.getVehiclesFlow(),
                 expenseTypeFirestoreService.getExpenseTypesFlow()
-            ) { driverUsers, vehicles, expenseTypes ->
-                Triple(driverUsers, vehicles, expenseTypes)
-            }.collect { (driverUsers, vehicles, expenseTypes) ->
+            ) { drivers, vehicles, expenseTypes ->
+                Triple(drivers, vehicles, expenseTypes)
+            }.collect { (drivers, vehicles, expenseTypes) ->
                 updateState { currentState ->
                     // If this is the first load and we have expense types, select the first one
                     val selectedExpenseType = if (currentState.expenseTypes.isEmpty() && expenseTypes.isNotEmpty()) {
@@ -113,9 +115,16 @@ class AddExpenseViewModel @Inject constructor(
                         currentState.selectedExpenseType
                     }
 
-                    val autoFilledDriverName = if (shouldAutoFillDriver(currentState)) {
-                        val userProfile = currentState.currentUserProfile
-                        driverUsers.firstOrNull { it.id == userProfile?.id }?.name
+                    val shouldAutoFill = shouldAutoFillDriver(currentState)
+                    val userProfile = currentState.currentUserProfile
+                    val autoSelectedDriver = if (shouldAutoFill) {
+                        drivers.firstOrNull { it.userId == userProfile?.id }
+                    } else {
+                        currentState.selectedDriver
+                    }
+
+                    val autoFilledDriverName = if (shouldAutoFill) {
+                        autoSelectedDriver?.name
                             ?: userProfile?.name
                             ?: currentState.driverInput
                     } else {
@@ -123,10 +132,11 @@ class AddExpenseViewModel @Inject constructor(
                     }
 
                     currentState.copy(
-                        driverUsers = driverUsers,
+                        drivers = drivers,
                         vehicles = vehicles,
                         expenseTypes = expenseTypes,
                         selectedExpenseType = selectedExpenseType,
+                        selectedDriver = autoSelectedDriver,
                         driverInput = autoFilledDriverName
                     )
                 }
@@ -148,10 +158,13 @@ class AddExpenseViewModel @Inject constructor(
                     )
 
                     if (shouldAutoFillDriver(updatedState)) {
-                        val driverName = updatedState.driverUsers.firstOrNull { it.id == userProfile.id }?.name
-                            ?: userProfile.name
+                        val matchingDriver = updatedState.drivers.firstOrNull { it.userId == userProfile.id }
+                        val driverName = matchingDriver?.name ?: userProfile.name
 
-                        updatedState.copy(driverInput = driverName)
+                        updatedState.copy(
+                            driverInput = driverName,
+                            selectedDriver = matchingDriver ?: updatedState.selectedDriver
+                        )
                     } else {
                         updatedState
                     }

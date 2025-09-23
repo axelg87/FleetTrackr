@@ -3,6 +3,7 @@ package com.fleetmanager.ui.viewmodel
 import com.fleetmanager.auth.AuthService
 import com.fleetmanager.data.preferences.ReportFilterPreferences
 import com.fleetmanager.data.preferences.ReportPreferencesDataStore
+import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.ExpenseTypeFirestoreService
@@ -10,8 +11,6 @@ import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.model.ExpenseTypeItem
-import com.fleetmanager.domain.usecase.GetActiveDriversUseCase
-import com.fleetmanager.domain.usecase.GetActiveVehiclesUseCase
 import com.fleetmanager.domain.usecase.GetReportDataRealtimeUseCase
 import com.fleetmanager.ui.model.ReportEntry
 import com.fleetmanager.ui.model.toReportEntries
@@ -55,7 +54,7 @@ data class GroupedTotal(
 data class ReportUiState(
     val allEntries: List<ReportEntry> = emptyList(),
     val filteredEntries: List<ReportEntry> = emptyList(),
-    val driverUsers: List<UserDto> = emptyList(),
+    val drivers: List<Driver> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val expenseTypes: List<ExpenseTypeItem> = emptyList(),
     val availableTypes: List<String> = emptyList(),
@@ -125,8 +124,7 @@ data class ReportUiState(
 @HiltViewModel
 class ReportViewModel @Inject constructor(
     private val getReportDataRealtimeUseCase: GetReportDataRealtimeUseCase,
-    private val getActiveDriversUseCase: GetActiveDriversUseCase,
-    private val getActiveVehiclesUseCase: GetActiveVehiclesUseCase,
+    private val firestoreService: FirestoreService,
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val expenseTypeFirestoreService: ExpenseTypeFirestoreService,
@@ -160,11 +158,11 @@ class ReportViewModel @Inject constructor(
         ) {
             combine(
                 getReportDataRealtimeUseCase(),
-                userFirestoreService.getDriverUsersFlow(),
+                firestoreService.getDriversFlow(),
                 vehicleFirestoreService.getVehiclesFlow(),
                 expenseTypeFirestoreService.getExpenseTypesFlow()
-            ) { reportData, driverUsers, vehicles, expenseTypes ->
-                val driverNameMap = driverUsers.associateBy({ it.id }, { it.name })
+            ) { reportData, drivers, vehicles, expenseTypes ->
+                val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                 val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
                 val allEntries = mutableListOf<ReportEntry>()
 
@@ -193,14 +191,14 @@ class ReportViewModel @Inject constructor(
                 val typesFromExpenseTypes = expenseTypes.map { it.displayName }
                 val availableTypes = (typesFromEntries + typesFromExpenseTypes).distinct().sorted()
                 
-                Pair(allEntries, Triple(driverUsers, vehicles, Pair(expenseTypes, availableTypes)))
+                Pair(allEntries, Triple(drivers, vehicles, Pair(expenseTypes, availableTypes)))
             }.collect { (allEntries, data) ->
-                val (driverUsers, vehicles, expenseTypesAndTypes) = data
+                val (drivers, vehicles, expenseTypesAndTypes) = data
                 val (expenseTypes, availableTypes) = expenseTypesAndTypes
                 updateState { currentState ->
                     val newState = currentState.copy(
                         allEntries = allEntries,
-                        driverUsers = driverUsers,
+                        drivers = drivers,
                         vehicles = vehicles,
                         expenseTypes = expenseTypes,
                         availableTypes = availableTypes,
@@ -367,7 +365,7 @@ class ReportViewModel @Inject constructor(
                 updateState { currentState ->
                     currentState.copy(
                         currentUserId = userId,
-                        isCurrentUserDriver = userId != null && isUserADriver(userId, currentState.driverUsers)
+                        isCurrentUserDriver = userId != null && isUserADriver(userId, currentState.drivers)
                     )
                 }
             }
@@ -388,8 +386,8 @@ class ReportViewModel @Inject constructor(
                     // Auto-fill driver and vehicle for drivers
                     val autoSelectedDriver = if (state.isCurrentUserDriver) {
                         // Find the driver that matches the current user
-                        val matchingDriver = state.driverUsers.find { driver ->
-                            driver.id == userId
+                        val matchingDriver = state.drivers.find { driver ->
+                            driver.userId == userId
                         }
                         preferences.selectedDriver ?: matchingDriver?.name
                     } else {
@@ -449,9 +447,9 @@ class ReportViewModel @Inject constructor(
         }
     }
     
-    private fun isUserADriver(userId: String, driverUsers: List<UserDto>): Boolean {
-        return driverUsers.any { driver -> 
-            driver.id == userId
+    private fun isUserADriver(userId: String, drivers: List<Driver>): Boolean {
+        return drivers.any { driver ->
+            driver.userId == userId
         }
     }
     
