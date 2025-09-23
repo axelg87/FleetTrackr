@@ -1,0 +1,16 @@
+{
+  "name": "fleettrackr-functions",
+  "description": "Cloud Functions for FleetTrackr Firebase backend.",
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.4.1"
+  }
+}
