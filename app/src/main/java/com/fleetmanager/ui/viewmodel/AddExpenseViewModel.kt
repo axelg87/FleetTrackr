@@ -112,18 +112,28 @@ class AddExpenseViewModel @Inject constructor(
                     } else {
                         currentState.selectedExpenseType
                     }
-                    
+
+                    val autoFilledDriverName = if (shouldAutoFillDriver(currentState)) {
+                        val userProfile = currentState.currentUserProfile
+                        driverUsers.firstOrNull { it.id == userProfile?.id }?.name
+                            ?: userProfile?.name
+                            ?: currentState.driverInput
+                    } else {
+                        currentState.driverInput
+                    }
+
                     currentState.copy(
                         driverUsers = driverUsers,
                         vehicles = vehicles,
                         expenseTypes = expenseTypes,
-                        selectedExpenseType = selectedExpenseType
+                        selectedExpenseType = selectedExpenseType,
+                        driverInput = autoFilledDriverName
                     )
                 }
             }
         }
     }
-    
+
     private fun loadUserProfile() {
         executeAsync(
             onError = { error ->
@@ -131,14 +141,31 @@ class AddExpenseViewModel @Inject constructor(
             }
         ) {
             userFirestoreService.getCurrentUserProfile().collect { userProfile ->
-                updateState { 
-                    it.copy(
+                updateState { currentState ->
+                    val updatedState = currentState.copy(
                         currentUserProfile = userProfile,
                         userRole = userProfile.role
-                    ) 
+                    )
+
+                    if (shouldAutoFillDriver(updatedState)) {
+                        val driverName = updatedState.driverUsers.firstOrNull { it.id == userProfile.id }?.name
+                            ?: userProfile.name
+
+                        updatedState.copy(driverInput = driverName)
+                    } else {
+                        updatedState
+                    }
                 }
             }
         }
+    }
+
+    private fun shouldAutoFillDriver(state: AddExpenseUiState): Boolean {
+        val role = state.userRole ?: state.currentUserProfile?.role
+        if (state.isEditing || state.driverInput.isNotBlank()) {
+            return false
+        }
+        return role == UserRole.DRIVER || role == UserRole.MANAGER
     }
     
     fun selectDriver(driver: Driver) {
