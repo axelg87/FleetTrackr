@@ -11,6 +11,7 @@ import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.domain.usecase.DeleteExpenseUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -51,6 +52,7 @@ class EntryListViewModel @Inject constructor(
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val authRepository: com.fleetmanager.domain.repository.AuthRepository,
     private val deleteDailyEntryUseCase: com.fleetmanager.domain.usecase.DeleteDailyEntryUseCase,
+    private val deleteExpenseUseCase: DeleteExpenseUseCase,
     private val saveDailyEntryUseCase: com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 ) : BaseViewModel<EntryListUiState>() {
     
@@ -160,6 +162,18 @@ class EntryListViewModel @Inject constructor(
             }
         ) {
             deleteDailyEntryUseCase(entryId)
+            onSuccess?.invoke()
+        }
+    }
+
+    fun deleteExpense(expenseId: String, onSuccess: (() -> Unit)? = null) {
+        executeAsync(
+            onError = { error ->
+                Log.e(TAG, "Error deleting expense: $error")
+                updateState { it.copy(errorMessage = "Failed to delete expense: $error") }
+            }
+        ) {
+            deleteExpenseUseCase(expenseId)
             onSuccess?.invoke()
         }
     }

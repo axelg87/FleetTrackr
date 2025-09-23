@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
@@ -49,6 +50,8 @@ fun EntryListScreen(
     // State for delete confirmation dialog
     var entryToDelete by remember { mutableStateOf<DailyEntry?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var expenseToDelete by remember { mutableStateOf<Expense?>(null) }
+    var showExpenseDeleteDialog by remember { mutableStateOf(false) }
     
     // Create stable lambdas to prevent unnecessary recompositions
     val onAddClick: () -> Unit = rememberStableLambda0({ onAddEntryClick() })
@@ -206,7 +209,12 @@ fun EntryListScreen(
                                 expense = expense,
                                 onClick = { onEditExpense(expense.id) },
                                 showEditButton = PermissionManager.canEdit(userRole),
-                                onEdit = { onEditExpense(expense.id) }
+                                showDeleteButton = PermissionManager.canDelete(userRole),
+                                onEdit = { onEditExpense(expense.id) },
+                                onDelete = {
+                                    expenseToDelete = expense
+                                    showExpenseDeleteDialog = true
+                                }
                             )
                         }
                     }
@@ -259,6 +267,49 @@ fun EntryListScreen(
                         onClick = { 
                             showDeleteDialog = false
                             entryToDelete = null
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        if (showExpenseDeleteDialog && expenseToDelete != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    showExpenseDeleteDialog = false
+                    expenseToDelete = null
+                },
+                title = { Text("Delete Expense") },
+                text = {
+                    val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                    val amount = String.format(Locale.getDefault(), "%.2f", expenseToDelete!!.amount)
+                    Text(
+                        "Are you sure you want to delete the expense of $${amount} " +
+                            "recorded on ${formatter.format(expenseToDelete!!.date)}? This action cannot be undone."
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            expenseToDelete?.let { expense ->
+                                viewModel.deleteExpense(expense.id) {
+                                    // Expense deleted successfully
+                                }
+                            }
+                            showExpenseDeleteDialog = false
+                            expenseToDelete = null
+                        }
+                    ) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showExpenseDeleteDialog = false
+                            expenseToDelete = null
                         }
                     ) {
                         Text("Cancel")
@@ -543,7 +594,9 @@ private fun ExpenseListItem(
     expense: Expense,
     onClick: () -> Unit,
     showEditButton: Boolean,
-    onEdit: () -> Unit
+    showDeleteButton: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
     val disabledClick: () -> Unit = {}
@@ -586,9 +639,18 @@ private fun ExpenseListItem(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                if (showEditButton) {
-                    IconButton(onClick = onEdit) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit expense")
+                if (showEditButton || showDeleteButton) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (showEditButton) {
+                            IconButton(onClick = onEdit) {
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit expense")
+                            }
+                        }
+                        if (showDeleteButton) {
+                            IconButton(onClick = onDelete) {
+                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete expense")
+                            }
+                        }
                     }
                 }
             }
