@@ -93,11 +93,13 @@ fun DriverManagementScreen(
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                driverBeingEdited = null
-                showForm = true
-            }) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Driver")
+            if (uiState.canManageDrivers) {
+                FloatingActionButton(onClick = {
+                    driverBeingEdited = null
+                    showForm = true
+                }) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Driver")
+                }
             }
         }
     ) { innerPadding ->
@@ -120,6 +122,7 @@ fun DriverManagementScreen(
                 else -> {
                     DriverList(
                         drivers = uiState.drivers,
+                        canManageDrivers = uiState.canManageDrivers,
                         onView = { driverForDetails = it },
                         onEdit = {
                             driverBeingEdited = it
@@ -163,6 +166,7 @@ fun DriverManagementScreen(
 @Composable
 private fun DriverList(
     drivers: List<Driver>,
+    canManageDrivers: Boolean,
     onView: (Driver) -> Unit,
     onEdit: (Driver) -> Unit,
     onDelete: (Driver) -> Unit
@@ -176,6 +180,7 @@ private fun DriverList(
             ListItemCard(onClick = { onView(driver) }) {
                 DriverListItemContent(
                     driver = driver,
+                    canManageDrivers = canManageDrivers,
                     onView = { onView(driver) },
                     onEdit = { onEdit(driver) },
                     onDelete = { onDelete(driver) }
@@ -188,6 +193,7 @@ private fun DriverList(
 @Composable
 private fun DriverListItemContent(
     driver: Driver,
+    canManageDrivers: Boolean,
     onView: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -222,11 +228,13 @@ private fun DriverListItemContent(
             IconButton(onClick = onView) {
                 Icon(imageVector = Icons.Default.Visibility, contentDescription = "View Driver")
             }
-            IconButton(onClick = onEdit) {
-                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Driver")
-            }
-            IconButton(onClick = onDelete) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Driver")
+            if (canManageDrivers) {
+                IconButton(onClick = onEdit) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Driver")
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Driver")
+                }
             }
         }
     }

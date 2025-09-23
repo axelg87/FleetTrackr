@@ -1,6 +1,9 @@
 package com.fleetmanager.ui.viewmodel
 
 import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.domain.usecase.DeleteDriverUseCase
 import com.fleetmanager.domain.usecase.SaveDriverUseCase
@@ -15,11 +18,14 @@ data class DriverManagementUiState(
     val drivers: List<Driver> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val message: String? = null
+    val message: String? = null,
+    val currentUserRole: UserRole? = null,
+    val canManageDrivers: Boolean = false
 )
 
 @HiltViewModel
 class DriverManagementViewModel @Inject constructor(
+    private val userFirestoreService: UserFirestoreService,
     private val fleetRepository: FleetRepository,
     private val saveDriverUseCase: SaveDriverUseCase,
     private val deleteDriverUseCase: DeleteDriverUseCase
@@ -29,6 +35,7 @@ class DriverManagementViewModel @Inject constructor(
 
     init {
         observeDrivers()
+        observeUserRole()
     }
 
     private fun observeDrivers() {
@@ -48,12 +55,37 @@ class DriverManagementViewModel @Inject constructor(
         }
     }
 
+    private fun observeUserRole() {
+        executeAsync(
+            onError = { _ ->
+                updateState { it.copy(currentUserRole = UserRole.DRIVER, canManageDrivers = false) }
+            }
+        ) {
+            userFirestoreService.getCurrentUserProfile().collect { user ->
+                val role = user.role
+                updateState {
+                    it.copy(
+                        currentUserRole = role,
+                        canManageDrivers = PermissionManager.canManageDrivers(role)
+                    )
+                }
+            }
+        }
+    }
+
     fun saveDriver(driver: Driver) {
+        val currentRole = _uiState.value.currentUserRole
+        if (currentRole == null || !PermissionManager.canManageDrivers(currentRole)) {
+            updateState {
+                it.copy(error = "You do not have permission to manage drivers.")
+            }
+            return
+        }
         executeAsync(
             onLoading = { loading -> updateState { it.copy(isLoading = loading) } },
             onError = { error -> updateState { it.copy(error = error) } }
         ) {
-            val result = saveDriverUseCase(driver)
+            val result = saveDriverUseCase(driver, currentRole)
             result.fold(
                 onSuccess = {
                     updateState { it.copy(message = "Driver saved successfully", error = null) }
@@ -70,11 +102,18 @@ class DriverManagementViewModel @Inject constructor(
     }
 
     fun deleteDriver(driverId: String) {
+        val currentRole = _uiState.value.currentUserRole
+        if (currentRole == null || !PermissionManager.canManageDrivers(currentRole)) {
+            updateState {
+                it.copy(error = "You do not have permission to manage drivers.")
+            }
+            return
+        }
         executeAsync(
             onLoading = { loading -> updateState { it.copy(isLoading = loading) } },
             onError = { error -> updateState { it.copy(error = error) } }
         ) {
-            val result = deleteDriverUseCase(driverId)
+            val result = deleteDriverUseCase(driverId, currentRole)
             result.fold(
                 onSuccess = {
                     updateState { it.copy(message = "Driver deleted", error = null) }
