@@ -195,7 +195,24 @@ class FleetRepositoryImpl @Inject constructor(
             // Will be synced later
         }
     }
-    
+
+    override suspend fun deleteDriver(driverId: String) {
+        val driverDto = driverDao.getDriverById(driverId)
+
+        try {
+            firestoreService.deleteDriver(driverId)
+
+            if (driverDto != null) {
+                driverDao.deleteDriver(driverDto)
+            }
+        } catch (e: Exception) {
+            val errorMessage = "Failed to delete driver from Firestore: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw RuntimeException(errorMessage, e)
+        }
+    }
+
     override suspend fun syncDrivers() {
         try {
             val remoteDrivers = firestoreService.getDrivers()

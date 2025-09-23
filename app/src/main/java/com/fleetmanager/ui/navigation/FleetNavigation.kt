@@ -21,6 +21,7 @@ import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.ui.screens.analytics.AnalyticsScreen
 import com.fleetmanager.ui.screens.auth.SignInScreen
 import com.fleetmanager.ui.screens.dashboard.DashboardScreen
+import com.fleetmanager.ui.screens.drivers.DriverManagementScreen
 import com.fleetmanager.ui.screens.entry.AddEntryScreen
 import com.fleetmanager.ui.screens.entry.EntryDetailScreen
 import com.fleetmanager.ui.screens.entry.EntryListScreen
@@ -47,6 +48,7 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object AddEntry : Screen("add_entry")
     object AddExpense : Screen("add_expense")
+    object Drivers : Screen("drivers")
     object Vehicles : Screen("vehicles")
     object EntryDetail : Screen("entry_detail/{entryId}") {
         fun createRoute(entryId: String) = "entry_detail/$entryId"
@@ -143,6 +145,7 @@ private fun MainNavigation(
                 onEntryClick = { entryId -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) },
                 onEditEntry = { entryId -> navController.navigate(Screen.EditEntry.createRoute(entryId)) },
                 onEditExpense = { expenseId -> navController.navigate(Screen.EditExpense.createRoute(expenseId)) },
+                onManageDrivers = { navController.navigate(Screen.Drivers.route) },
                 onManageVehicles = { navController.navigate(Screen.Vehicles.route) }
             )
         }
@@ -202,6 +205,12 @@ private fun MainNavigation(
 
         composable(Screen.Vehicles.route) {
             VehicleManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Drivers.route) {
+            DriverManagementScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
