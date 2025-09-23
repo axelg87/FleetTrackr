@@ -12,12 +12,10 @@ import com.fleetmanager.data.excel.ExcelImportManager
 import com.fleetmanager.data.excel.ImportProgress
 import com.fleetmanager.data.preferences.SettingsPreferencesDataStore
 import com.fleetmanager.data.preferences.SettingsPreferences
-import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.domain.repository.AuthRepository
 import com.fleetmanager.domain.repository.FleetRepository
-import com.fleetmanager.domain.usecase.SaveDriverUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.utils.ReportExporter
 import com.fleetmanager.ui.utils.ExportResult
@@ -62,7 +60,6 @@ class SettingsViewModel @Inject constructor(
     private val settingsPreferencesDataStore: SettingsPreferencesDataStore,
     private val fleetRepository: FleetRepository,
     private val reportExporter: ReportExporter,
-    private val saveDriverUseCase: SaveDriverUseCase,
     @ApplicationContext private val context: Context
 ) : BaseViewModel<SettingsUiState>() {
 
@@ -261,36 +258,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
-    // Admin-only functions with permission checks
-    fun addDriver(driver: Driver) {
-        val currentRole = _uiState.value.currentUserRole
-        if (currentRole == null || !PermissionManager.canCreateDrivers(currentRole)) {
-            updateState { it.copy(error = "You don't have permission to create drivers") }
-            return
-        }
-        executeAsync {
-            val result = saveDriverUseCase(driver)
-            result.fold(
-                onSuccess = {
-                    updateState {
-                        it.copy(
-                            message = "Driver '${driver.name}' saved successfully",
-                            error = null
-                        )
-                    }
-                },
-                onFailure = { throwable ->
-                    updateState {
-                        it.copy(
-                            error = "Failed to add driver: ${throwable.message ?: "Unknown error"}",
-                            message = null
-                        )
-                    }
-                }
-            )
-        }
-    }
-
     fun addExpenseType(name: String, displayName: String) {
         val currentRole = _uiState.value.currentUserRole
         if (currentRole == null || !PermissionManager.canCreateExpenseTypes(currentRole)) {

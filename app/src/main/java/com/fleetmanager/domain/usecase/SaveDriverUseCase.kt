@@ -1,6 +1,8 @@
 package com.fleetmanager.domain.usecase
 
 import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.domain.validation.InputValidator
 import javax.inject.Inject
@@ -14,8 +16,12 @@ class SaveDriverUseCase @Inject constructor(
     private val validator: InputValidator
 ) {
     
-    suspend operator fun invoke(driver: Driver): Result<Unit> {
+    suspend operator fun invoke(driver: Driver, userRole: UserRole): Result<Unit> {
         return try {
+            if (!PermissionManager.canManageDrivers(userRole)) {
+                return Result.failure(SecurityException("Insufficient permissions to manage drivers."))
+            }
+
             // Validate the driver
             val validationResult = validator.validateAll(
                 { validator.validateText(driver.id, "Driver ID") },

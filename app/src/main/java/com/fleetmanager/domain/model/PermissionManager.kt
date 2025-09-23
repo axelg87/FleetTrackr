@@ -20,6 +20,7 @@ object PermissionManager {
     fun canCreateDrivers(userRole: UserRole): Boolean = userRole == UserRole.ADMIN
     fun canCreateVehicles(userRole: UserRole): Boolean = userRole == UserRole.ADMIN
     fun canCreateExpenseTypes(userRole: UserRole): Boolean = userRole == UserRole.ADMIN
+    fun canManageDrivers(userRole: UserRole): Boolean = userRole == UserRole.ADMIN
     
     // Report filtering permissions
     fun canViewAllDriverData(userRole: UserRole): Boolean = userRole == UserRole.ADMIN || userRole == UserRole.MANAGER

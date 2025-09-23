@@ -5,11 +5,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Storage
@@ -33,7 +32,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.ui.viewmodel.SettingsViewModel
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.data.excel.ImportProgress
@@ -42,6 +40,7 @@ import com.fleetmanager.ui.utils.rememberExcelFilePicker
 @Composable
 fun SettingsScreen(
     onNavigateToProfile: (() -> Unit)? = null,
+    onManageDrivers: (() -> Unit)? = null,
     onManageVehicles: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -92,7 +91,7 @@ fun SettingsScreen(
         if (uiState.canSeeAdminControls) {
             item {
                 AdminSection(
-                    onAddDriver = { driver -> viewModel.addDriver(driver) },
+                    onManageDrivers = onManageDrivers,
                     onManageVehicles = onManageVehicles,
                     onAddExpenseType = { name, displayName ->
                         viewModel.addExpenseType(name, displayName)
@@ -247,36 +246,35 @@ fun SettingsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AdminSection(
-    onAddDriver: (Driver) -> Unit,
+    onManageDrivers: (() -> Unit)?,
     onManageVehicles: (() -> Unit)?,
     onAddExpenseType: (String, String) -> Unit,
     onImportExcel: () -> Unit
 ) {
-    var showAddDriverDialog by remember { mutableStateOf(false) }
     var showAddExpenseTypeDialog by remember { mutableStateOf(false) }
 
     SettingsSection(title = "Admin Controls") {
         SettingsItem(
-            icon = Icons.Default.PersonAdd,
-            title = "Add Driver",
-            subtitle = "Add a driver profile with cost details",
-            onClick = { showAddDriverDialog = true }
+            icon = Icons.Default.Group,
+            title = "Drivers",
+            subtitle = "Manage drivers and managers",
+            onClick = { onManageDrivers?.invoke() }
         )
-        
+
         SettingsItem(
             icon = Icons.Default.DirectionsCar,
             title = "Vehicles",
             subtitle = "Manage fleet vehicles",
             onClick = { onManageVehicles?.invoke() }
         )
-        
+
         SettingsItem(
             icon = Icons.Default.Receipt,
             title = "Add Expense Type",
             subtitle = "Create a new expense category",
             onClick = { showAddExpenseTypeDialog = true }
         )
-        
+
         SettingsItem(
             icon = Icons.Default.Upload,
             title = "Import CSV Entries",
@@ -285,18 +283,6 @@ private fun AdminSection(
         )
     }
 
-    // Add Driver Dialog
-    if (showAddDriverDialog) {
-        AddDriverDialog(
-            onDismiss = { showAddDriverDialog = false },
-            onConfirm = { driver ->
-                onAddDriver(driver)
-                showAddDriverDialog = false
-            }
-        )
-    }
-
-    // Add Expense Type Dialog
     if (showAddExpenseTypeDialog) {
         AddExpenseTypeDialog(
             onDismiss = { showAddExpenseTypeDialog = false },
@@ -306,123 +292,6 @@ private fun AdminSection(
             }
         )
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddDriverDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (Driver) -> Unit
-) {
-    var driverId by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    var salary by remember { mutableStateOf("") }
-    var annualLicenseCost by remember { mutableStateOf("") }
-    var annualVisaCost by remember { mutableStateOf("") }
-    var isActive by remember { mutableStateOf(true) }
-
-    val salaryValue = salary.trim().toDoubleOrNull()
-    val licenseCostValue = annualLicenseCost.trim().toDoubleOrNull()
-    val visaCostValue = annualVisaCost.trim().toDoubleOrNull()
-    val isFormValid = driverId.isNotBlank() &&
-            name.isNotBlank() &&
-            salaryValue != null &&
-            licenseCostValue != null &&
-            visaCostValue != null
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add New Driver") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
-                Text(
-                    text = "Provide the driver's full profile and compensation details.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = driverId,
-                    onValueChange = { driverId = it },
-                    label = { Text("Driver ID *") },
-                    placeholder = { Text("e.g., DRV-001") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Full Name *") },
-                    placeholder = { Text("e.g., John Smith") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = salary,
-                    onValueChange = { salary = it },
-                    label = { Text("Monthly Salary (AED) *") },
-                    placeholder = { Text("e.g., 3500") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = annualLicenseCost,
-                    onValueChange = { annualLicenseCost = it },
-                    label = { Text("Annual License Cost (AED) *") },
-                    placeholder = { Text("e.g., 1200") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = annualVisaCost,
-                    onValueChange = { annualVisaCost = it },
-                    label = { Text("Annual Visa Cost (AED) *") },
-                    placeholder = { Text("e.g., 2000") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Active Driver")
-                        Text(
-                            text = "Inactive drivers are kept for record only.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = isActive, onCheckedChange = { isActive = it })
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(
-                        Driver(
-                            id = driverId.trim(),
-                            name = name.trim(),
-                            salary = salaryValue ?: 0.0,
-                            annualLicenseCost = licenseCostValue ?: 0.0,
-                            annualVisaCost = visaCostValue ?: 0.0,
-                            isActive = isActive
-                        )
-                    )
-                },
-                enabled = isFormValid
-            ) {
-                Text("Save Driver")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

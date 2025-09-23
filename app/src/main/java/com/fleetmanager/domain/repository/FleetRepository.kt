@@ -31,6 +31,7 @@ interface FleetRepository {
     fun getAllActiveDrivers(): Flow<List<Driver>>
     fun getAllDrivers(): Flow<List<Driver>>
     suspend fun saveDriver(driver: Driver)
+    suspend fun deleteDriver(driverId: String)
     suspend fun syncDrivers()
     
     // Vehicles
