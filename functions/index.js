@@ -158,7 +158,7 @@ exports.sendDailyIncomeReminder = functions.pubsub
  */
 async function hasEntryForDate(firestore, driverId, start, end) {
   const snapshot = await firestore
-    .collection('daily_entries')
+    .collection('entries')
     .where('driverId', '==', driverId)
     .where('date', '>=', start)
     .where('date', '<=', end)
