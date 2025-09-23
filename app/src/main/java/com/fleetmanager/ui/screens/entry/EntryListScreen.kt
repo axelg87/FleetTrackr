@@ -27,7 +27,7 @@ import com.fleetmanager.ui.components.*
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.utils.rememberStableLambda1
-import com.fleetmanager.data.dto.UserDto
+import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.ui.viewmodel.HistoryFilter
 import java.text.SimpleDateFormat
@@ -320,7 +320,7 @@ fun EntryListScreen(
 
         if (showBulkEditDialog) {
             BulkEditDialog(
-                driverOptions = uiState.driverUsers,
+                driverOptions = uiState.drivers,
                 vehicleOptions = uiState.vehicles,
                 isProcessing = uiState.isBulkEditing,
                 onDismiss = {
@@ -467,7 +467,7 @@ private fun BulkEditSelectionBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BulkEditDialog(
-    driverOptions: List<UserDto>,
+    driverOptions: List<Driver>,
     vehicleOptions: List<Vehicle>,
     isProcessing: Boolean,
     onDismiss: () -> Unit,

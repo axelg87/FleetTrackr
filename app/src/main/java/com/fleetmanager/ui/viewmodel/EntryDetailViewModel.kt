@@ -6,7 +6,6 @@ import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetEntryByIdUseCase
 import com.fleetmanager.domain.usecase.DeleteDailyEntryUseCase
 import com.fleetmanager.data.remote.FirestoreService
-import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,7 +23,6 @@ class EntryDetailViewModel @Inject constructor(
     private val getEntryByIdUseCase: GetEntryByIdUseCase,
     private val deleteDailyEntryUseCase: DeleteDailyEntryUseCase,
     private val firestoreService: FirestoreService,
-    private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService
 ) : BaseViewModel<EntryDetailUiState>() {
     
@@ -69,13 +67,13 @@ class EntryDetailViewModel @Inject constructor(
         ) {
             combine(
                 getEntryByIdUseCase(entryId),
-                userFirestoreService.getDriverUsersFlow(),
+                firestoreService.getDriversFlow(),
                 vehicleFirestoreService.getVehiclesFlow()
-            ) { entry, driverUsers, vehicles ->
+            ) { entry, drivers, vehicles ->
                 if (entry == null) {
                     null
                 } else {
-                    val driverNameMap = driverUsers.associateBy({ it.id }, { it.name })
+                    val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                     val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
                     entry.withResolvedDisplayData(
                         driverDisplayName = driverNameMap[entry.driverId],

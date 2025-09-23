@@ -18,6 +18,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -285,6 +287,30 @@ class FirestoreService @Inject constructor(
             .await()
             .documents
             .mapNotNull { it.toObject<Driver>() }
+    }
+
+    fun getDriversFlow(): Flow<List<Driver>> = flow {
+        val userId = requireAuth()
+        val userRole = getCurrentUserRole()
+
+        val query = if (PermissionManager.canViewAllDriverData(userRole)) {
+            getCollection("drivers")
+        } else {
+            getCollection("drivers").whereEqualTo("userId", userId)
+        }
+
+        emitAll(
+            query.snapshots().map { snapshot ->
+                snapshot.documents.mapNotNull { document ->
+                    try {
+                        document.toObject<Driver>()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to parse driver document: ${document.id}", e)
+                        null
+                    }
+                }
+            }
+        )
     }
 
     suspend fun deleteDriver(driverId: String) {

@@ -4,6 +4,7 @@ import android.net.Uri
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
@@ -17,7 +18,7 @@ import javax.inject.Inject
 import java.util.Calendar
 
 data class AddEntryUiState(
-    val driverUsers: List<UserDto> = emptyList(),
+    val drivers: List<Driver> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val selectedDriver: Driver? = null,
     val selectedVehicle: Vehicle? = null,
@@ -65,7 +66,7 @@ data class AddEntryUiState(
     
     // Driver names from Firestore only
     val allDriverNames: List<String>
-        get() = driverUsers.map { it.name }.sorted()
+        get() = drivers.map { it.name }.sorted()
     
     // Vehicle names from Firestore only
     val allVehicleNames: List<String>
@@ -74,6 +75,7 @@ data class AddEntryUiState(
 
 @HiltViewModel
 class AddEntryViewModel @Inject constructor(
+    private val firestoreService: FirestoreService,
     private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
@@ -117,15 +119,22 @@ class AddEntryViewModel @Inject constructor(
             }
         ) {
             combine(
-                userFirestoreService.getDriverUsersFlow(),
+                firestoreService.getDriversFlow(),
                 vehicleFirestoreService.getVehiclesFlow()
-            ) { driverUsers, vehicles ->
-                Pair(driverUsers, vehicles)
-            }.collect { (driverUsers, vehicles) ->
+            ) { drivers, vehicles ->
+                Pair(drivers, vehicles)
+            }.collect { (drivers, vehicles) ->
                 updateState { currentState ->
-                    val autoFilledDriverName = if (shouldAutoFillDriver(currentState)) {
-                        val userProfile = currentState.currentUserProfile
-                        driverUsers.firstOrNull { it.id == userProfile?.id }?.name
+                    val shouldAutoFill = shouldAutoFillDriver(currentState)
+                    val userProfile = currentState.currentUserProfile
+                    val autoSelectedDriver = if (shouldAutoFill) {
+                        drivers.firstOrNull { it.userId == userProfile?.id }
+                    } else {
+                        currentState.selectedDriver
+                    }
+
+                    val autoFilledDriverName = if (shouldAutoFill) {
+                        autoSelectedDriver?.name
                             ?: userProfile?.name
                             ?: currentState.driverInput
                     } else {
@@ -133,8 +142,9 @@ class AddEntryViewModel @Inject constructor(
                     }
 
                     currentState.copy(
-                        driverUsers = driverUsers,
+                        drivers = drivers,
                         vehicles = vehicles,
+                        selectedDriver = autoSelectedDriver,
                         driverInput = autoFilledDriverName
                     )
                 }
@@ -156,10 +166,13 @@ class AddEntryViewModel @Inject constructor(
                     )
 
                     if (shouldAutoFillDriver(updatedState)) {
-                        val driverName = updatedState.driverUsers.firstOrNull { it.id == userProfile.id }?.name
-                            ?: userProfile.name
+                        val matchingDriver = updatedState.drivers.firstOrNull { it.userId == userProfile.id }
+                        val driverName = matchingDriver?.name ?: userProfile.name
 
-                        updatedState.copy(driverInput = driverName)
+                        updatedState.copy(
+                            driverInput = driverName,
+                            selectedDriver = matchingDriver ?: updatedState.selectedDriver
+                        )
                     } else {
                         updatedState
                     }
@@ -287,7 +300,8 @@ class AddEntryViewModel @Inject constructor(
         if (!currentState.canSave) return
 
         val driverId = currentState.selectedDriver?.id
-            ?: currentState.driverUsers.firstOrNull { it.name.equals(currentState.driverInput, ignoreCase = true) }?.id
+            ?: currentState.drivers.firstOrNull { it.name.equals(currentState.driverInput, ignoreCase = true) }?.id
+            ?: currentState.drivers.firstOrNull { driver -> driver.userId == currentState.currentUserProfile?.id }?.id
             ?: ""
         val vehicleId = currentState.selectedVehicle?.id
             ?: currentState.vehicles.firstOrNull { it.displayName == currentState.vehicleInput }?.id

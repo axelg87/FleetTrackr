@@ -3,13 +3,13 @@ package com.fleetmanager.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
-import com.fleetmanager.data.remote.FirestoreService
-import com.fleetmanager.data.remote.UserFirestoreService
-import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
+import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.usecase.DeleteExpenseUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +25,7 @@ data class EntryListUiState(
     val filter: HistoryFilter = HistoryFilter.INCOME,
     val isSelectionMode: Boolean = false,
     val selectedEntryIds: Set<String> = emptySet(),
-    val driverUsers: List<UserDto> = emptyList(),
+    val drivers: List<Driver> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val isBulkEditing: Boolean = false,
     val bulkEditMessage: String? = null,
@@ -35,7 +35,7 @@ data class EntryListUiState(
 data class HistoryData(
     val entries: List<DailyEntry>,
     val expenses: List<Expense>,
-    val driverUsers: List<UserDto>,
+    val drivers: List<Driver>,
     val vehicles: List<Vehicle>
 )
 
@@ -48,7 +48,6 @@ enum class HistoryFilter {
 class EntryListViewModel @Inject constructor(
     private val getAllEntriesRealtimeUseCase: GetAllEntriesRealtimeUseCase,
     private val firestoreService: FirestoreService,
-    private val userFirestoreService: UserFirestoreService,
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val authRepository: com.fleetmanager.domain.repository.AuthRepository,
     private val deleteDailyEntryUseCase: com.fleetmanager.domain.usecase.DeleteDailyEntryUseCase,
@@ -112,10 +111,10 @@ class EntryListViewModel @Inject constructor(
                 combine(
                     firestoreService.getDailyEntriesFlowForRole(role),
                     firestoreService.getExpensesFlowForRole(role),
-                    userFirestoreService.getDriverUsersFlow(),
+                    firestoreService.getDriversFlow(),
                     vehicleFirestoreService.getVehiclesFlow()
-                ) { entries, expenses, driverUsers, vehicles ->
-                    HistoryData(entries, expenses, driverUsers, vehicles)
+                ) { entries, expenses, drivers, vehicles ->
+                    HistoryData(entries, expenses, drivers, vehicles)
                 }
                     .catch { e ->
                         Log.e(TAG, "Firestore snapshot listener error", e)
@@ -126,9 +125,9 @@ class EntryListViewModel @Inject constructor(
                             ) 
                         }
                     }
-                    .collect { (entries, expenses, driverUsers, vehicles) ->
+                    .collect { (entries, expenses, drivers, vehicles) ->
                         Log.d(TAG, "Received ${entries.size} entries for role $role")
-                        val driverNameMap = driverUsers.associateBy({ it.id }, { it.name })
+                        val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                         val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
                         val enrichedEntries = entries.map { entry ->
                             entry.withResolvedDisplayData(
@@ -143,7 +142,7 @@ class EntryListViewModel @Inject constructor(
                             it.copy(
                                 entries = sortedEntries,
                                 expenses = sortedExpenses,
-                                driverUsers = driverUsers,
+                                drivers = drivers,
                                 vehicles = vehicles,
                                 isLoading = false,
                                 errorMessage = null
@@ -237,7 +236,7 @@ class EntryListViewModel @Inject constructor(
 
     fun bulkUpdateSelectedEntries(driverId: String, vehicleId: String) {
         val currentState = uiState.value
-        val driver = currentState.driverUsers.firstOrNull { it.id == driverId }
+        val driver = currentState.drivers.firstOrNull { it.id == driverId }
         val vehicle = currentState.vehicles.firstOrNull { it.id == vehicleId }
 
         if (driver == null || vehicle == null) {
