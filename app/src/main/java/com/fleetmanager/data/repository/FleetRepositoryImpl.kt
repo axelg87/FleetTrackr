@@ -183,11 +183,12 @@ class FleetRepositoryImpl @Inject constructor(
         driverDao.getAllDrivers().map { DriverMapper.toDomainList(it) }
     
     override suspend fun saveDriver(driver: Driver) {
-        val userId = authService.getCurrentUserId() ?: ""
-        val driverWithUserId = driver.copy(userId = userId)
-        driverDao.insertDriver(DriverMapper.toDto(driverWithUserId))
+        val currentUserId = authService.getCurrentUserId() ?: ""
+        val ownerId = driver.userId.takeIf { it.isNotBlank() } ?: currentUserId
+        val driverToPersist = driver.copy(userId = ownerId)
+        driverDao.insertDriver(DriverMapper.toDto(driverToPersist))
         try {
-            firestoreService.saveDriver(driverWithUserId)
+            firestoreService.saveDriver(driverToPersist)
         } catch (e: Exception) {
             val errorMessage = "Failed to save driver to Firestore: ${e.message}"
             Log.e(TAG, errorMessage, e)
@@ -230,11 +231,12 @@ class FleetRepositoryImpl @Inject constructor(
         vehicleDao.getAllVehicles().map { VehicleMapper.toDomainList(it) }
 
     override suspend fun saveVehicle(vehicle: Vehicle) {
-        val userId = authService.getCurrentUserId() ?: ""
-        val vehicleWithUserId = vehicle.copy(userId = userId)
-        vehicleDao.insertVehicle(VehicleMapper.toDto(vehicleWithUserId))
+        val currentUserId = authService.getCurrentUserId() ?: ""
+        val ownerId = vehicle.userId.takeIf { it.isNotBlank() } ?: currentUserId
+        val vehicleToPersist = vehicle.copy(userId = ownerId)
+        vehicleDao.insertVehicle(VehicleMapper.toDto(vehicleToPersist))
         try {
-            firestoreService.saveVehicle(vehicleWithUserId)
+            firestoreService.saveVehicle(vehicleToPersist)
         } catch (e: Exception) {
             val errorMessage = "Failed to save vehicle to Firestore: ${e.message}"
             Log.e(TAG, errorMessage, e)
