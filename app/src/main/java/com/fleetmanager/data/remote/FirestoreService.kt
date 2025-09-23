@@ -250,13 +250,16 @@ class FirestoreService @Inject constructor(
     
     // Drivers
     suspend fun saveDriver(driver: Driver) {
-        val userId = requireAuth()
+        val currentUserId = requireAuth()
         try {
-            // Add userId field to the driver
-            val driverWithUserId = driver.copy(userId = userId)
+            // Preserve the original owner when present to keep driver ↔ user linkage intact
+            val ownerId = driver.userId.takeIf { it.isNotBlank() }
+                ?: currentUserId
+            val driverWithOwner = driver.copy(userId = ownerId)
+
             getCollection("drivers")
                 .document(driver.id)
-                .set(driverWithUserId)
+                .set(driverWithOwner)
                 .await()
             Log.d(TAG, "Successfully saved driver to Firestore: ${driver.id}")
         } catch (e: Exception) {
@@ -266,11 +269,18 @@ class FirestoreService @Inject constructor(
             throw e
         }
     }
-    
+
     suspend fun getDrivers(): List<Driver> {
         val userId = requireAuth()
-        return getCollection("drivers")
-            .whereEqualTo("userId", userId)
+        val userRole = getCurrentUserRole()
+
+        val query = if (PermissionManager.canViewAllDriverData(userRole)) {
+            getCollection("drivers")
+        } else {
+            getCollection("drivers").whereEqualTo("userId", userId)
+        }
+
+        return query
             .get()
             .await()
             .documents
@@ -294,13 +304,16 @@ class FirestoreService @Inject constructor(
     
     // Vehicles
     suspend fun saveVehicle(vehicle: Vehicle) {
-        val userId = requireAuth()
+        val currentUserId = requireAuth()
         try {
-            // Add userId field to the vehicle
-            val vehicleWithUserId = vehicle.copy(userId = userId)
+            // Preserve original ownership when present (drivers may create their own vehicles)
+            val ownerId = vehicle.userId.takeIf { it.isNotBlank() }
+                ?: currentUserId
+            val vehicleWithOwner = vehicle.copy(userId = ownerId)
+
             getCollection("vehicles")
                 .document(vehicle.id)
-                .set(vehicleWithUserId)
+                .set(vehicleWithOwner)
                 .await()
             Log.d(TAG, "Successfully saved vehicle to Firestore: ${vehicle.id}")
         } catch (e: Exception) {
@@ -310,11 +323,18 @@ class FirestoreService @Inject constructor(
             throw e
         }
     }
-    
+
     suspend fun getVehicles(): List<Vehicle> {
         val userId = requireAuth()
-        return getCollection("vehicles")
-            .whereEqualTo("userId", userId)
+        val userRole = getCurrentUserRole()
+
+        val query = if (PermissionManager.canViewAllVehicleData(userRole)) {
+            getCollection("vehicles")
+        } else {
+            getCollection("vehicles").whereEqualTo("userId", userId)
+        }
+
+        return query
             .get()
             .await()
             .documents
