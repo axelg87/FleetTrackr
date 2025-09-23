@@ -243,8 +243,21 @@ class FleetRepositoryImpl @Inject constructor(
         expenseDao.getExpensesByDateRange(startDate, endDate).map { ExpenseMapper.toDomainList(it) }
     
     override fun getExpenseById(id: String): Flow<Expense?> = flow {
-        val dto = expenseDao.getExpenseById(id)
-        emit(dto?.let { ExpenseMapper.toDomain(it) })
+        try {
+            val localExpense = expenseDao.getExpenseById(id)
+            if (localExpense != null) {
+                emit(ExpenseMapper.toDomain(localExpense))
+            } else {
+                val remoteExpense = firestoreService.getExpenseById(id)
+                if (remoteExpense != null) {
+                    expenseDao.insertExpense(ExpenseMapper.toDto(remoteExpense))
+                }
+                emit(remoteExpense)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting expense by ID: ${e.message}", e)
+            emit(null)
+        }
     }
     
     override suspend fun saveExpense(expense: Expense, photoUri: Uri?, photoUris: List<Uri>) {
@@ -297,11 +310,11 @@ class FleetRepositoryImpl @Inject constructor(
         val expense = expenseDao.getExpenseById(expenseId)
         if (expense != null) {
             expenseDao.deleteExpense(expense)
-            try {
-                firestoreService.deleteExpense(expenseId)
-            } catch (e: Exception) {
-                // Ignore remote delete errors
-            }
+        }
+        try {
+            firestoreService.deleteExpense(expenseId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete expense from Firestore: ${e.message}", e)
         }
     }
     
