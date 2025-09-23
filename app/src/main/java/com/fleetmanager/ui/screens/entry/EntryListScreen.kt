@@ -287,6 +287,8 @@ fun EntryListScreen(
     }
 }
 
+// FilterChip is still marked experimental in Material3; opt-in keeps the admin filter UX aligned with other list chips.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HistoryFilterRow(
     selectedFilter: HistoryFilter,
@@ -315,6 +317,8 @@ private fun HistoryFilterRow(
     }
 }
 
+// OutlinedCard + selection affordance use experimental defaults, but provide the most consistent Material3 bulk edit surface.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BulkEditStartBar(
     onStart: () -> Unit,
