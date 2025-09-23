@@ -228,16 +228,18 @@ class FleetRepositoryImpl @Inject constructor(
 
     override suspend fun deleteVehicle(vehicleId: String) {
         val vehicleDto = vehicleDao.getVehicleById(vehicleId)
-        if (vehicleDto != null) {
-            vehicleDao.deleteVehicle(vehicleDto)
-        }
 
         try {
             firestoreService.deleteVehicle(vehicleId)
+
+            if (vehicleDto != null) {
+                vehicleDao.deleteVehicle(vehicleDto)
+            }
         } catch (e: Exception) {
             val errorMessage = "Failed to delete vehicle from Firestore: ${e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
+            throw RuntimeException(errorMessage, e)
         }
     }
     

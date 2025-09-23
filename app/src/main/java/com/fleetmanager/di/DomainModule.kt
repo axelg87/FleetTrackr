@@ -1,11 +1,9 @@
 package com.fleetmanager.di
 
 import com.fleetmanager.data.repository.AuthRepositoryImpl
-import com.fleetmanager.data.repository.CarRepositoryImpl
 import com.fleetmanager.data.repository.FleetRepositoryImpl
 import com.fleetmanager.data.repository.StorageRepositoryImpl
 import com.fleetmanager.domain.repository.AuthRepository
-import com.fleetmanager.domain.repository.CarRepository
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.domain.repository.StorageRepository
 import dagger.Binds
@@ -17,7 +15,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DomainModule {
-    
+
     @Binds
     @Singleton
     abstract fun bindFleetRepository(
@@ -26,16 +24,10 @@ abstract class DomainModule {
 
     @Binds
     @Singleton
-    abstract fun bindCarRepository(
-        carRepositoryImpl: CarRepositoryImpl
-    ): CarRepository
-    
-    @Binds
-    @Singleton
     abstract fun bindAuthRepository(
         authRepositoryImpl: AuthRepositoryImpl
     ): AuthRepository
-    
+
     @Binds
     @Singleton
     abstract fun bindStorageRepository(
