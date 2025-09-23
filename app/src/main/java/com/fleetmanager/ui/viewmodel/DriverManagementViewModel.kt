@@ -43,6 +43,14 @@ class DriverManagementViewModel @Inject constructor(
             onError = { error -> updateState { it.copy(error = error, isLoading = false) } }
         ) {
             updateState { it.copy(isLoading = true) }
+            runCatching { fleetRepository.syncDrivers() }
+                .onFailure { exception ->
+                    updateState {
+                        it.copy(
+                            error = exception.message ?: "Failed to refresh drivers"
+                        )
+                    }
+                }
             fleetRepository.getAllDrivers().collect { drivers ->
                 updateState {
                     it.copy(
