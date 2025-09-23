@@ -29,6 +29,8 @@ import com.fleetmanager.ui.screens.profile.ProfileScreen
 import com.fleetmanager.ui.screens.report.ReportScreen
 import com.fleetmanager.ui.screens.settings.SettingsScreen
 import com.fleetmanager.ui.screens.splash.SplashScreen
+import com.fleetmanager.ui.screens.vehicles.VehicleManagementScreen
+import com.fleetmanager.ui.screens.cars.CarManagementScreen
 import com.fleetmanager.ui.viewmodel.NavigationViewModel as UserNavigationViewModel
 
 /**
@@ -46,6 +48,8 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object AddEntry : Screen("add_entry")
     object AddExpense : Screen("add_expense")
+    object Vehicles : Screen("vehicles")
+    object Cars : Screen("cars")
     object EntryDetail : Screen("entry_detail/{entryId}") {
         fun createRoute(entryId: String) = "entry_detail/$entryId"
     }
@@ -140,7 +144,9 @@ private fun MainNavigation(
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onEntryClick = { entryId -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) },
                 onEditEntry = { entryId -> navController.navigate(Screen.EditEntry.createRoute(entryId)) },
-                onEditExpense = { expenseId -> navController.navigate(Screen.EditExpense.createRoute(expenseId)) }
+                onEditExpense = { expenseId -> navController.navigate(Screen.EditExpense.createRoute(expenseId)) },
+                onManageVehicles = { navController.navigate(Screen.Vehicles.route) },
+                onManageCars = { navController.navigate(Screen.Cars.route) }
             )
         }
         
@@ -193,6 +199,18 @@ private fun MainNavigation(
             val expenseId = backStackEntry.arguments?.getString("expenseId") ?: ""
             NewExpenseEntryScreen(
                 expenseId = expenseId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Vehicles.route) {
+            VehicleManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Cars.route) {
+            CarManagementScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

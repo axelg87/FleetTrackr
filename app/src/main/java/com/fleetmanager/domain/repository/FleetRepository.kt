@@ -35,7 +35,9 @@ interface FleetRepository {
     
     // Vehicles
     fun getAllActiveVehicles(): Flow<List<Vehicle>>
+    fun getAllVehicles(): Flow<List<Vehicle>>
     suspend fun saveVehicle(vehicle: Vehicle)
+    suspend fun deleteVehicle(vehicleId: String)
     suspend fun syncVehicles()
     
     // Expenses

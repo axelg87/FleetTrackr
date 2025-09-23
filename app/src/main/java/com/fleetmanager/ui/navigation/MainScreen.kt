@@ -36,7 +36,9 @@ fun MainScreen(
     onNavigateToProfile: () -> Unit,
     onEntryClick: (String) -> Unit,
     onEditEntry: (String) -> Unit,
-    onEditExpense: (String) -> Unit
+    onEditExpense: (String) -> Unit,
+    onManageVehicles: () -> Unit,
+    onManageCars: () -> Unit
 ) {
     val currentIndex by NavigationState.currentPageIndex.collectAsState()
 
@@ -119,7 +121,9 @@ fun MainScreen(
                         onNavigateToProfile = onNavigateToProfile
                     )
                     Screen.Settings -> SettingsScreen(
-                        onNavigateToProfile = onNavigateToProfile
+                        onNavigateToProfile = onNavigateToProfile,
+                        onManageVehicles = onManageVehicles,
+                        onManageCars = onManageCars
                     )
                     else -> DashboardScreen(
                         onAddEntryClick = onAddEntryClick,

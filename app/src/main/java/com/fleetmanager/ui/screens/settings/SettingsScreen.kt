@@ -34,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.domain.model.Driver
-import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.ui.viewmodel.SettingsViewModel
 import com.fleetmanager.ui.components.*
 import com.fleetmanager.data.excel.ImportProgress
@@ -43,6 +42,8 @@ import com.fleetmanager.ui.utils.rememberExcelFilePicker
 @Composable
 fun SettingsScreen(
     onNavigateToProfile: (() -> Unit)? = null,
+    onManageVehicles: (() -> Unit)? = null,
+    onManageCars: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -93,7 +94,8 @@ fun SettingsScreen(
             item {
                 AdminSection(
                     onAddDriver = { driver -> viewModel.addDriver(driver) },
-                    onAddVehicle = { vehicle -> viewModel.addVehicle(vehicle) },
+                    onManageVehicles = onManageVehicles,
+                    onManageCars = onManageCars,
                     onAddExpenseType = { name, displayName ->
                         viewModel.addExpenseType(name, displayName)
                     },
@@ -248,12 +250,12 @@ fun SettingsScreen(
 @Composable
 private fun AdminSection(
     onAddDriver: (Driver) -> Unit,
-    onAddVehicle: (Vehicle) -> Unit,
+    onManageVehicles: (() -> Unit)?,
+    onManageCars: (() -> Unit)?,
     onAddExpenseType: (String, String) -> Unit,
     onImportExcel: () -> Unit
 ) {
     var showAddDriverDialog by remember { mutableStateOf(false) }
-    var showAddVehicleDialog by remember { mutableStateOf(false) }
     var showAddExpenseTypeDialog by remember { mutableStateOf(false) }
 
     SettingsSection(title = "Admin Controls") {
@@ -266,9 +268,16 @@ private fun AdminSection(
         
         SettingsItem(
             icon = Icons.Default.DirectionsCar,
-            title = "Add Vehicle",
-            subtitle = "Add a new vehicle to the fleet",
-            onClick = { showAddVehicleDialog = true }
+            title = "Vehicles",
+            subtitle = "Manage fleet vehicles",
+            onClick = { onManageVehicles?.invoke() }
+        )
+
+        SettingsItem(
+            icon = Icons.Default.DirectionsCar,
+            title = "Cars",
+            subtitle = "Manage individual cars",
+            onClick = { onManageCars?.invoke() }
         )
         
         SettingsItem(
@@ -293,17 +302,6 @@ private fun AdminSection(
             onConfirm = { driver ->
                 onAddDriver(driver)
                 showAddDriverDialog = false
-            }
-        )
-    }
-
-    // Add Vehicle Dialog
-    if (showAddVehicleDialog) {
-        AddVehicleDialog(
-            onDismiss = { showAddVehicleDialog = false },
-            onConfirm = { vehicle ->
-                onAddVehicle(vehicle)
-                showAddVehicleDialog = false
             }
         )
     }
@@ -427,234 +425,6 @@ private fun AddDriverDialog(
                 enabled = isFormValid
             ) {
                 Text("Save Driver")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddVehicleDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (Vehicle) -> Unit
-) {
-    var vehicleId by remember { mutableStateOf("") }
-    var make by remember { mutableStateOf("") }
-    var model by remember { mutableStateOf("") }
-    var year by remember { mutableStateOf("") }
-    var licensePlate by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var deposit by remember { mutableStateOf("") }
-    var installment by remember { mutableStateOf("") }
-    var installmentDuration by remember { mutableStateOf("") }
-    var serviceStartDate by remember { mutableStateOf("") }
-    var serviceEndDate by remember { mutableStateOf("") }
-    var annualInsuranceAmount by remember { mutableStateOf("") }
-    var fuelTankCapacity by remember { mutableStateOf("") }
-    var fuelConsumption by remember { mutableStateOf("") }
-    var isActive by remember { mutableStateOf(true) }
-
-    val yearValue = year.trim().toIntOrNull()
-    val priceValue = price.trim().toDoubleOrNull()
-    val depositValue = deposit.trim().toDoubleOrNull()
-    val installmentValue = installment.trim().toDoubleOrNull()
-    val installmentDurationValue = installmentDuration.trim().toIntOrNull()
-    val annualInsuranceValue = annualInsuranceAmount.trim().toDoubleOrNull()
-    val fuelTankValue = fuelTankCapacity.trim().toDoubleOrNull()
-    val fuelConsumptionValue = fuelConsumption.trim().toDoubleOrNull()
-
-    fun parseDate(input: String): java.util.Date? {
-        if (input.isBlank()) return null
-        return try {
-            val localDate = java.time.LocalDate.parse(input)
-            java.util.Date.from(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
-        } catch (e: java.time.format.DateTimeParseException) {
-            null
-        }
-    }
-
-    val serviceStartDateValue = parseDate(serviceStartDate)
-    val serviceEndDateValue = parseDate(serviceEndDate)
-    val areDatesValid = (serviceStartDate.isBlank() || serviceStartDateValue != null) &&
-            (serviceEndDate.isBlank() || serviceEndDateValue != null)
-
-    val isFormValid = vehicleId.isNotBlank() &&
-            make.isNotBlank() &&
-            model.isNotBlank() &&
-            yearValue != null &&
-            licensePlate.isNotBlank() &&
-            priceValue != null &&
-            annualInsuranceValue != null &&
-            areDatesValid
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add New Vehicle") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
-                OutlinedTextField(
-                    value = vehicleId,
-                    onValueChange = { vehicleId = it },
-                    label = { Text("Vehicle ID *") },
-                    placeholder = { Text("e.g., VEH-1001") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = make,
-                    onValueChange = { make = it },
-                    label = { Text("Make *") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = model,
-                    onValueChange = { model = it },
-                    label = { Text("Model *") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = year,
-                    onValueChange = { year = it },
-                    label = { Text("Year *") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = licensePlate,
-                    onValueChange = { licensePlate = it },
-                    label = { Text("License Plate *") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it },
-                    label = { Text("Purchase Price (AED) *") },
-                    placeholder = { Text("e.g., 85000") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = deposit,
-                    onValueChange = { deposit = it },
-                    label = { Text("Deposit (AED)") },
-                    placeholder = { Text("Optional") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = installment,
-                    onValueChange = { installment = it },
-                    label = { Text("Monthly Installment (AED)") },
-                    placeholder = { Text("Optional") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = installmentDuration,
-                    onValueChange = { installmentDuration = it },
-                    label = { Text("Installment Duration (months)") },
-                    placeholder = { Text("Optional") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = serviceStartDate,
-                    onValueChange = { serviceStartDate = it },
-                    label = { Text("Service Start Date (YYYY-MM-DD)") },
-                    placeholder = { Text("Optional") },
-                    modifier = Modifier.fillMaxWidth(),
-                    supportingText = {
-                        if (serviceStartDate.isNotBlank() && serviceStartDateValue == null) {
-                            Text("Invalid date format")
-                        }
-                    }
-                )
-                OutlinedTextField(
-                    value = serviceEndDate,
-                    onValueChange = { serviceEndDate = it },
-                    label = { Text("Service End Date (YYYY-MM-DD)") },
-                    placeholder = { Text("Optional") },
-                    modifier = Modifier.fillMaxWidth(),
-                    supportingText = {
-                        if (serviceEndDate.isNotBlank() && serviceEndDateValue == null) {
-                            Text("Invalid date format")
-                        }
-                    }
-                )
-                OutlinedTextField(
-                    value = annualInsuranceAmount,
-                    onValueChange = { annualInsuranceAmount = it },
-                    label = { Text("Annual Insurance Amount (AED) *") },
-                    placeholder = { Text("e.g., 4500") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = fuelTankCapacity,
-                    onValueChange = { fuelTankCapacity = it },
-                    label = { Text("Fuel Tank Capacity (L)") },
-                    placeholder = { Text("Optional") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = fuelConsumption,
-                    onValueChange = { fuelConsumption = it },
-                    label = { Text("Fuel Consumption (L/100km)") },
-                    placeholder = { Text("Optional") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Active Vehicle")
-                        Text(
-                            text = "Inactive vehicles stay archived for history.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = isActive, onCheckedChange = { isActive = it })
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(
-                        Vehicle(
-                            id = vehicleId.trim(),
-                            make = make.trim(),
-                            model = model.trim(),
-                            year = yearValue ?: 0,
-                            licensePlate = licensePlate.trim(),
-                            isActive = isActive,
-                            price = priceValue ?: 0.0,
-                            deposit = depositValue,
-                            installment = installmentValue,
-                            installmentDurationMonths = installmentDurationValue,
-                            serviceStartDate = serviceStartDateValue,
-                            serviceEndDate = serviceEndDateValue,
-                            annualInsuranceAmount = annualInsuranceValue ?: 0.0,
-                            fuelTankCapacity = fuelTankValue,
-                            fuelConsumptionPer100Km = fuelConsumptionValue
-                        )
-                    )
-                },
-                enabled = isFormValid
-            ) {
-                Text("Save Vehicle")
             }
         },
         dismissButton = {

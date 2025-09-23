@@ -15,11 +15,9 @@ import com.fleetmanager.data.preferences.SettingsPreferences
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
-import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.repository.AuthRepository
 import com.fleetmanager.domain.repository.FleetRepository
 import com.fleetmanager.domain.usecase.SaveDriverUseCase
-import com.fleetmanager.domain.usecase.SaveVehicleUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.utils.ReportExporter
 import com.fleetmanager.ui.utils.ExportResult
@@ -65,7 +63,6 @@ class SettingsViewModel @Inject constructor(
     private val fleetRepository: FleetRepository,
     private val reportExporter: ReportExporter,
     private val saveDriverUseCase: SaveDriverUseCase,
-    private val saveVehicleUseCase: SaveVehicleUseCase,
     @ApplicationContext private val context: Context
 ) : BaseViewModel<SettingsUiState>() {
 
@@ -294,36 +291,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun addVehicle(vehicle: Vehicle) {
-        val currentRole = _uiState.value.currentUserRole
-        if (currentRole == null || !PermissionManager.canCreateVehicles(currentRole)) {
-            updateState { it.copy(error = "You don't have permission to create vehicles") }
-            return
-        }
-
-        executeAsync {
-            val result = saveVehicleUseCase(vehicle)
-            result.fold(
-                onSuccess = {
-                    updateState {
-                        it.copy(
-                            message = "Vehicle '${vehicle.displayName}' added successfully",
-                            error = null
-                        )
-                    }
-                },
-                onFailure = { throwable ->
-                    updateState {
-                        it.copy(
-                            error = "Failed to add vehicle: ${throwable.message ?: "Unknown error"}",
-                            message = null
-                        )
-                    }
-                }
-            )
-        }
-    }
-    
     fun addExpenseType(name: String, displayName: String) {
         val currentRole = _uiState.value.currentUserRole
         if (currentRole == null || !PermissionManager.canCreateExpenseTypes(currentRole)) {
