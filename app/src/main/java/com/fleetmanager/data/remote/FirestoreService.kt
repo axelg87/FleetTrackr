@@ -437,11 +437,40 @@ class FirestoreService @Inject constructor(
                 snapshot.documents.mapNotNull { it.toObject<Expense>() }
             }
     }
-    
+
+    suspend fun getExpenseById(expenseId: String): Expense? {
+        return try {
+            val userId = requireAuth()
+            val userRole = getCurrentUserRole()
+
+            val document = getCollection("expenses")
+                .document(expenseId)
+                .get()
+                .await()
+
+            val expense = document.toObject<Expense>()
+
+            if (expense != null) {
+                if (PermissionManager.canViewAll(userRole) || expense.userId == userId) {
+                    expense
+                } else {
+                    Log.w(TAG, "User $userId does not have permission to view expense $expenseId")
+                    null
+                }
+            } else {
+                Log.w(TAG, "Expense not found: $expenseId")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get expense by ID: ${e.message}", e)
+            null
+        }
+    }
+
     // Role-based flow for expenses
     fun getExpensesFlowForRole(userRole: UserRole): Flow<List<Expense>> {
         val userId = authService.getCurrentUserId() ?: ""
-        
+
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
             getCollection("expenses")
