@@ -1,16 +1,26 @@
 {
-  "name": "fleettrackr-functions",
-  "description": "Cloud Functions for FleetTrackr Firebase backend.",
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "lint": "echo 'skip lint'",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
-  "scripts": {
-    "build": "echo \"No build step required\"",
-    "deploy": "firebase deploy --only functions"
-  },
   "dependencies": {
-    "firebase-admin": "^11.11.1",
-    "firebase-functions": "^4.4.1"
-  }
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.15.0",
+    "eslint-config-google": "^0.14.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
 }
