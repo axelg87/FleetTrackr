@@ -37,6 +37,7 @@ import java.util.*
 @Composable
 fun AddEntryScreen(
     onNavigateBack: () -> Unit,
+    entryId: String? = null,
     viewModel: AddEntryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,16 +51,25 @@ fun AddEntryScreen(
         }
     }
     
+    LaunchedEffect(entryId) {
+        if (!entryId.isNullOrBlank()) {
+            viewModel.loadEntryForEdit(entryId)
+        }
+    }
+
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
             onNavigateBack()
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.add_entry)) },
+                title = {
+                    val titleRes = if (uiState.isEditing) R.string.edit_entry else R.string.add_entry
+                    Text(stringResource(titleRes))
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -262,11 +272,33 @@ fun AddEntryScreen(
                                         modifier = Modifier.align(Alignment.TopEnd)
                                     ) {
                                         Icon(
-                                            Icons.Default.Close, 
+                                            Icons.Default.Close,
                                             contentDescription = "Remove photo",
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    if (uiState.existingPhotoUrls.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(uiState.existingPhotoUrls) { url ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = "Existing photo",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
                                 }
                             }
                         }
@@ -306,6 +338,7 @@ fun AddEntryScreen(
             }
             
             // Save button
+            val saveButtonLabel = if (uiState.isEditing) R.string.update_entry else R.string.save
             Button(
                 onClick = viewModel::saveEntry,
                 enabled = uiState.canSave && !uiState.isSaving,
@@ -320,7 +353,7 @@ fun AddEntryScreen(
                     )
                 } else {
                     Text(
-                        text = stringResource(R.string.save),
+                        text = stringResource(saveButtonLabel),
                         modifier = Modifier.padding(8.dp)
                     )
                 }

@@ -36,6 +36,7 @@ import java.util.*
 @Composable
 fun NewExpenseEntryScreen(
     onNavigateBack: () -> Unit,
+    expenseId: String? = null,
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -49,6 +50,12 @@ fun NewExpenseEntryScreen(
         }
     }
     
+    LaunchedEffect(expenseId) {
+        if (!expenseId.isNullOrBlank()) {
+            viewModel.loadExpenseForEdit(expenseId)
+        }
+    }
+
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
             onNavigateBack()
@@ -58,7 +65,7 @@ fun NewExpenseEntryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add Expense") },
+                title = { Text(if (uiState.isEditing) "Edit Expense" else "Add Expense") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -290,11 +297,33 @@ fun NewExpenseEntryScreen(
                                         modifier = Modifier.align(Alignment.TopEnd)
                                     ) {
                                         Icon(
-                                            Icons.Default.Close, 
+                                            Icons.Default.Close,
                                             contentDescription = "Remove photo",
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    if (uiState.existingPhotoUrls.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(uiState.existingPhotoUrls) { url ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = "Existing photo",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
                                 }
                             }
                         }
@@ -334,6 +363,7 @@ fun NewExpenseEntryScreen(
             }
             
             // Save button
+            val actionLabel = if (uiState.isEditing) "Update Expense" else "Save Expense"
             Button(
                 onClick = viewModel::saveExpense,
                 enabled = uiState.canSave && !uiState.isSaving,
@@ -348,7 +378,7 @@ fun NewExpenseEntryScreen(
                     )
                 } else {
                     Text(
-                        text = "Save Expense",
+                        text = actionLabel,
                         modifier = Modifier.padding(8.dp)
                     )
                 }

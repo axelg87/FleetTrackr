@@ -88,28 +88,29 @@ class FleetRepositoryImpl @Inject constructor(
     
     override suspend fun saveDailyEntry(entry: DailyEntry, photoUri: Uri?, photoUris: List<Uri>) {
         val userId = authService.getCurrentUserId() ?: ""
+        val existingOwnerId = entry.userId.takeIf { it.isNotBlank() } ?: userId
         val entryToSave = when {
             photoUris.isNotEmpty() -> {
                 try {
                     val photoUrls = photoUris.map { uri ->
                         storageService.uploadPhoto(uri, "${entry.id}_${System.currentTimeMillis()}")
                     }
-                    entry.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
+                    entry.copy(userId = existingOwnerId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    entry.copy(userId = userId, isSynced = false)
+                    entry.copy(userId = existingOwnerId, isSynced = false)
                 }
             }
             photoUri != null -> {
                 try {
                     val photoUrls = listOf(storageService.uploadPhoto(photoUri, entry.id))
-                    entry.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
+                    entry.copy(userId = existingOwnerId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    entry.copy(userId = userId, isSynced = false)
+                    entry.copy(userId = existingOwnerId, isSynced = false)
                 }
             }
-            else -> entry.copy(userId = userId)
+            else -> entry.copy(userId = existingOwnerId)
         }
         
         // Always save locally first
@@ -248,28 +249,29 @@ class FleetRepositoryImpl @Inject constructor(
     
     override suspend fun saveExpense(expense: Expense, photoUri: Uri?, photoUris: List<Uri>) {
         val userId = authService.getCurrentUserId() ?: ""
+        val existingOwnerId = expense.userId.takeIf { it.isNotBlank() } ?: userId
         val expenseToSave = when {
             photoUris.isNotEmpty() -> {
                 try {
                     val photoUrls = photoUris.map { uri ->
                         storageService.uploadPhoto(uri, "${expense.id}_${System.currentTimeMillis()}")
                     }
-                    expense.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
+                    expense.copy(userId = existingOwnerId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    expense.copy(userId = userId, isSynced = false)
+                    expense.copy(userId = existingOwnerId, isSynced = false)
                 }
             }
             photoUri != null -> {
                 try {
                     val photoUrls = listOf(storageService.uploadPhoto(photoUri, expense.id))
-                    expense.copy(userId = userId, photoUrls = photoUrls, isSynced = true)
+                    expense.copy(userId = existingOwnerId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    expense.copy(userId = userId, isSynced = false)
+                    expense.copy(userId = existingOwnerId, isSynced = false)
                 }
             }
-            else -> expense.copy(userId = userId)
+            else -> expense.copy(userId = existingOwnerId)
         }
         
         // Always save locally first

@@ -137,11 +137,12 @@ class FirestoreService @Inject constructor(
     
     // Daily Entries
     suspend fun saveDailyEntry(entry: DailyEntry) {
-        val userId = requireAuth()
-        Log.d(TAG, "Saving daily entry to Firestore for user $userId: ${entry.id}")
+        val currentUserId = requireAuth()
+        val targetUserId = entry.userId.takeIf { it.isNotBlank() } ?: currentUserId
+        Log.d(TAG, "Saving daily entry to Firestore for user $targetUserId: ${entry.id}")
         try {
             // Add userId field to the entry
-            val entryWithUserId = entry.copy(userId = userId)
+            val entryWithUserId = entry.copy(userId = targetUserId)
             getCollection("entries")
                 .document(entry.id)
                 .set(entryWithUserId)
@@ -386,11 +387,12 @@ class FirestoreService @Inject constructor(
      *    }
      */
     suspend fun saveExpense(expense: Expense) {
-        val userId = requireAuth()
-        Log.d(TAG, "Saving expense to Firestore for user $userId: ${expense.id}")
+        val currentUserId = requireAuth()
+        val targetUserId = expense.userId.takeIf { it.isNotBlank() } ?: currentUserId
+        Log.d(TAG, "Saving expense to Firestore for user $targetUserId: ${expense.id}")
         try {
             // Add userId field to the expense
-            val expenseWithUserId = expense.copy(userId = userId)
+            val expenseWithUserId = expense.copy(userId = targetUserId)
             getCollection("expenses")
                 .document(expense.id)
                 .set(expenseWithUserId)
