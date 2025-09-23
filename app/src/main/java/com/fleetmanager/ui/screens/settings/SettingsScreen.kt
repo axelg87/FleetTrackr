@@ -43,7 +43,6 @@ import com.fleetmanager.ui.utils.rememberExcelFilePicker
 fun SettingsScreen(
     onNavigateToProfile: (() -> Unit)? = null,
     onManageVehicles: (() -> Unit)? = null,
-    onManageCars: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -95,7 +94,6 @@ fun SettingsScreen(
                 AdminSection(
                     onAddDriver = { driver -> viewModel.addDriver(driver) },
                     onManageVehicles = onManageVehicles,
-                    onManageCars = onManageCars,
                     onAddExpenseType = { name, displayName ->
                         viewModel.addExpenseType(name, displayName)
                     },
@@ -251,7 +249,6 @@ fun SettingsScreen(
 private fun AdminSection(
     onAddDriver: (Driver) -> Unit,
     onManageVehicles: (() -> Unit)?,
-    onManageCars: (() -> Unit)?,
     onAddExpenseType: (String, String) -> Unit,
     onImportExcel: () -> Unit
 ) {
@@ -271,13 +268,6 @@ private fun AdminSection(
             title = "Vehicles",
             subtitle = "Manage fleet vehicles",
             onClick = { onManageVehicles?.invoke() }
-        )
-
-        SettingsItem(
-            icon = Icons.Default.DirectionsCar,
-            title = "Cars",
-            subtitle = "Manage individual cars",
-            onClick = { onManageCars?.invoke() }
         )
         
         SettingsItem(
