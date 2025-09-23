@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.navigation
 
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
@@ -22,7 +23,8 @@ fun BottomNavigationBar(
                         text = item.title,
                         maxLines = 1,
                         softWrap = false,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall
                     )
                 },
                 selected = index == selectedIndex,
