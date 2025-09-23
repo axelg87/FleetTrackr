@@ -206,9 +206,12 @@ class FleetRepositoryImpl @Inject constructor(
     }
     
     // Vehicles
-    override fun getAllActiveVehicles(): Flow<List<Vehicle>> = 
+    override fun getAllActiveVehicles(): Flow<List<Vehicle>> =
         vehicleDao.getAllActiveVehicles().map { VehicleMapper.toDomainList(it) }
-    
+
+    override fun getAllVehicles(): Flow<List<Vehicle>> =
+        vehicleDao.getAllVehicles().map { VehicleMapper.toDomainList(it) }
+
     override suspend fun saveVehicle(vehicle: Vehicle) {
         val userId = authService.getCurrentUserId() ?: ""
         val vehicleWithUserId = vehicle.copy(userId = userId)
@@ -220,6 +223,21 @@ class FleetRepositoryImpl @Inject constructor(
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             // Will be synced later
+        }
+    }
+
+    override suspend fun deleteVehicle(vehicleId: String) {
+        val vehicleDto = vehicleDao.getVehicleById(vehicleId)
+        if (vehicleDto != null) {
+            vehicleDao.deleteVehicle(vehicleDto)
+        }
+
+        try {
+            firestoreService.deleteVehicle(vehicleId)
+        } catch (e: Exception) {
+            val errorMessage = "Failed to delete vehicle from Firestore: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
         }
     }
     

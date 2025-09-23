@@ -305,6 +305,21 @@ class FirestoreService @Inject constructor(
             .documents
             .mapNotNull { it.toObject<Vehicle>() }
     }
+
+    suspend fun deleteVehicle(vehicleId: String) {
+        try {
+            getCollection("vehicles")
+                .document(vehicleId)
+                .delete()
+                .await()
+            Log.d(TAG, "Successfully deleted vehicle: $vehicleId")
+        } catch (e: Exception) {
+            val errorMessage = "Failed to delete vehicle: ${e.message}"
+            Log.e(TAG, errorMessage, e)
+            toastHelper.showError(context, errorMessage)
+            throw e
+        }
+    }
     
     // Expenses
     /**
