@@ -89,10 +89,12 @@ class NotificationHelper @Inject constructor(
                 putExtra(key, value)
             }
         }
-        
+
+        val requestCode = generateRequestCode(data)
+
         val pendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -108,6 +110,11 @@ class NotificationHelper @Inject constructor(
         
         val notificationId = getNotificationId(channelId)
         notificationManager.notify(notificationId, notificationBuilder.build())
+    }
+
+    private fun generateRequestCode(data: Map<String, String>?): Int {
+        val rawCode = data?.hashCode() ?: System.currentTimeMillis().hashCode()
+        return rawCode and 0x7fffffff
     }
     
     private fun getNotificationPriority(channelId: String): Int {

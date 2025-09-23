@@ -2,6 +2,7 @@
 
 package com.fleetmanager.ui.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -46,7 +47,32 @@ sealed class Screen(val route: String) {
     object Reports : Screen("reports")
     object Settings : Screen("settings")
     object Profile : Screen("profile")
-    object AddEntry : Screen("add_entry")
+    object AddEntry : Screen("add_entry") {
+        const val ARG_PREFILL_DATE = "prefillDate"
+        const val ARG_PREFILL_DRIVER_ID = "prefillDriverId"
+        val routeWithOptionalArgs = "${route}?$ARG_PREFILL_DATE={${ARG_PREFILL_DATE}}&$ARG_PREFILL_DRIVER_ID={${ARG_PREFILL_DRIVER_ID}}"
+
+        fun createRoute(prefillDate: String? = null, prefillDriverId: String? = null): String {
+            val encodedDate = prefillDate?.let { Uri.encode(it) }
+            val encodedDriver = prefillDriverId?.let { Uri.encode(it) }
+
+            return buildString {
+                append(route)
+                if (!encodedDate.isNullOrBlank() || !encodedDriver.isNullOrBlank()) {
+                    append("?")
+                    if (!encodedDate.isNullOrBlank()) {
+                        append("$ARG_PREFILL_DATE=$encodedDate")
+                    }
+                    if (!encodedDriver.isNullOrBlank()) {
+                        if (!encodedDate.isNullOrBlank()) {
+                            append("&")
+                        }
+                        append("$ARG_PREFILL_DRIVER_ID=$encodedDriver")
+                    }
+                }
+            }
+        }
+    }
     object AddExpense : Screen("add_expense")
     object Drivers : Screen("drivers")
     object Vehicles : Screen("vehicles")
@@ -139,7 +165,7 @@ private fun MainNavigation(
         composable(Screen.Main.route) {
             MainScreen(
                 bottomNavItems = bottomNavItems,
-                onAddEntryClick = { navController.navigate(Screen.AddEntry.route) },
+                onAddEntryClick = { navController.navigate(Screen.AddEntry.createRoute()) },
                 onAddExpenseClick = { navController.navigate(Screen.AddExpense.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onEntryClick = { entryId -> navController.navigate(Screen.EntryDetail.createRoute(entryId)) },
@@ -157,9 +183,28 @@ private fun MainNavigation(
             )
         }
         
-        composable(Screen.AddEntry.route) {
+        composable(
+            route = Screen.AddEntry.routeWithOptionalArgs,
+            arguments = listOf(
+                navArgument(Screen.AddEntry.ARG_PREFILL_DATE) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(Screen.AddEntry.ARG_PREFILL_DRIVER_ID) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val prefillDate = backStackEntry.arguments?.getString(Screen.AddEntry.ARG_PREFILL_DATE)
+            val prefillDriverId = backStackEntry.arguments?.getString(Screen.AddEntry.ARG_PREFILL_DRIVER_ID)
+
             AddEntryScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                prefillDate = prefillDate,
+                prefillDriverId = prefillDriverId
             )
         }
         

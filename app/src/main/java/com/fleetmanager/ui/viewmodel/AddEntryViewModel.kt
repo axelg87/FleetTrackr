@@ -9,10 +9,12 @@ import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
 import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import java.util.Calendar
@@ -80,12 +82,15 @@ class AddEntryViewModel @Inject constructor(
     private val vehicleFirestoreService: VehicleFirestoreService,
     private val saveDailyEntryUseCase: SaveDailyEntryUseCase,
     private val validator: InputValidator,
-    private val getEntryByIdUseCase: com.fleetmanager.domain.usecase.GetEntryByIdUseCase
+    private val getEntryByIdUseCase: com.fleetmanager.domain.usecase.GetEntryByIdUseCase,
+    private val getAllEntriesRealtimeUseCase: GetAllEntriesRealtimeUseCase
 ) : BaseViewModel<AddEntryUiState>() {
-    
+
     override fun getInitialState() = AddEntryUiState(
         date = getDefaultDate()
     )
+
+    private var notificationPrefillHandled = false
     
     /**
      * Calculate the default date based on the 2PM rule:
@@ -270,7 +275,7 @@ class AddEntryViewModel @Inject constructor(
             currentState.copy(photoUris = currentUris)
         }
     }
-    
+
     fun removePhotoUri(uri: Uri) {
         updateState { currentState ->
             val currentUris = currentState.photoUris.toMutableList()
@@ -278,7 +283,59 @@ class AddEntryViewModel @Inject constructor(
             currentState.copy(photoUris = currentUris)
         }
     }
-    
+
+    fun applyNotificationPrefill(prefillDate: String, driverId: String?) {
+        if (notificationPrefillHandled) {
+            return
+        }
+
+        val parsedDate = parseNotificationDate(prefillDate) ?: return
+        notificationPrefillHandled = true
+
+        updateState { currentState ->
+            if (currentState.isEditing) {
+                currentState
+            } else {
+                currentState.copy(date = parsedDate)
+            }
+        }
+
+        if (driverId.isNullOrBlank()) {
+            return
+        }
+
+        executeAsync { 
+            val entries = getAllEntriesRealtimeUseCase().firstOrNull().orEmpty()
+            val matchingEntry = entries.firstOrNull { entry ->
+                entry.driverId.equals(driverId, ignoreCase = true) &&
+                        isSameDay(entry.date, parsedDate)
+            }
+
+            matchingEntry?.let { entry ->
+                loadEntryForEdit(entry.id)
+            }
+        }
+    }
+
+    private fun parseNotificationDate(dateString: String): Date? {
+        return try {
+            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            formatter.parse(dateString)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun isSameDay(first: Date, second: Date): Boolean {
+        val calendarOne = Calendar.getInstance().apply { time = first }
+        val calendarTwo = Calendar.getInstance().apply { time = second }
+
+        return calendarOne.get(Calendar.YEAR) == calendarTwo.get(Calendar.YEAR) &&
+                calendarOne.get(Calendar.DAY_OF_YEAR) == calendarTwo.get(Calendar.DAY_OF_YEAR)
+    }
+
     fun updateDate(date: Date) {
         updateState { it.copy(date = date) }
     }

@@ -36,12 +36,16 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
         private const val KEY_VEHICLE_ID = "vehicle_id"
         private const val KEY_DRIVER_ID = "driver_id"
         private const val KEY_EXPENSE_ID = "expense_id"
-        
+        private const val KEY_ACTION = "action"
+        private const val KEY_ENTRY_DATE = "entryDate"
+
         // Notification types
         const val TYPE_MAINTENANCE_REMINDER = "maintenance_reminder"
         const val TYPE_EXPENSE_ALERT = "expense_alert"
         const val TYPE_VEHICLE_ALERT = "vehicle_alert"
         const val TYPE_GENERAL = "general"
+
+        const val ACTION_MISSING_INCOME_ENTRY = "MISSING_INCOME_ENTRY"
     }
     
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -68,7 +72,7 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
         val title = data[KEY_TITLE] ?: "Fleet Manager"
         val body = data[KEY_BODY] ?: "You have a new notification"
         val channelId = determineChannelId(data)
-        
+
         // Show notification
         notificationHelper.showNotification(
             title = title,
@@ -76,13 +80,17 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
             channelId = channelId,
             data = data
         )
-        
+
         // Handle specific notification types
         when (data[KEY_NOTIFICATION_TYPE]) {
             TYPE_MAINTENANCE_REMINDER -> handleMaintenanceReminder(data)
             TYPE_EXPENSE_ALERT -> handleExpenseAlert(data)
             TYPE_VEHICLE_ALERT -> handleVehicleAlert(data)
             TYPE_GENERAL -> handleGeneralNotification(data)
+        }
+
+        when (data[KEY_ACTION]) {
+            ACTION_MISSING_INCOME_ENTRY -> handleMissingIncomeEntry(data)
         }
     }
     
@@ -108,13 +116,23 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
     private fun determineChannelId(data: Map<String, String>): String {
         // Check if channel is explicitly specified
         data[KEY_CHANNEL_ID]?.let { return it }
-        
+
         // Determine channel based on notification type
         return when (data[KEY_NOTIFICATION_TYPE]) {
             TYPE_MAINTENANCE_REMINDER -> NotificationHelper.CHANNEL_ID_REMINDERS
             TYPE_EXPENSE_ALERT, TYPE_VEHICLE_ALERT -> NotificationHelper.CHANNEL_ID_HIGH_PRIORITY
-            else -> NotificationHelper.CHANNEL_ID_DEFAULT
+            else -> when (data[KEY_ACTION]) {
+                ACTION_MISSING_INCOME_ENTRY -> NotificationHelper.CHANNEL_ID_REMINDERS
+                else -> NotificationHelper.CHANNEL_ID_DEFAULT
+            }
         }
+    }
+
+    private fun handleMissingIncomeEntry(data: Map<String, String>) {
+        Log.d(TAG, "Missing income entry notification received")
+        val entryDate = data[KEY_ENTRY_DATE]
+        val driverId = data[KEY_DRIVER_ID] ?: data["driverId"]
+        Log.d(TAG, "Missing entry for date=$entryDate, driverId=$driverId")
     }
     
     private fun handleMaintenanceReminder(data: Map<String, String>) {

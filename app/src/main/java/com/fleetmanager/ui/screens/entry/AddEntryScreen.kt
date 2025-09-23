@@ -38,6 +38,8 @@ import java.util.*
 fun AddEntryScreen(
     onNavigateBack: () -> Unit,
     entryId: String? = null,
+    prefillDate: String? = null,
+    prefillDriverId: String? = null,
     viewModel: AddEntryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -54,6 +56,12 @@ fun AddEntryScreen(
     LaunchedEffect(entryId) {
         if (!entryId.isNullOrBlank()) {
             viewModel.loadEntryForEdit(entryId)
+        }
+    }
+
+    LaunchedEffect(prefillDate, prefillDriverId) {
+        if (!prefillDate.isNullOrBlank()) {
+            viewModel.applyNotificationPrefill(prefillDate, prefillDriverId)
         }
     }
 
