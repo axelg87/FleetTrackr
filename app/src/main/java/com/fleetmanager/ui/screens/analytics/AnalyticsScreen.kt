@@ -233,6 +233,7 @@ private fun ShowCategoryPanels(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AnalyticsScopeRow(
     selectedScope: AnalyticsScopeFilter,
@@ -306,7 +307,7 @@ private fun AllAnalyticsTiles(
 
         val hasIncome = metrics.totalIncome > 0
         val ratioColor = when {
-            !hasIncome -> AnalyticsUtils.Colors.ERROR
+            !hasIncome -> MaterialTheme.colorScheme.onSurface
             metrics.vehicleCostRatio < 0.4 -> AnalyticsUtils.Colors.SUCCESS
             metrics.vehicleCostRatio < 0.6 -> AnalyticsUtils.Colors.WARNING
             else -> AnalyticsUtils.Colors.ERROR
@@ -326,6 +327,12 @@ private fun AllAnalyticsTiles(
         } else {
             "Vehicle costs unavailable due to no income"
         }
+        val ratioValue = if (hasIncome) {
+            "AED $ratioText"
+        } else {
+            ratioText
+        }
+        val ratioValueColor = if (hasIncome) ratioColor else MaterialTheme.colorScheme.onSurface
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AnalyticsSummaryTile(
@@ -352,10 +359,10 @@ private fun AllAnalyticsTiles(
             AnalyticsSummaryTile(
                 title = "Vehicle Cost Efficiency",
                 subtitle = ratioSubtitle,
-                value = AnalyticsUtils.formatCurrency(metrics.vehicleFixedCosts),
+                value = ratioValue,
                 badgeLabel = "ALL",
                 containerColor = ratioBackground,
-                valueColor = ratioColor
+                valueColor = ratioValueColor
             ) {
                 metrics.vehicleName?.let { vehicle ->
                     Text(
@@ -364,6 +371,11 @@ private fun AllAnalyticsTiles(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Text(
+                    text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.vehicleFixedCosts)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             val totalFixedCosts = metrics.driverFixedCosts + metrics.vehicleFixedCosts
