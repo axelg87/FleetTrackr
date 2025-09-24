@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,11 +57,10 @@ fun ScreenHeader(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (showLogo) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_company_logo),
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                     contentDescription = "AG Motion Logo",
-                    modifier = Modifier.size(40.dp),
-                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                    modifier = Modifier.size(40.dp)
                 )
             }
             Text(

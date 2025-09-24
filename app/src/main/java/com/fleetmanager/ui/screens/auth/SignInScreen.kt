@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -125,26 +126,11 @@ fun SignInScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.scale(logoScale.value)
             ) {
-                /*
-                 * PNG Logo Integration Instructions:
-                 * 1. Place your PNG file in the following directories:
-                 *    - /app/src/main/res/drawable-xxxhdpi/ (480dpi) - largest size
-                 *    - /app/src/main/res/drawable-xxhdpi/ (320dpi)
-                 *    - /app/src/main/res/drawable-xhdpi/ (240dpi)
-                 *    - /app/src/main/res/drawable-hdpi/ (160dpi)
-                 *    - /app/src/main/res/drawable-mdpi/ (120dpi) - smallest size
-                 * 2. Name the file consistently (e.g., "ag_motion_logo.png")
-                 * 3. Replace the painterResource below with your PNG filename
-                 * 4. Adjust the size modifier if needed based on your logo dimensions
-                 */
-                
-                // Current logo - replace with your PNG logo
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_company_logo),
-                    // When integrating PNG, use: painterResource(id = R.drawable.your_logo_name)
+                // Updated to use new WebP logo assets
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                     contentDescription = "AG Motion Logo",
-                    modifier = Modifier.size(120.dp),
-                    tint = Color.Unspecified
+                    modifier = Modifier.size(120.dp)
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))

@@ -31,7 +31,7 @@ fun SplashScreen(
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.ag_motion_logo),
+            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
             contentDescription = "AG Motion Logo",
             modifier = Modifier.size(200.dp)
         )
