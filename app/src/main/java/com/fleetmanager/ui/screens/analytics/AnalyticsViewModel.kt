@@ -53,7 +53,22 @@ data class AnalyticsSourceData(
     val expenses: List<Expense>,
     val drivers: List<Driver>,
     val vehicles: List<Vehicle>,
-    val timeFilter: TimeFilter
+    val timeFilter: TimeFilter,
+    val selectedDriverId: String?
+)
+
+data class DriverFilterOption(
+    val id: String?,
+    val label: String
+) {
+    companion object {
+        val AllDrivers = DriverFilterOption(null, "All Drivers")
+    }
+}
+
+data class DriverFilterState(
+    val options: List<DriverFilterOption> = listOf(DriverFilterOption.AllDrivers),
+    val selectedOption: DriverFilterOption = DriverFilterOption.AllDrivers
 )
 
 /**
@@ -83,6 +98,23 @@ class AnalyticsViewModel @Inject constructor(
     
     private val _timeFilter = MutableStateFlow(TimeFilter.LAST_3_MONTHS)
     val timeFilter: StateFlow<TimeFilter> = _timeFilter.asStateFlow()
+
+    private val _driverOptions = MutableStateFlow(listOf(DriverFilterOption.AllDrivers))
+    private val _selectedDriverId = MutableStateFlow<String?>(null)
+    val driverFilterState: StateFlow<DriverFilterState> = combine(
+        _driverOptions,
+        _selectedDriverId
+    ) { options, selectedId ->
+        val selectedOption = options.firstOrNull { it.id == selectedId } ?: DriverFilterOption.AllDrivers
+        DriverFilterState(
+            options = options,
+            selectedOption = selectedOption
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = DriverFilterState()
+    )
     
     // User profile state
     val userProfile: StateFlow<UserDto> = userFirestoreService.getCurrentUserProfile()
@@ -176,8 +208,9 @@ class AnalyticsViewModel @Inject constructor(
                     fleetRepository.getAllExpensesRealtime(),
                     fleetRepository.getAllDrivers(),
                     fleetRepository.getAllActiveVehicles(),
-                    _timeFilter
-                ) { entries, expenses, drivers, vehicles, timeFilter ->
+                    _timeFilter,
+                    _selectedDriverId
+                ) { entries, expenses, drivers, vehicles, timeFilter, selectedDriverId ->
                     val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                     val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
                     val enrichedEntries = entries.map { entry ->
@@ -186,12 +219,30 @@ class AnalyticsViewModel @Inject constructor(
                             vehicleDisplayName = vehicleNameMap[entry.vehicleId]
                         )
                     }
+
+                    val driverOptions = buildList {
+                        add(DriverFilterOption.AllDrivers)
+                        addAll(drivers.sortedBy { it.name }.map { DriverFilterOption(it.id, it.name) })
+                    }
+                    if (_driverOptions.value != driverOptions) {
+                        _driverOptions.value = driverOptions
+                    }
+
+                    val resolvedDriverId = selectedDriverId.takeIf { id ->
+                        driverOptions.any { option -> option.id == id }
+                    } ?: run {
+                        if (selectedDriverId != null) {
+                            _selectedDriverId.value = null
+                        }
+                        null
+                    }
                     AnalyticsSourceData(
                         entries = enrichedEntries,
                         expenses = expenses,
                         drivers = drivers,
                         vehicles = vehicles,
-                        timeFilter = timeFilter
+                        timeFilter = timeFilter,
+                        selectedDriverId = resolvedDriverId
                     )
                 }.collect { sourceData ->
 
@@ -206,24 +257,44 @@ class AnalyticsViewModel @Inject constructor(
                         expenseDate.isBefore(today) // Exclude current day (d-1 logic)
                     }
 
+                    val selectedDriverId = sourceData.selectedDriverId
+                    val selectedDriver = selectedDriverId?.let { id ->
+                        sourceData.drivers.firstOrNull { driver -> driver.id == id }
+                    }
+
+                    val entriesByDriver = selectedDriverId?.let { id ->
+                        entriesExcludingToday.filter { it.driverId == id }
+                    } ?: entriesExcludingToday
+
+                    val expensesByDriver = selectedDriver?.let { driver ->
+                        expensesExcludingToday.filter { expense ->
+                            expense.driverName.equals(driver.name, ignoreCase = true)
+                        }
+                    } ?: expensesExcludingToday
+
                     _comprehensiveMetrics.value = calculateComprehensiveMetrics(
-                        entries = entriesExcludingToday,
-                        expenses = expensesExcludingToday,
+                        entries = entriesByDriver,
+                        expenses = expensesByDriver,
                         drivers = sourceData.drivers,
                         vehicles = sourceData.vehicles,
-                        targetMonth = _currentMonth.value
+                        targetMonth = _currentMonth.value,
+                        selectedDriverId = selectedDriverId
                     )
 
                     // Filter data based on selected time filter
-                    val (filteredEntries, filteredExpenses, startDate, endDate) = filterDataByTimeRange(entriesExcludingToday, expensesExcludingToday, sourceData.timeFilter)
-                    
+                    val (filteredEntries, filteredExpenses, startDate, endDate) = filterDataByTimeRange(entriesByDriver, expensesByDriver, sourceData.timeFilter)
+
                     // If no data available, use mock data for demonstration
                     val analyticsData = if (filteredEntries.isEmpty() && filteredExpenses.isEmpty()) {
-                        MockDataProvider.generateMockAnalyticsData()
+                        if (selectedDriverId != null) {
+                            AnalyticsData()
+                        } else {
+                            MockDataProvider.generateMockAnalyticsData()
+                        }
                     } else {
                         calculateAnalyticsData(filteredEntries, filteredExpenses, startDate, endDate)
                     }
-                    
+
                     _analyticsData.value = analyticsData.copy(
                         isLoading = false,
                         error = null
@@ -351,54 +422,74 @@ class AnalyticsViewModel @Inject constructor(
         expenses: List<Expense>,
         drivers: List<Driver>,
         vehicles: List<Vehicle>,
-        targetMonth: YearMonth
+        targetMonth: YearMonth,
+        selectedDriverId: String?
     ): ComprehensiveAnalyticsMetrics {
-        val activeDrivers = drivers.filter { it.isActive }.ifEmpty { drivers }
-        val activeVehicles = vehicles.filter { it.isActive }.ifEmpty { vehicles }
+        val scopedDrivers = if (selectedDriverId != null) {
+            drivers.filter { it.id == selectedDriverId }
+        } else {
+            drivers.filter { it.isActive }.ifEmpty { drivers }
+        }
 
-        val driverIdsInScope = activeDrivers.map { it.id }.toSet()
-        val vehicleIdsInScope = activeVehicles.map { it.id }.toSet()
-        val driverNamesInScope = activeDrivers.map { it.name }.toSet()
-        val vehicleNamesInScope = activeVehicles.map { it.displayName }.toSet()
+        val driverIdsInScope = scopedDrivers.map { it.id }.toSet()
 
         val entriesForMonth = entries.filter { entry ->
             val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
             YearMonth.from(entryDate) == targetMonth &&
-                (driverIdsInScope.isEmpty() || driverIdsInScope.contains(entry.driverId)) &&
-                (vehicleIdsInScope.isEmpty() || vehicleIdsInScope.contains(entry.vehicleId))
+                (driverIdsInScope.isEmpty() || driverIdsInScope.contains(entry.driverId))
         }
 
         val expensesForMonth = expenses.filter { expense ->
             val expenseDate = AnalyticsUtils.dateToLocalDate(expense.date)
-            YearMonth.from(expenseDate) == targetMonth &&
-                (driverNamesInScope.isEmpty() || driverNamesInScope.contains(expense.driverName)) &&
-                (vehicleNamesInScope.isEmpty() || vehicleNamesInScope.contains(expense.vehicle))
+            YearMonth.from(expenseDate) == targetMonth
         }
+
+        val vehiclesById = vehicles.associateBy { it.id }
+        val vehicleCostsByDriver = calculateVehicleCostAssignments(entriesForMonth, vehiclesById)
+        val relevantDriverIds = if (driverIdsInScope.isEmpty()) {
+            vehicleCostsByDriver.keys
+        } else {
+            driverIdsInScope
+        }
+        val assignedVehicleCost = relevantDriverIds.sumOf { driverId -> vehicleCostsByDriver[driverId] ?: 0.0 }
 
         val totalIncome = entriesForMonth.sumOf { it.totalEarnings }
 
-        val driverFixedCosts = activeDrivers.sumOf { driver ->
+        val driverFixedCosts = scopedDrivers.sumOf { driver ->
             driver.salary + (driver.annualVisaCost / 12.0) + (driver.annualLicenseCost / 12.0)
         }
 
-        val vehicleFixedCosts = activeVehicles.sumOf { vehicle ->
-            (vehicle.installment ?: 0.0) + (vehicle.annualInsuranceAmount / 12.0)
+        val vehicleFixedCosts = if (selectedDriverId != null) {
+            assignedVehicleCost
+        } else {
+            if (assignedVehicleCost > 0.0) {
+                assignedVehicleCost
+            } else {
+                vehicles.filter { it.isActive }.ifEmpty { vehicles }.sumOf { vehicleMonthlyCost(it) }
+            }
         }
 
         val variableExpenses = expensesForMonth.sumOf { it.amount }
 
         val totalFixedCosts = driverFixedCosts + vehicleFixedCosts
+        val totalExpenses = totalFixedCosts + variableExpenses
         val vehicleCostRatio = if (totalIncome > 0) vehicleFixedCosts / totalIncome else 0.0
-        val driverNetIncome = totalIncome - driverFixedCosts
-        val netOperationalProfit = totalIncome - totalFixedCosts - variableExpenses
+        val netOperationalProfit = totalIncome - totalExpenses
 
         val hasData = entriesForMonth.isNotEmpty() || expensesForMonth.isNotEmpty()
 
-        val singleDriverName = activeDrivers.singleOrNull()?.name
-        val singleVehicleName = activeVehicles.singleOrNull()?.displayName
+        val singleDriverName = scopedDrivers.singleOrNull()?.name
+        val singleVehicleName = if (selectedDriverId != null) {
+            entriesForMonth
+                .groupBy { it.vehicleId }
+                .maxByOrNull { (_, driverEntries) -> driverEntries.size }?.key
+                ?.let { vehicleId -> vehiclesById[vehicleId]?.displayName }
+        } else {
+            vehicles.filter { it.isActive }.singleOrNull()?.displayName
+        }
 
         return ComprehensiveAnalyticsMetrics(
-            driverNetIncome = driverNetIncome,
+            driverNetIncome = netOperationalProfit,
             driverFixedCosts = driverFixedCosts,
             vehicleCostRatio = vehicleCostRatio,
             vehicleFixedCosts = vehicleFixedCosts,
@@ -407,8 +498,29 @@ class AnalyticsViewModel @Inject constructor(
             netOperationalProfit = netOperationalProfit,
             driverName = singleDriverName,
             vehicleName = singleVehicleName,
-            hasData = hasData
+            hasData = hasData,
+            totalExpenses = totalExpenses,
+            driverVehicleCost = if (selectedDriverId != null) assignedVehicleCost else vehicleFixedCosts
         )
+    }
+
+    private fun calculateVehicleCostAssignments(
+        entries: List<DailyEntry>,
+        vehiclesById: Map<String, Vehicle>
+    ): Map<String, Double> {
+        if (entries.isEmpty()) return emptyMap()
+
+        return entries
+            .groupBy { it.driverId }
+            .mapValues { (_, driverEntries) ->
+                val assignedVehicleId = driverEntries.minByOrNull { it.date.time }?.vehicleId
+                val vehicle = assignedVehicleId?.let { vehiclesById[it] }
+                vehicle?.let { vehicleMonthlyCost(it) } ?: 0.0
+            }
+    }
+
+    private fun vehicleMonthlyCost(vehicle: Vehicle): Double {
+        return (vehicle.installment ?: 0.0) + (vehicle.annualInsuranceAmount / 12.0)
     }
     
     fun onDaySelected(date: LocalDate, entries: List<DailyEntry>) {
@@ -445,6 +557,10 @@ class AnalyticsViewModel @Inject constructor(
      */
     fun setTimeFilter(filter: TimeFilter) {
         _timeFilter.value = filter
+    }
+
+    fun setDriverFilter(option: DriverFilterOption) {
+        _selectedDriverId.value = option.id
     }
     
     /**
@@ -507,7 +623,9 @@ data class ComprehensiveAnalyticsMetrics(
     val netOperationalProfit: Double = 0.0,
     val driverName: String? = null,
     val vehicleName: String? = null,
-    val hasData: Boolean = false
+    val hasData: Boolean = false,
+    val totalExpenses: Double = 0.0,
+    val driverVehicleCost: Double = 0.0
 )
 
 /**

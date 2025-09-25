@@ -44,6 +44,7 @@ fun AnalyticsScreen(
     val timeFilter by viewModel.timeFilter.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val comprehensiveMetrics by viewModel.comprehensiveMetrics.collectAsState()
+    val driverFilterState by viewModel.driverFilterState.collectAsState()
 
     var selectedCategory by rememberSaveable { mutableStateOf(AnalyticsCategory.PERFORMANCE) }
     var selectedScope by rememberSaveable { mutableStateOf(AnalyticsScopeFilter.INCOME_ONLY) }
@@ -74,6 +75,12 @@ fun AnalyticsScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
+            DriverFilterRow(
+                state = driverFilterState,
+                onDriverSelected = { option -> viewModel.setDriverFilter(option) },
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
             // Time Filter
             TimeFilterRow(
                 selectedFilter = timeFilter,
@@ -94,7 +101,8 @@ fun AnalyticsScreen(
                 analyticsData = analyticsData,
                 viewModel = viewModel,
                 scopeFilter = selectedScope,
-                comprehensiveMetrics = comprehensiveMetrics
+                comprehensiveMetrics = comprehensiveMetrics,
+                driverFilterState = driverFilterState
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -122,7 +130,8 @@ private fun ShowCategoryPanels(
     analyticsData: AnalyticsData,
     viewModel: AnalyticsViewModel,
     scopeFilter: AnalyticsScopeFilter,
-    comprehensiveMetrics: ComprehensiveAnalyticsMetrics
+    comprehensiveMetrics: ComprehensiveAnalyticsMetrics,
+    driverFilterState: DriverFilterState
 ) {
     when (category) {
         AnalyticsCategory.PERFORMANCE -> {
@@ -151,6 +160,7 @@ private fun ShowCategoryPanels(
             } else {
                 AllAnalyticsTiles(
                     metrics = comprehensiveMetrics,
+                    driverFilterOption = driverFilterState.selectedOption,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
@@ -277,9 +287,67 @@ private fun AnalyticsScopeRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DriverFilterRow(
+    state: DriverFilterState,
+    onDriverSelected: (DriverFilterOption) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasMultipleDrivers = state.options.size > 1
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded && hasMultipleDrivers,
+        onExpandedChange = {
+            if (hasMultipleDrivers) {
+                expanded = !expanded
+            }
+        },
+        modifier = modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = state.selectedOption.label,
+            onValueChange = {},
+            readOnly = true,
+            enabled = hasMultipleDrivers,
+            label = { Text("Driver") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = null
+                )
+            },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && hasMultipleDrivers)
+            },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth(),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded && hasMultipleDrivers,
+            onDismissRequest = { expanded = false }
+        ) {
+            state.options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    onClick = {
+                        expanded = false
+                        onDriverSelected(option)
+                    }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun AllAnalyticsTiles(
     metrics: ComprehensiveAnalyticsMetrics,
+    driverFilterOption: DriverFilterOption,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -337,9 +405,9 @@ private fun AllAnalyticsTiles(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AnalyticsSummaryTile(
                 title = "Driver Net Income",
-                subtitle = "after salary, visa, license",
+                subtitle = "after fixed and variable costs",
                 value = AnalyticsUtils.formatCurrency(metrics.driverNetIncome),
-                badgeLabel = "ALL",
+                badgeLabel = if (driverFilterOption.id == null) "ALL" else "DRIVER",
                 valueColor = if (metrics.driverNetIncome >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
             ) {
                 metrics.driverName?.let { name ->
@@ -349,8 +417,20 @@ private fun AllAnalyticsTiles(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (driverFilterOption.id != null) {
+                    Text(
+                        text = "Vehicle cost: ${AnalyticsUtils.formatCurrency(metrics.driverVehicleCost)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
                     text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.driverFixedCosts)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Total expenses: ${AnalyticsUtils.formatCurrency(metrics.totalExpenses)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -360,7 +440,7 @@ private fun AllAnalyticsTiles(
                 title = "Vehicle Cost Efficiency",
                 subtitle = ratioSubtitle,
                 value = ratioValue,
-                badgeLabel = "ALL",
+                badgeLabel = if (driverFilterOption.id == null) "ALL" else "DRIVER",
                 containerColor = ratioBackground,
                 valueColor = ratioValueColor
             ) {
@@ -386,7 +466,7 @@ private fun AllAnalyticsTiles(
                 title = "Net Operational Profit",
                 subtitle = breakdownSubtitle,
                 value = AnalyticsUtils.formatCurrency(metrics.netOperationalProfit),
-                badgeLabel = "ALL",
+                badgeLabel = if (driverFilterOption.id == null) "ALL" else "DRIVER",
                 valueColor = if (metrics.netOperationalProfit >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
             )
         }
