@@ -141,37 +141,33 @@ class DashboardViewModel @Inject constructor(
                     }
                 }
                 
-                // Only show earnings stats for admin users
-                val earningsStats = if (isAdmin) {
-                    listOf(
-                        StatItem(
-                            icon = Icons.Default.AttachMoney,
-                            value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
-                            label = "Uber (Month)",
-                            shortcut = DashboardShortcut.IncomeSource.Uber
-                        ),
-                        StatItem(
-                            icon = Icons.Default.AttachMoney,
-                            value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
-                            label = "Yango (Month)",
-                            shortcut = DashboardShortcut.IncomeSource.Yango
-                        ),
-                        StatItem(
-                            icon = Icons.Default.AttachMoney,
-                            value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
-                            label = "Private (Month)",
-                            shortcut = DashboardShortcut.IncomeSource.Private
-                        ),
-                        StatItem(
-                            icon = Icons.Default.Assignment,
-                            value = "${dashboardData.recentEntries.size}",
-                            label = "Recent Entries",
-                            shortcut = DashboardShortcut.AllEntries
-                        )
+                // Always show earnings stats so the layout stays consistent across roles
+                val earningsStats = listOf(
+                    StatItem(
+                        icon = Icons.Default.AttachMoney,
+                        value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
+                        label = "Uber (Month)",
+                        shortcut = DashboardShortcut.IncomeSource.Uber
+                    ),
+                    StatItem(
+                        icon = Icons.Default.AttachMoney,
+                        value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
+                        label = "Yango (Month)",
+                        shortcut = DashboardShortcut.IncomeSource.Yango
+                    ),
+                    StatItem(
+                        icon = Icons.Default.AttachMoney,
+                        value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
+                        label = "Private (Month)",
+                        shortcut = DashboardShortcut.IncomeSource.Private
+                    ),
+                    StatItem(
+                        icon = Icons.Default.Assignment,
+                        value = "${dashboardData.recentEntries.size}",
+                        label = "Recent Entries",
+                        shortcut = DashboardShortcut.AllEntries
                     )
-                } else {
-                    emptyList() // Hide all earnings stats for non-admin users
-                }
+                )
 
                 // Use actual DailyEntry objects for complete data
                 val recentEntries = dashboardData.recentEntries
