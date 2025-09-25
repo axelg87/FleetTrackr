@@ -262,7 +262,13 @@ class AnalyticsViewModel @Inject constructor(
                         }
 
                         val entriesByDriver = resolvedDriverId?.let { id ->
-                            entriesExcludingToday.filter { it.driverId == id }
+                            entriesExcludingToday.filter { entry ->
+                                entry.driverId == id || (
+                                    selectedDriver?.name?.let { driverName ->
+                                        entry.driverName.equals(driverName, ignoreCase = true)
+                                    } == true
+                                )
+                            }
                         } ?: entriesExcludingToday
 
                         val expensesByDriver = selectedDriver?.let { driver ->
@@ -510,14 +516,14 @@ class AnalyticsViewModel @Inject constructor(
     ): Map<String, Double> {
         if (entries.isEmpty()) return emptyMap()
 
-        val firstDayOfMonth = targetMonth.atDay(1)
-
         return entries
             .groupBy { it.driverId }
             .mapNotNull { (driverId, driverEntries) ->
-                val assignmentEntry = driverEntries.firstOrNull { entry ->
-                    AnalyticsUtils.dateToLocalDate(entry.date) == firstDayOfMonth
-                } ?: return@mapNotNull null
+                val monthEntries = driverEntries.filter { entry ->
+                    YearMonth.from(AnalyticsUtils.dateToLocalDate(entry.date)) == targetMonth
+                }
+                val assignmentEntry = monthEntries.maxByOrNull { entry -> entry.date.time }
+                    ?: return@mapNotNull null
 
                 val vehicle = vehiclesById[assignmentEntry.vehicleId] ?: return@mapNotNull null
                 driverId to vehicleMonthlyCost(vehicle)
