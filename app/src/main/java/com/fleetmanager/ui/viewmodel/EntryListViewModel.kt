@@ -15,6 +15,8 @@ import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.usecase.DeleteExpenseUseCase
 import com.fleetmanager.domain.usecase.GetAllExpensesRealtimeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import java.util.Date
@@ -60,6 +62,7 @@ class EntryListViewModel @Inject constructor(
     
     companion object {
         private const val TAG = "EntryListViewModel"
+        private const val HISTORY_STREAM_RETRY_DELAY_MS = 2_000L
     }
     
     override fun getInitialState() = EntryListUiState()
@@ -134,15 +137,25 @@ class EntryListViewModel @Inject constructor(
                         }
                         role to HistoryData(entries, filteredExpenses, drivers, vehicles)
                     }
-                }
-                .catch { e ->
-                    Log.e(TAG, "Firestore snapshot listener error", e)
-                    updateState {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Failed to load entries: ${e.message}"
-                        )
-                    }
+                        .retryWhen { cause, attempt ->
+                            if (cause is CancellationException) {
+                                false
+                            } else {
+                                Log.w(
+                                    TAG,
+                                    "History stream error for role $role, retrying (attempt=${attempt + 1})",
+                                    cause
+                                )
+                                updateState {
+                                    it.copy(
+                                        isLoading = false,
+                                        errorMessage = "Failed to load entries: ${cause.message}"
+                                    )
+                                }
+                                delay(HISTORY_STREAM_RETRY_DELAY_MS)
+                                true
+                            }
+                        }
                 }
                 .collect { (role, historyData) ->
                     val (entries, filteredExpenses, drivers, vehicles) = historyData
