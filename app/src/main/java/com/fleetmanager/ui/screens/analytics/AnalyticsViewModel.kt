@@ -149,7 +149,7 @@ class AnalyticsViewModel @Inject constructor(
                 combine(
                     fleetRepository.getAllDailyEntriesRealtime(),
                     firestoreService.getDriversFlow(),
-                    fleetRepository.getAllActiveVehicles()
+                    fleetRepository.getAllVehicles()
                 ) { entries, drivers, vehicles ->
                     val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                     val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
@@ -210,7 +210,7 @@ class AnalyticsViewModel @Inject constructor(
                     .combine(firestoreService.getDriversFlow()) { snapshot, drivers ->
                         snapshot.copy(drivers = drivers)
                     }
-                    .combine(fleetRepository.getAllActiveVehicles()) { snapshot, vehicles ->
+                    .combine(fleetRepository.getAllVehicles()) { snapshot, vehicles ->
                         snapshot.copy(vehicles = vehicles)
                     }
 
@@ -452,7 +452,7 @@ class AnalyticsViewModel @Inject constructor(
         }
 
         val vehiclesById = vehicles.associateBy { it.id }
-        val vehicleCostsByDriver = calculateVehicleCostAssignments(entriesForMonth, vehiclesById, targetMonth)
+        val vehicleCostsByDriver = calculateVehicleCostAssignments(entries, vehiclesById, targetMonth)
         val relevantDriverIds = if (driverIdsInScope.isEmpty()) {
             vehicleCostsByDriver.keys
         } else {
@@ -518,13 +518,17 @@ class AnalyticsViewModel @Inject constructor(
     ): Map<String, Double> {
         if (entries.isEmpty()) return emptyMap()
 
+        val monthEndInstant = targetMonth.atEndOfMonth()
+            .atTime(23, 59, 59)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+
         return entries
             .groupBy { it.driverId }
             .mapNotNull { (driverId, driverEntries) ->
-                val monthEntries = driverEntries.filter { entry ->
-                    YearMonth.from(AnalyticsUtils.dateToLocalDate(entry.date)) == targetMonth
-                }
-                val assignmentEntry = monthEntries.maxByOrNull { entry -> entry.date.time }
+                val assignmentEntry = driverEntries
+                    .filter { entry -> entry.date.toInstant() <= monthEndInstant }
+                    .maxByOrNull { entry -> entry.date.time }
                     ?: return@mapNotNull null
 
                 val vehicle = vehiclesById[assignmentEntry.vehicleId] ?: return@mapNotNull null
