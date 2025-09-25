@@ -10,9 +10,12 @@ import com.fleetmanager.domain.model.ExpenseType
 object ExpenseMapper {
     
     fun toDomain(dto: ExpenseDto): Expense {
+        val resolvedDriverId = dto.driverId.takeUnless { it.isBlank() } ?: dto.userId
+        val resolvedUserId = dto.userId.takeUnless { it.isBlank() } ?: resolvedDriverId
         return Expense(
             id = dto.id,
-            userId = dto.userId,
+            userId = resolvedUserId,
+            driverId = resolvedDriverId,
             type = ExpenseType.valueOf(dto.type),
             amount = dto.amount,
             date = dto.date,
@@ -27,9 +30,12 @@ object ExpenseMapper {
     }
     
     fun toDto(domain: Expense): ExpenseDto {
+        val resolvedDriverId = domain.driverId.takeUnless { it.isBlank() } ?: domain.userId
+        val resolvedUserId = domain.userId.takeUnless { it.isBlank() } ?: resolvedDriverId
         return ExpenseDto(
             id = domain.id,
-            userId = domain.userId,
+            userId = resolvedUserId,
+            driverId = resolvedDriverId,
             type = domain.type.name,
             amount = domain.amount,
             date = domain.date,

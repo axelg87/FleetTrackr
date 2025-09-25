@@ -271,8 +271,12 @@ class AnalyticsViewModel @Inject constructor(
                         val expensesByDriver = resolvedDriverId?.let { id ->
                             val normalizedDriverName = driverNameMap[id]?.let { normalizeName(it) }
                             expensesExcludingToday.filter { expense ->
-                                normalizedDriverName != null &&
-                                    normalizeName(expense.driverName) == normalizedDriverName
+                                when {
+                                    expense.driverId.isNotBlank() -> expense.driverId == id
+                                    expense.userId.isNotBlank() -> expense.userId == id
+                                    normalizedDriverName != null -> normalizeName(expense.driverName) == normalizedDriverName
+                                    else -> false
+                                }
                             }
                         } ?: expensesExcludingToday
 
@@ -445,7 +449,9 @@ class AnalyticsViewModel @Inject constructor(
 
         val expensesForMonth = expenses.filter { expense ->
             val expenseDate = AnalyticsUtils.dateToLocalDate(expense.date)
-            YearMonth.from(expenseDate) == targetMonth
+            val expenseDriverId = expense.driverId.takeIf { it.isNotBlank() } ?: expense.userId
+            YearMonth.from(expenseDate) == targetMonth &&
+                (driverIdsInScope.isEmpty() || driverIdsInScope.contains(expenseDriverId))
         }
 
         val vehiclesById = vehicles.associateBy { it.id }

@@ -1,6 +1,5 @@
 package com.fleetmanager.domain.model
 
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.PropertyName
 import java.util.Date
 
@@ -16,7 +15,10 @@ data class Expense(
     
     @get:PropertyName("userId")
     val userId: String = "",
-    
+
+    @get:PropertyName("driverId")
+    val driverId: String = "",
+
     @get:PropertyName("type")
     val type: ExpenseType = ExpenseType.OTHER,
     
@@ -50,6 +52,7 @@ data class Expense(
     fun isValid(): Boolean {
         return id.isNotBlank() &&
                 amount > 0 &&
+                driverId.isNotBlank() &&
                 driverName.isNotBlank() &&
                 vehicle.isNotBlank() &&
                 amount <= 999999.99 &&
@@ -62,6 +65,7 @@ data class Expense(
         if (id.isBlank()) errors.add("ID cannot be blank")
         if (amount <= 0) errors.add("Amount must be greater than zero")
         if (amount > 999999.99) errors.add("Amount is too large")
+        if (driverId.isBlank()) errors.add("Driver ID cannot be blank")
         if (driverName.isBlank()) errors.add("Driver name cannot be blank")
         if (vehicle.isBlank()) errors.add("Vehicle cannot be blank")
         if (notes.length > 5000) errors.add("Notes too long (max 5000 characters)")

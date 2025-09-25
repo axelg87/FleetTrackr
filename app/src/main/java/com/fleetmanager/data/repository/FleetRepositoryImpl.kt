@@ -300,7 +300,7 @@ class FleetRepositoryImpl @Inject constructor(
             if (localExpense != null) {
                 emit(ExpenseMapper.toDomain(localExpense))
             } else {
-                val remoteExpense = firestoreService.getExpenseById(id)
+                val remoteExpense = firestoreService.getExpenseById(id)?.ensureDriverIdentity()
                 if (remoteExpense != null) {
                     expenseDao.insertExpense(ExpenseMapper.toDto(remoteExpense))
                 }
@@ -327,7 +327,8 @@ class FleetRepositoryImpl @Inject constructor(
             try {
                 val userRole = firestoreService.getCurrentUserRole()
                 firestoreService.getExpensesFlowForRole(userRole).collect { remoteExpenses ->
-                    val syncedExpenses = remoteExpenses.map { it.copy(isSynced = true) }
+                    val syncedExpenses = remoteExpenses
+                        .map { it.ensureDriverIdentity().copy(isSynced = true) }
                     if (syncedExpenses.isEmpty()) {
                         expenseDao.deleteAllSynced()
                     } else {
@@ -342,35 +343,44 @@ class FleetRepositoryImpl @Inject constructor(
     }
     
     override suspend fun saveExpense(expense: Expense, photoUri: Uri?, photoUris: List<Uri>) {
-        val userId = authService.getCurrentUserId() ?: ""
-        val existingOwnerId = expense.userId.takeIf { it.isNotBlank() } ?: userId
+        val currentUserId = authService.getCurrentUserId() ?: ""
+        val resolvedDriverId = expense.driverId
+            .takeIf { it.isNotBlank() }
+            ?: expense.userId.takeIf { it.isNotBlank() }
+            ?: currentUserId
+
+        val baseExpense = expense.copy(
+            driverId = resolvedDriverId,
+            userId = resolvedDriverId
+        )
+
         val expenseToSave = when {
             photoUris.isNotEmpty() -> {
                 try {
                     val photoUrls = photoUris.map { uri ->
                         storageService.uploadPhoto(uri, "${expense.id}_${System.currentTimeMillis()}")
                     }
-                    expense.copy(userId = existingOwnerId, photoUrls = photoUrls, isSynced = true)
+                    baseExpense.copy(photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    expense.copy(userId = existingOwnerId, isSynced = false)
+                    baseExpense.copy(isSynced = false)
                 }
             }
             photoUri != null -> {
                 try {
                     val photoUrls = listOf(storageService.uploadPhoto(photoUri, expense.id))
-                    expense.copy(userId = existingOwnerId, photoUrls = photoUrls, isSynced = true)
+                    baseExpense.copy(photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
                     // Save locally if upload fails
-                    expense.copy(userId = existingOwnerId, isSynced = false)
+                    baseExpense.copy(isSynced = false)
                 }
             }
-            else -> expense.copy(userId = existingOwnerId)
-        }
-        
+            else -> baseExpense
+        }.ensureDriverIdentity(resolvedDriverId)
+
         // Always save locally first
         expenseDao.insertExpense(ExpenseMapper.toDto(expenseToSave))
-        
+
         // Try to sync to Firestore
         if (expenseToSave.isSynced || (photoUri == null && photoUris.isEmpty())) {
             try {
@@ -408,8 +418,8 @@ class FleetRepositoryImpl @Inject constructor(
         unsyncedExpenses.forEach { expenseDto ->
             try {
                 val expense = ExpenseMapper.toDomain(expenseDto)
-                val syncedExpense = expense.copy(isSynced = true)
-                
+                val syncedExpense = expense.ensureDriverIdentity().copy(isSynced = true)
+
                 firestoreService.saveExpense(syncedExpense)
                 expenseDao.updateExpense(ExpenseMapper.toDto(syncedExpense))
             } catch (e: Exception) {
@@ -421,10 +431,30 @@ class FleetRepositoryImpl @Inject constructor(
         }
         
         try {
-            val remoteExpenses = firestoreService.getExpenses()
+            val remoteExpenses = firestoreService.getExpenses().map { it.ensureDriverIdentity() }
             expenseDao.insertExpenses(ExpenseMapper.toDtoList(remoteExpenses))
         } catch (e: Exception) {
             // Keep local data
         }
     }
+}
+
+private fun Expense.ensureDriverIdentity(defaultId: String = ""): Expense {
+    val resolvedDriverId = when {
+        driverId.isNotBlank() -> driverId
+        userId.isNotBlank() -> userId
+        defaultId.isNotBlank() -> defaultId
+        else -> ""
+    }
+    val resolvedUserId = when {
+        userId.isNotBlank() -> userId
+        resolvedDriverId.isNotBlank() -> resolvedDriverId
+        defaultId.isNotBlank() -> defaultId
+        else -> ""
+    }
+
+    return copy(
+        driverId = resolvedDriverId,
+        userId = resolvedUserId
+    )
 }

@@ -124,6 +124,7 @@ object MockDataProvider {
         val vehicle = vehicleNames.random()
         val dateAsDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant())
         val expenseType = ExpenseType.values().random()
+        val driverId = driver.lowercase().replace(" ", "_").replace("'", "")
 
         val amount = when (expenseType) {
             ExpenseType.FUEL -> Random.nextDouble() * 80 + 40 // 40-120 AED
@@ -136,7 +137,8 @@ object MockDataProvider {
 
         return Expense(
             id = UUID.randomUUID().toString(),
-            userId = "mock_user",
+            userId = driverId,
+            driverId = driverId,
             type = expenseType,
             amount = amount,
             date = dateAsDate,

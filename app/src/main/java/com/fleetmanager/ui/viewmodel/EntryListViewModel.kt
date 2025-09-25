@@ -118,10 +118,18 @@ class EntryListViewModel @Inject constructor(
                     vehicleFirestoreService.getVehiclesFlow()
                 ) { entries, expenses, drivers, vehicles ->
                     val currentUserId = authRepository.currentUserId
-                    val filteredExpenses = expenses.filter { expense ->
-                        PermissionManager.canViewAll(role) ||
-                                currentUserId.isNullOrBlank() ||
-                                expense.userId == currentUserId
+                    val filteredExpenses = if (PermissionManager.canViewAll(role)) {
+                        expenses
+                    } else {
+                        val driverId = currentUserId.orEmpty()
+                        expenses.filter { expense ->
+                            when {
+                                driverId.isBlank() -> false
+                                expense.driverId.isNotBlank() -> expense.driverId == driverId
+                                expense.userId.isNotBlank() -> expense.userId == driverId
+                                else -> false
+                            }
+                        }
                     }
                     HistoryData(entries, filteredExpenses, drivers, vehicles)
                 }
@@ -134,7 +142,7 @@ class EntryListViewModel @Inject constructor(
                             ) 
                         }
                     }
-                    .collect { (entries, expenses, drivers, vehicles) ->
+                    .collect { (entries, filteredExpenses, drivers, vehicles) ->
                         Log.d(TAG, "Received ${entries.size} entries for role $role")
                         val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                         val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
@@ -146,7 +154,7 @@ class EntryListViewModel @Inject constructor(
                         }
                         // Sort entries by date descending (most recent first)
                         val sortedEntries = enrichedEntries.sortedByDescending { it.date }
-                        val sortedExpenses = expenses.sortedByDescending { it.date }
+                        val sortedExpenses = filteredExpenses.sortedByDescending { it.date }
                         updateState {
                             it.copy(
                                 entries = sortedEntries,
