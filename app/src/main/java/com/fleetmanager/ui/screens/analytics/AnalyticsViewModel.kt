@@ -353,24 +353,34 @@ class AnalyticsViewModel @Inject constructor(
         vehicles: List<Vehicle>,
         targetMonth: YearMonth
     ): ComprehensiveAnalyticsMetrics {
+        val activeDrivers = drivers.filter { it.isActive }.ifEmpty { drivers }
+        val activeVehicles = vehicles.filter { it.isActive }.ifEmpty { vehicles }
+
+        val driverIdsInScope = activeDrivers.map { it.id }.toSet()
+        val vehicleIdsInScope = activeVehicles.map { it.id }.toSet()
+        val driverNamesInScope = activeDrivers.map { it.name }.toSet()
+        val vehicleNamesInScope = activeVehicles.map { it.displayName }.toSet()
+
         val entriesForMonth = entries.filter { entry ->
             val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
-            YearMonth.from(entryDate) == targetMonth
+            YearMonth.from(entryDate) == targetMonth &&
+                (driverIdsInScope.isEmpty() || driverIdsInScope.contains(entry.driverId)) &&
+                (vehicleIdsInScope.isEmpty() || vehicleIdsInScope.contains(entry.vehicleId))
         }
 
         val expensesForMonth = expenses.filter { expense ->
             val expenseDate = AnalyticsUtils.dateToLocalDate(expense.date)
-            YearMonth.from(expenseDate) == targetMonth
+            YearMonth.from(expenseDate) == targetMonth &&
+                (driverNamesInScope.isEmpty() || driverNamesInScope.contains(expense.driverName)) &&
+                (vehicleNamesInScope.isEmpty() || vehicleNamesInScope.contains(expense.vehicle))
         }
 
         val totalIncome = entriesForMonth.sumOf { it.totalEarnings }
 
-        val activeDrivers = drivers.filter { it.isActive }.ifEmpty { drivers }
         val driverFixedCosts = activeDrivers.sumOf { driver ->
             driver.salary + (driver.annualVisaCost / 12.0) + (driver.annualLicenseCost / 12.0)
         }
 
-        val activeVehicles = vehicles.filter { it.isActive }.ifEmpty { vehicles }
         val vehicleFixedCosts = activeVehicles.sumOf { vehicle ->
             (vehicle.installment ?: 0.0) + (vehicle.annualInsuranceAmount / 12.0)
         }
