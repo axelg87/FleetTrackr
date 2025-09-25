@@ -353,40 +353,27 @@ class AnalyticsViewModel @Inject constructor(
         vehicles: List<Vehicle>,
         targetMonth: YearMonth
     ): ComprehensiveAnalyticsMetrics {
-        val selectedDriver = drivers.firstOrNull { it.isActive } ?: drivers.firstOrNull()
-        val selectedVehicle = vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()
-
         val entriesForMonth = entries.filter { entry ->
             val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
             YearMonth.from(entryDate) == targetMonth
-        }.filter { entry ->
-            val driverMatches = selectedDriver?.id?.let { entry.driverId == it } ?: true
-            val vehicleMatches = selectedVehicle?.id?.let { entry.vehicleId == it } ?: true
-            driverMatches && vehicleMatches
         }
 
         val expensesForMonth = expenses.filter { expense ->
             val expenseDate = AnalyticsUtils.dateToLocalDate(expense.date)
             YearMonth.from(expenseDate) == targetMonth
-        }.filter { expense ->
-            val driverMatches = selectedDriver?.name?.let { expense.driverName.equals(it, ignoreCase = true) } ?: true
-            val vehicleMatches = selectedVehicle?.let { vehicle ->
-                expense.vehicle.equals(vehicle.displayName, ignoreCase = true) ||
-                    expense.vehicle.contains(vehicle.licensePlate, ignoreCase = true)
-            } ?: true
-            driverMatches && vehicleMatches
         }
 
         val totalIncome = entriesForMonth.sumOf { it.totalEarnings }
 
-        val driverSalary = selectedDriver?.salary ?: 0.0
-        val driverVisaMonthly = (selectedDriver?.annualVisaCost ?: 0.0) / 12.0
-        val driverLicenseMonthly = (selectedDriver?.annualLicenseCost ?: 0.0) / 12.0
-        val driverFixedCosts = driverSalary + driverVisaMonthly + driverLicenseMonthly
+        val activeDrivers = drivers.filter { it.isActive }.ifEmpty { drivers }
+        val driverFixedCosts = activeDrivers.sumOf { driver ->
+            driver.salary + (driver.annualVisaCost / 12.0) + (driver.annualLicenseCost / 12.0)
+        }
 
-        val vehicleInstallment = selectedVehicle?.installment ?: 0.0
-        val vehicleInsuranceMonthly = (selectedVehicle?.annualInsuranceAmount ?: 0.0) / 12.0
-        val vehicleFixedCosts = vehicleInstallment + vehicleInsuranceMonthly
+        val activeVehicles = vehicles.filter { it.isActive }.ifEmpty { vehicles }
+        val vehicleFixedCosts = activeVehicles.sumOf { vehicle ->
+            (vehicle.installment ?: 0.0) + (vehicle.annualInsuranceAmount / 12.0)
+        }
 
         val variableExpenses = expensesForMonth.sumOf { it.amount }
 
@@ -395,7 +382,10 @@ class AnalyticsViewModel @Inject constructor(
         val driverNetIncome = totalIncome - driverFixedCosts
         val netOperationalProfit = totalIncome - totalFixedCosts - variableExpenses
 
-        val hasData = totalIncome > 0 || variableExpenses > 0 || totalFixedCosts > 0
+        val hasData = entriesForMonth.isNotEmpty() || expensesForMonth.isNotEmpty()
+
+        val singleDriverName = activeDrivers.singleOrNull()?.name
+        val singleVehicleName = activeVehicles.singleOrNull()?.displayName
 
         return ComprehensiveAnalyticsMetrics(
             driverNetIncome = driverNetIncome,
@@ -405,8 +395,8 @@ class AnalyticsViewModel @Inject constructor(
             totalIncome = totalIncome,
             variableExpenses = variableExpenses,
             netOperationalProfit = netOperationalProfit,
-            driverName = selectedDriver?.name,
-            vehicleName = selectedVehicle?.displayName,
+            driverName = singleDriverName,
+            vehicleName = singleVehicleName,
             hasData = hasData
         )
     }
