@@ -48,13 +48,11 @@ data class FilteredData(
     val endDate: LocalDate
 )
 
-data class AnalyticsSourceData(
-    val entries: List<DailyEntry>,
-    val expenses: List<Expense>,
-    val drivers: List<Driver>,
-    val vehicles: List<Vehicle>,
-    val timeFilter: TimeFilter,
-    val selectedDriverId: String?
+private data class AnalyticsRealtimeSnapshot(
+    val entries: List<DailyEntry> = emptyList(),
+    val expenses: List<Expense> = emptyList(),
+    val drivers: List<Driver> = emptyList(),
+    val vehicles: List<Vehicle> = emptyList()
 )
 
 data class DriverFilterOption(
@@ -203,103 +201,104 @@ class AnalyticsViewModel @Inject constructor(
             
             try {
                 // Use realtime data sources like dashboard
-                combine(
-                    fleetRepository.getAllDailyEntriesRealtime(),
-                    fleetRepository.getAllExpensesRealtime(),
-                    fleetRepository.getAllDrivers(),
-                    fleetRepository.getAllActiveVehicles(),
-                    _timeFilter,
-                    _selectedDriverId
-                ) { entries, expenses, drivers, vehicles, timeFilter, selectedDriverId ->
-                    val driverNameMap = drivers.associateBy({ it.id }, { it.name })
-                    val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
-                    val enrichedEntries = entries.map { entry ->
-                        entry.withResolvedDisplayData(
-                            driverDisplayName = driverNameMap[entry.driverId],
-                            vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                val realtimeDataFlow = fleetRepository.getAllDailyEntriesRealtime()
+                    .combine(fleetRepository.getAllExpensesRealtime()) { entries, expenses ->
+                        AnalyticsRealtimeSnapshot(entries = entries, expenses = expenses)
+                    }
+                    .combine(fleetRepository.getAllDrivers()) { snapshot, drivers ->
+                        snapshot.copy(drivers = drivers)
+                    }
+                    .combine(fleetRepository.getAllActiveVehicles()) { snapshot, vehicles ->
+                        snapshot.copy(vehicles = vehicles)
+                    }
+
+                realtimeDataFlow
+                    .combine(_timeFilter) { snapshot, timeFilter ->
+                        snapshot to timeFilter
+                    }
+                    .combine(_selectedDriverId) { (snapshot, timeFilter), selectedDriverId ->
+                        Triple(snapshot, timeFilter, selectedDriverId)
+                    }
+                    .collect { (snapshot, timeFilter, selectedDriverId) ->
+                        val driverOptions = buildList {
+                            add(DriverFilterOption.AllDrivers)
+                            addAll(snapshot.drivers.sortedBy { it.name }.map { DriverFilterOption(it.id, it.name) })
+                        }
+                        if (_driverOptions.value != driverOptions) {
+                            _driverOptions.value = driverOptions
+                        }
+
+                        val resolvedDriverId = selectedDriverId.takeIf { id ->
+                            driverOptions.any { option -> option.id == id }
+                        } ?: run {
+                            if (selectedDriverId != null) {
+                                _selectedDriverId.value = null
+                            }
+                            null
+                        }
+
+                        val driverNameMap = snapshot.drivers.associateBy({ it.id }, { it.name })
+                        val vehicleNameMap = snapshot.vehicles.associateBy({ it.id }, { it.displayName })
+                        val enrichedEntries = snapshot.entries.map { entry ->
+                            entry.withResolvedDisplayData(
+                                driverDisplayName = driverNameMap[entry.driverId],
+                                vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                            )
+                        }
+
+                        // Apply d-1 logic: exclude current day from all calculations
+                        val today = LocalDate.now()
+                        val entriesExcludingToday = enrichedEntries.filter { entry ->
+                            val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
+                            entryDate.isBefore(today) // Exclude current day (d-1 logic)
+                        }
+                        val expensesExcludingToday = snapshot.expenses.filter { expense ->
+                            val expenseDate = AnalyticsUtils.dateToLocalDate(expense.date)
+                            expenseDate.isBefore(today) // Exclude current day (d-1 logic)
+                        }
+
+                        val selectedDriver = resolvedDriverId?.let { id ->
+                            snapshot.drivers.firstOrNull { driver -> driver.id == id }
+                        }
+
+                        val entriesByDriver = resolvedDriverId?.let { id ->
+                            entriesExcludingToday.filter { it.driverId == id }
+                        } ?: entriesExcludingToday
+
+                        val expensesByDriver = selectedDriver?.let { driver ->
+                            expensesExcludingToday.filter { expense ->
+                                expense.driverName.equals(driver.name, ignoreCase = true)
+                            }
+                        } ?: expensesExcludingToday
+
+                        _comprehensiveMetrics.value = calculateComprehensiveMetrics(
+                            entries = entriesByDriver,
+                            expenses = expensesByDriver,
+                            drivers = snapshot.drivers,
+                            vehicles = snapshot.vehicles,
+                            targetMonth = _currentMonth.value,
+                            selectedDriverId = resolvedDriverId
+                        )
+
+                        // Filter data based on selected time filter
+                        val (filteredEntries, filteredExpenses, startDate, endDate) = filterDataByTimeRange(entriesByDriver, expensesByDriver, timeFilter)
+
+                        // If no data available, use mock data for demonstration
+                        val analyticsData = if (filteredEntries.isEmpty() && filteredExpenses.isEmpty()) {
+                            if (resolvedDriverId != null) {
+                                AnalyticsData()
+                            } else {
+                                MockDataProvider.generateMockAnalyticsData()
+                            }
+                        } else {
+                            calculateAnalyticsData(filteredEntries, filteredExpenses, startDate, endDate)
+                        }
+
+                        _analyticsData.value = analyticsData.copy(
+                            isLoading = false,
+                            error = null
                         )
                     }
-
-                    val driverOptions = buildList {
-                        add(DriverFilterOption.AllDrivers)
-                        addAll(drivers.sortedBy { it.name }.map { DriverFilterOption(it.id, it.name) })
-                    }
-                    if (_driverOptions.value != driverOptions) {
-                        _driverOptions.value = driverOptions
-                    }
-
-                    val resolvedDriverId = selectedDriverId.takeIf { id ->
-                        driverOptions.any { option -> option.id == id }
-                    } ?: run {
-                        if (selectedDriverId != null) {
-                            _selectedDriverId.value = null
-                        }
-                        null
-                    }
-                    AnalyticsSourceData(
-                        entries = enrichedEntries,
-                        expenses = expenses,
-                        drivers = drivers,
-                        vehicles = vehicles,
-                        timeFilter = timeFilter,
-                        selectedDriverId = resolvedDriverId
-                    )
-                }.collect { sourceData ->
-
-                    // Apply d-1 logic: exclude current day from all calculations
-                    val today = LocalDate.now()
-                    val entriesExcludingToday = sourceData.entries.filter { entry ->
-                        val entryDate = AnalyticsUtils.dateToLocalDate(entry.date)
-                        entryDate.isBefore(today) // Exclude current day (d-1 logic)
-                    }
-                    val expensesExcludingToday = sourceData.expenses.filter { expense ->
-                        val expenseDate = AnalyticsUtils.dateToLocalDate(expense.date)
-                        expenseDate.isBefore(today) // Exclude current day (d-1 logic)
-                    }
-
-                    val selectedDriverId = sourceData.selectedDriverId
-                    val selectedDriver = selectedDriverId?.let { id ->
-                        sourceData.drivers.firstOrNull { driver -> driver.id == id }
-                    }
-
-                    val entriesByDriver = selectedDriverId?.let { id ->
-                        entriesExcludingToday.filter { it.driverId == id }
-                    } ?: entriesExcludingToday
-
-                    val expensesByDriver = selectedDriver?.let { driver ->
-                        expensesExcludingToday.filter { expense ->
-                            expense.driverName.equals(driver.name, ignoreCase = true)
-                        }
-                    } ?: expensesExcludingToday
-
-                    _comprehensiveMetrics.value = calculateComprehensiveMetrics(
-                        entries = entriesByDriver,
-                        expenses = expensesByDriver,
-                        drivers = sourceData.drivers,
-                        vehicles = sourceData.vehicles,
-                        targetMonth = _currentMonth.value,
-                        selectedDriverId = selectedDriverId
-                    )
-
-                    // Filter data based on selected time filter
-                    val (filteredEntries, filteredExpenses, startDate, endDate) = filterDataByTimeRange(entriesByDriver, expensesByDriver, sourceData.timeFilter)
-
-                    // If no data available, use mock data for demonstration
-                    val analyticsData = if (filteredEntries.isEmpty() && filteredExpenses.isEmpty()) {
-                        if (selectedDriverId != null) {
-                            AnalyticsData()
-                        } else {
-                            MockDataProvider.generateMockAnalyticsData()
-                        }
-                    } else {
-                        calculateAnalyticsData(filteredEntries, filteredExpenses, startDate, endDate)
-                    }
-
-                    _analyticsData.value = analyticsData.copy(
-                        isLoading = false,
-                        error = null
-                    )
-                }
                 
             } catch (e: Exception) {
                 _analyticsData.value = _analyticsData.value.copy(
