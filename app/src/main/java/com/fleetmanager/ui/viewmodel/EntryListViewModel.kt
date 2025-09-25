@@ -110,63 +110,65 @@ class EntryListViewModel @Inject constructor(
                 updateState { it.copy(isLoading = false, errorMessage = error) }
             }
         ) {
-            userRole.collect { role ->
-                combine(
-                    firestoreService.getDailyEntriesFlowForRole(role),
-                    getAllExpensesRealtimeUseCase(),
-                    firestoreService.getDriversFlow(),
-                    vehicleFirestoreService.getVehiclesFlow()
-                ) { entries, expenses, drivers, vehicles ->
-                    val currentUserId = authRepository.currentUserId
-                    val filteredExpenses = if (PermissionManager.canViewAll(role)) {
-                        expenses
-                    } else {
-                        val driverId = currentUserId.orEmpty()
-                        expenses.filter { expense ->
-                            when {
-                                driverId.isBlank() -> false
-                                expense.driverId.isNotBlank() -> expense.driverId == driverId
-                                expense.userId.isNotBlank() -> expense.userId == driverId
-                                else -> false
+            userRole
+                .flatMapLatest { role ->
+                    combine(
+                        firestoreService.getDailyEntriesFlowForRole(role),
+                        getAllExpensesRealtimeUseCase(),
+                        firestoreService.getDriversFlow(),
+                        vehicleFirestoreService.getVehiclesFlow()
+                    ) { entries, expenses, drivers, vehicles ->
+                        val currentUserId = authRepository.currentUserId
+                        val filteredExpenses = if (PermissionManager.canViewAll(role)) {
+                            expenses
+                        } else {
+                            val driverId = currentUserId.orEmpty()
+                            expenses.filter { expense ->
+                                when {
+                                    driverId.isBlank() -> false
+                                    expense.driverId.isNotBlank() -> expense.driverId == driverId
+                                    expense.userId.isNotBlank() -> expense.userId == driverId
+                                    else -> false
+                                }
                             }
                         }
+                        role to HistoryData(entries, filteredExpenses, drivers, vehicles)
                     }
-                    HistoryData(entries, filteredExpenses, drivers, vehicles)
                 }
-                    .catch { e ->
-                        Log.e(TAG, "Firestore snapshot listener error", e)
-                        updateState {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = "Failed to load entries: ${e.message}"
-                            ) 
-                        }
+                .catch { e ->
+                    Log.e(TAG, "Firestore snapshot listener error", e)
+                    updateState {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Failed to load entries: ${e.message}"
+                        )
                     }
-                    .collect { (entries, filteredExpenses, drivers, vehicles) ->
-                        Log.d(TAG, "Received ${entries.size} entries for role $role")
-                        val driverNameMap = drivers.associateBy({ it.id }, { it.name })
-                        val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
-                        val enrichedEntries = entries.map { entry ->
-                            entry.withResolvedDisplayData(
-                                driverDisplayName = driverNameMap[entry.driverId],
-                                vehicleDisplayName = vehicleNameMap[entry.vehicleId]
-                            )
-                        }
-                        // Sort entries by date descending (most recent first)
-                        val sortedEntries = enrichedEntries.sortedByDescending { it.date }
-                        val sortedExpenses = filteredExpenses.sortedByDescending { it.date }
-                        updateState {
-                            it.copy(
-                                entries = sortedEntries,
-                                expenses = sortedExpenses,
-                                drivers = drivers,
-                                vehicles = vehicles,
-                                isLoading = false,
-                                errorMessage = null
-                            )
-                        }
+                }
+                .collect { (role, historyData) ->
+                    val (entries, filteredExpenses, drivers, vehicles) = historyData
+                    Log.d(TAG, "Received ${entries.size} entries for role $role")
+                    val driverNameMap = drivers.associateBy({ it.id }, { it.name })
+                    val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
+                    val enrichedEntries = entries.map { entry ->
+                        entry.withResolvedDisplayData(
+                            driverDisplayName = driverNameMap[entry.driverId],
+                            vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                        )
                     }
-            }
+                    // Sort entries by date descending (most recent first)
+                    val sortedEntries = enrichedEntries.sortedByDescending { it.date }
+                    val sortedExpenses = filteredExpenses.sortedByDescending { it.date }
+                    updateState {
+                        it.copy(
+                            entries = sortedEntries,
+                            expenses = sortedExpenses,
+                            drivers = drivers,
+                            vehicles = vehicles,
+                            isLoading = false,
+                            errorMessage = null
+                        )
+                    }
+                }
         }
     }
     
