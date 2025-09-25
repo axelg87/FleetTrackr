@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Expense
+import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
 import com.fleetmanager.data.dto.UserDto
@@ -12,6 +13,7 @@ import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.usecase.DeleteExpenseUseCase
+import com.fleetmanager.domain.usecase.GetAllExpensesRealtimeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -52,7 +54,8 @@ class EntryListViewModel @Inject constructor(
     private val authRepository: com.fleetmanager.domain.repository.AuthRepository,
     private val deleteDailyEntryUseCase: com.fleetmanager.domain.usecase.DeleteDailyEntryUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
-    private val saveDailyEntryUseCase: com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
+    private val saveDailyEntryUseCase: com.fleetmanager.domain.usecase.SaveDailyEntryUseCase,
+    private val getAllExpensesRealtimeUseCase: GetAllExpensesRealtimeUseCase
 ) : BaseViewModel<EntryListUiState>() {
     
     companion object {
@@ -110,11 +113,17 @@ class EntryListViewModel @Inject constructor(
             userRole.collect { role ->
                 combine(
                     firestoreService.getDailyEntriesFlowForRole(role),
-                    firestoreService.getExpensesFlowForRole(role),
+                    getAllExpensesRealtimeUseCase(),
                     firestoreService.getDriversFlow(),
                     vehicleFirestoreService.getVehiclesFlow()
                 ) { entries, expenses, drivers, vehicles ->
-                    HistoryData(entries, expenses, drivers, vehicles)
+                    val currentUserId = authRepository.currentUserId
+                    val filteredExpenses = expenses.filter { expense ->
+                        PermissionManager.canViewAll(role) ||
+                                currentUserId.isNullOrBlank() ||
+                                expense.userId == currentUserId
+                    }
+                    HistoryData(entries, filteredExpenses, drivers, vehicles)
                 }
                     .catch { e ->
                         Log.e(TAG, "Firestore snapshot listener error", e)
