@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.DailyEntry
@@ -76,7 +77,8 @@ data class DriverFilterState(
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val fleetRepository: FleetRepository,
-    private val userFirestoreService: UserFirestoreService
+    private val userFirestoreService: UserFirestoreService,
+    private val firestoreService: FirestoreService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(AnalyticsUiState())
@@ -146,7 +148,7 @@ class AnalyticsViewModel @Inject constructor(
                 
                 combine(
                     fleetRepository.getAllDailyEntriesRealtime(),
-                    fleetRepository.getAllDrivers(),
+                    firestoreService.getDriversFlow(),
                     fleetRepository.getAllActiveVehicles()
                 ) { entries, drivers, vehicles ->
                     val driverNameMap = drivers.associateBy({ it.id }, { it.name })
@@ -205,7 +207,7 @@ class AnalyticsViewModel @Inject constructor(
                     .combine(fleetRepository.getAllExpensesRealtime()) { entries, expenses ->
                         AnalyticsRealtimeSnapshot(entries = entries, expenses = expenses)
                     }
-                    .combine(fleetRepository.getAllDrivers()) { snapshot, drivers ->
+                    .combine(firestoreService.getDriversFlow()) { snapshot, drivers ->
                         snapshot.copy(drivers = drivers)
                     }
                     .combine(fleetRepository.getAllActiveVehicles()) { snapshot, vehicles ->
