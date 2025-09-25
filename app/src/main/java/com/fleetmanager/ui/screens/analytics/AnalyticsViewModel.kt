@@ -445,7 +445,7 @@ class AnalyticsViewModel @Inject constructor(
         }
 
         val vehiclesById = vehicles.associateBy { it.id }
-        val vehicleCostsByDriver = calculateVehicleCostAssignments(entriesForMonth, vehiclesById)
+        val vehicleCostsByDriver = calculateVehicleCostAssignments(entriesForMonth, vehiclesById, targetMonth)
         val relevantDriverIds = if (driverIdsInScope.isEmpty()) {
             vehicleCostsByDriver.keys
         } else {
@@ -506,17 +506,24 @@ class AnalyticsViewModel @Inject constructor(
 
     private fun calculateVehicleCostAssignments(
         entries: List<DailyEntry>,
-        vehiclesById: Map<String, Vehicle>
+        vehiclesById: Map<String, Vehicle>,
+        targetMonth: YearMonth
     ): Map<String, Double> {
         if (entries.isEmpty()) return emptyMap()
 
+        val firstDayOfMonth = targetMonth.atDay(1)
+
         return entries
             .groupBy { it.driverId }
-            .mapValues { (_, driverEntries) ->
-                val assignedVehicleId = driverEntries.minByOrNull { it.date.time }?.vehicleId
-                val vehicle = assignedVehicleId?.let { vehiclesById[it] }
-                vehicle?.let { vehicleMonthlyCost(it) } ?: 0.0
+            .mapNotNull { (driverId, driverEntries) ->
+                val assignmentEntry = driverEntries.firstOrNull { entry ->
+                    AnalyticsUtils.dateToLocalDate(entry.date) == firstDayOfMonth
+                } ?: return@mapNotNull null
+
+                val vehicle = vehiclesById[assignmentEntry.vehicleId] ?: return@mapNotNull null
+                driverId to vehicleMonthlyCost(vehicle)
             }
+            .toMap()
     }
 
     private fun vehicleMonthlyCost(vehicle: Vehicle): Double {
