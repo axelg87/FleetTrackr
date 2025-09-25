@@ -11,18 +11,26 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.time.DayOfWeek
+import java.util.Locale
+import com.fleetmanager.ui.screens.analytics.ComprehensiveAnalyticsMetrics
 import com.fleetmanager.ui.screens.analytics.components.*
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsCategory
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsData
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsAdapters
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
 
+enum class AnalyticsScopeFilter {
+    INCOME_ONLY,
+    ALL
+}
+
 /**
- * Analytics Screen with comprehensive analytics features including trends, 
+ * Analytics Screen with comprehensive analytics features including trends,
  * comparisons, ROI analysis, and performance insights.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,8 +43,10 @@ fun AnalyticsScreen(
     val analyticsData by viewModel.analyticsData.collectAsState()
     val timeFilter by viewModel.timeFilter.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
-    
+    val comprehensiveMetrics by viewModel.comprehensiveMetrics.collectAsState()
+
     var selectedCategory by rememberSaveable { mutableStateOf(AnalyticsCategory.PERFORMANCE) }
+    var selectedScope by rememberSaveable { mutableStateOf(AnalyticsScopeFilter.INCOME_ONLY) }
 
     val scrollState = rememberScrollState()
 
@@ -71,12 +81,20 @@ fun AnalyticsScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
+            AnalyticsScopeRow(
+                selectedScope = selectedScope,
+                onScopeSelected = { selectedScope = it },
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
             // Show panels within the selected category for quicker access
             ShowCategoryPanels(
                 category = selectedCategory,
                 uiState = uiState,
                 analyticsData = analyticsData,
-                viewModel = viewModel
+                viewModel = viewModel,
+                scopeFilter = selectedScope,
+                comprehensiveMetrics = comprehensiveMetrics
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -102,28 +120,37 @@ private fun ShowCategoryPanels(
     category: AnalyticsCategory,
     uiState: AnalyticsUiState,
     analyticsData: AnalyticsData,
-    viewModel: AnalyticsViewModel
+    viewModel: AnalyticsViewModel,
+    scopeFilter: AnalyticsScopeFilter,
+    comprehensiveMetrics: ComprehensiveAnalyticsMetrics
 ) {
     when (category) {
         AnalyticsCategory.PERFORMANCE -> {
-            MonthlyGoalPlanner(
-                projectionData = analyticsData.projection,
-                isLoading = analyticsData.isLoading,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            if (analyticsData.monthlyComparison != null) {
-                MonthlyComparisonCard(
-                    monthlyComparison = analyticsData.monthlyComparison,
+            if (scopeFilter == AnalyticsScopeFilter.INCOME_ONLY) {
+                MonthlyGoalPlanner(
+                    projectionData = analyticsData.projection,
                     isLoading = analyticsData.isLoading,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-            }
 
-            if (analyticsData.projection != null) {
-                ProjectionEstimation(
-                    projectionData = analyticsData.projection,
-                    isLoading = analyticsData.isLoading,
+                if (analyticsData.monthlyComparison != null) {
+                    MonthlyComparisonCard(
+                        monthlyComparison = analyticsData.monthlyComparison,
+                        isLoading = analyticsData.isLoading,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
+                if (analyticsData.projection != null) {
+                    ProjectionEstimation(
+                        projectionData = analyticsData.projection,
+                        isLoading = analyticsData.isLoading,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+            } else {
+                AllAnalyticsTiles(
+                    metrics = comprehensiveMetrics,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
@@ -201,6 +228,225 @@ private fun ShowCategoryPanels(
                         viewModel.onDaySelected(date, entries)
                     }
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AnalyticsScopeRow(
+    selectedScope: AnalyticsScopeFilter,
+    onScopeSelected: (AnalyticsScopeFilter) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Analytics Focus",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AnalyticsScopeFilter.values().forEach { scope ->
+                    FilterChip(
+                        selected = selectedScope == scope,
+                        onClick = { onScopeSelected(scope) },
+                        label = {
+                            Text(
+                                text = when (scope) {
+                                    AnalyticsScopeFilter.INCOME_ONLY -> "Income Only"
+                                    AnalyticsScopeFilter.ALL -> "All"
+                                },
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AllAnalyticsTiles(
+    metrics: ComprehensiveAnalyticsMetrics,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Comprehensive Financial Overview",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        if (!metrics.hasData) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Text(
+                    text = "No financial data available for the selected month.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            return
+        }
+
+        val hasIncome = metrics.totalIncome > 0
+        val ratioColor = when {
+            !hasIncome -> MaterialTheme.colorScheme.onSurface
+            metrics.vehicleCostRatio < 0.4 -> AnalyticsUtils.Colors.SUCCESS
+            metrics.vehicleCostRatio < 0.6 -> AnalyticsUtils.Colors.WARNING
+            else -> AnalyticsUtils.Colors.ERROR
+        }
+        val ratioBackground = if (hasIncome) {
+            ratioColor.copy(alpha = 0.12f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        }
+        val ratioText = if (hasIncome) {
+            String.format(Locale.US, "%.2f", metrics.vehicleCostRatio)
+        } else {
+            "N/A"
+        }
+        val ratioSubtitle = if (hasIncome) {
+            "AED $ratioText spent per AED 1 earned"
+        } else {
+            "Vehicle costs unavailable due to no income"
+        }
+        val ratioValue = if (hasIncome) {
+            "AED $ratioText"
+        } else {
+            ratioText
+        }
+        val ratioValueColor = if (hasIncome) ratioColor else MaterialTheme.colorScheme.onSurface
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            AnalyticsSummaryTile(
+                title = "Driver Net Income",
+                subtitle = "after salary, visa, license",
+                value = AnalyticsUtils.formatCurrency(metrics.driverNetIncome),
+                badgeLabel = "ALL",
+                valueColor = if (metrics.driverNetIncome >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
+            ) {
+                metrics.driverName?.let { name ->
+                    Text(
+                        text = "Driver: $name",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.driverFixedCosts)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            AnalyticsSummaryTile(
+                title = "Vehicle Cost Efficiency",
+                subtitle = ratioSubtitle,
+                value = ratioValue,
+                badgeLabel = "ALL",
+                containerColor = ratioBackground,
+                valueColor = ratioValueColor
+            ) {
+                metrics.vehicleName?.let { vehicle ->
+                    Text(
+                        text = vehicle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.vehicleFixedCosts)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            val totalFixedCosts = metrics.driverFixedCosts + metrics.vehicleFixedCosts
+            val breakdownSubtitle = "Income ${AnalyticsUtils.formatCurrency(metrics.totalIncome)} • " +
+                "Variable ${AnalyticsUtils.formatCurrency(metrics.variableExpenses)} • " +
+                "Fixed ${AnalyticsUtils.formatCurrency(totalFixedCosts)}"
+            AnalyticsSummaryTile(
+                title = "Net Operational Profit",
+                subtitle = breakdownSubtitle,
+                value = AnalyticsUtils.formatCurrency(metrics.netOperationalProfit),
+                badgeLabel = "ALL",
+                valueColor = if (metrics.netOperationalProfit >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsSummaryTile(
+    title: String,
+    subtitle: String,
+    value: String,
+    badgeLabel: String? = null,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    content: (@Composable () -> Unit)? = null
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                )
+
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = valueColor
+                )
+
+                content?.invoke()
+            }
+
+            badgeLabel?.let {
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
     }
