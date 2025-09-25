@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.fleetmanager.data.remote.FirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.DailyEntry
@@ -26,7 +28,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.util.Date
-import java.util.concurrent.TimeUnit
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -76,7 +78,9 @@ data class DriverFilterState(
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val fleetRepository: FleetRepository,
-    private val userFirestoreService: UserFirestoreService
+    private val userFirestoreService: UserFirestoreService,
+    private val firestoreService: FirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(AnalyticsUiState())
@@ -146,8 +150,8 @@ class AnalyticsViewModel @Inject constructor(
                 
                 combine(
                     fleetRepository.getAllDailyEntriesRealtime(),
-                    fleetRepository.getAllDrivers(),
-                    fleetRepository.getAllActiveVehicles()
+                    firestoreService.getDriversFlow(),
+                    vehicleFirestoreService.getVehiclesFlow()
                 ) { entries, drivers, vehicles ->
                     val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                     val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
@@ -205,10 +209,10 @@ class AnalyticsViewModel @Inject constructor(
                     .combine(fleetRepository.getAllExpensesRealtime()) { entries, expenses ->
                         AnalyticsRealtimeSnapshot(entries = entries, expenses = expenses)
                     }
-                    .combine(fleetRepository.getAllDrivers()) { snapshot, drivers ->
+                    .combine(firestoreService.getDriversFlow()) { snapshot, drivers ->
                         snapshot.copy(drivers = drivers)
                     }
-                    .combine(fleetRepository.getAllActiveVehicles()) { snapshot, vehicles ->
+                    .combine(vehicleFirestoreService.getVehiclesFlow()) { snapshot, vehicles ->
                         snapshot.copy(vehicles = vehicles)
                     }
 
@@ -238,6 +242,7 @@ class AnalyticsViewModel @Inject constructor(
                         }
 
                         val driverNameMap = snapshot.drivers.associateBy({ it.id }, { it.name })
+                        val driverNameToId = snapshot.drivers.associate { normalizeName(it.name) to it.id }
                         val vehicleNameMap = snapshot.vehicles.associateBy({ it.id }, { it.displayName })
                         val enrichedEntries = snapshot.entries.map { entry ->
                             entry.withResolvedDisplayData(
@@ -257,17 +262,17 @@ class AnalyticsViewModel @Inject constructor(
                             expenseDate.isBefore(today) // Exclude current day (d-1 logic)
                         }
 
-                        val selectedDriver = resolvedDriverId?.let { id ->
-                            snapshot.drivers.firstOrNull { driver -> driver.id == id }
-                        }
-
                         val entriesByDriver = resolvedDriverId?.let { id ->
-                            entriesExcludingToday.filter { it.driverId == id }
+                            entriesExcludingToday.filter { entry ->
+                                resolveDriverId(entry, driverNameToId) == id
+                            }
                         } ?: entriesExcludingToday
 
-                        val expensesByDriver = selectedDriver?.let { driver ->
+                        val expensesByDriver = resolvedDriverId?.let { id ->
+                            val normalizedDriverName = driverNameMap[id]?.let { normalizeName(it) }
                             expensesExcludingToday.filter { expense ->
-                                expense.driverName.equals(driver.name, ignoreCase = true)
+                                normalizedDriverName != null &&
+                                    normalizeName(expense.driverName) == normalizedDriverName
                             }
                         } ?: expensesExcludingToday
 
@@ -444,7 +449,15 @@ class AnalyticsViewModel @Inject constructor(
         }
 
         val vehiclesById = vehicles.associateBy { it.id }
-        val vehicleCostsByDriver = calculateVehicleCostAssignments(entriesForMonth, vehiclesById, targetMonth)
+        val vehiclesByDisplayName = vehicles.associateBy { normalizeName(it.displayName) }
+        val driverNameToId = drivers.associate { driver -> normalizeName(driver.name) to driver.id }
+        val vehicleCostsByDriver = calculateVehicleCostAssignments(
+            entries,
+            vehiclesById,
+            vehiclesByDisplayName,
+            targetMonth,
+            driverNameToId
+        )
         val relevantDriverIds = if (driverIdsInScope.isEmpty()) {
             vehicleCostsByDriver.keys
         } else {
@@ -506,20 +519,28 @@ class AnalyticsViewModel @Inject constructor(
     private fun calculateVehicleCostAssignments(
         entries: List<DailyEntry>,
         vehiclesById: Map<String, Vehicle>,
-        targetMonth: YearMonth
+        vehiclesByDisplayName: Map<String, Vehicle>,
+        targetMonth: YearMonth,
+        driverNameToId: Map<String, String>
     ): Map<String, Double> {
         if (entries.isEmpty()) return emptyMap()
 
-        val firstDayOfMonth = targetMonth.atDay(1)
+        val monthEndInstant = targetMonth.atEndOfMonth()
+            .atTime(23, 59, 59)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
 
         return entries
-            .groupBy { it.driverId }
-            .mapNotNull { (driverId, driverEntries) ->
-                val assignmentEntry = driverEntries.firstOrNull { entry ->
-                    AnalyticsUtils.dateToLocalDate(entry.date) == firstDayOfMonth
-                } ?: return@mapNotNull null
+            .groupBy { entry -> resolveDriverId(entry, driverNameToId) }
+            .mapNotNull { (resolvedDriverId, driverEntries) ->
+                val driverId = resolvedDriverId ?: return@mapNotNull null
+                val assignmentEntry = driverEntries
+                    .filter { entry -> entry.date.toInstant() <= monthEndInstant }
+                    .maxByOrNull { entry -> entry.date.time }
+                    ?: return@mapNotNull null
 
-                val vehicle = vehiclesById[assignmentEntry.vehicleId] ?: return@mapNotNull null
+                val vehicle = resolveVehicle(assignmentEntry, vehiclesById, vehiclesByDisplayName)
+                    ?: return@mapNotNull null
                 driverId to vehicleMonthlyCost(vehicle)
             }
             .toMap()
@@ -527,6 +548,34 @@ class AnalyticsViewModel @Inject constructor(
 
     private fun vehicleMonthlyCost(vehicle: Vehicle): Double {
         return (vehicle.installment ?: 0.0) + (vehicle.annualInsuranceAmount / 12.0)
+    }
+
+    private fun resolveDriverId(entry: DailyEntry, driverNameToId: Map<String, String>): String? {
+        val explicitId = entry.driverId.takeIf { it.isNotBlank() }
+        if (explicitId != null) {
+            return explicitId
+        }
+
+        val normalizedName = entry.driverName.takeIf { it.isNotBlank() }?.let { normalizeName(it) }
+        return normalizedName?.let { driverNameToId[it] }
+    }
+
+    private fun resolveVehicle(
+        entry: DailyEntry,
+        vehiclesById: Map<String, Vehicle>,
+        vehiclesByDisplayName: Map<String, Vehicle>
+    ): Vehicle? {
+        val vehicleById = entry.vehicleId.takeIf { it.isNotBlank() }?.let { vehiclesById[it] }
+        if (vehicleById != null) {
+            return vehicleById
+        }
+
+        val normalizedDisplayName = entry.vehicle.takeIf { it.isNotBlank() }?.let { normalizeName(it) }
+        return normalizedDisplayName?.let { vehiclesByDisplayName[it] }
+    }
+
+    private fun normalizeName(raw: String): String {
+        return raw.trim().lowercase(Locale.getDefault())
     }
     
     fun onDaySelected(date: LocalDate, entries: List<DailyEntry>) {
