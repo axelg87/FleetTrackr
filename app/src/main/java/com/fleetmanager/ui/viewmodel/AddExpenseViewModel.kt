@@ -24,6 +24,7 @@ data class AddExpenseUiState(
     val vehicles: List<Vehicle> = emptyList(),
     val expenseTypes: List<ExpenseTypeItem> = emptyList(),
     val selectedDriver: Driver? = null,
+    val selectedDriverId: String? = null,
     val selectedVehicle: Vehicle? = null,
     val driverInput: String = "",
     val vehicleInput: String = "",
@@ -51,16 +52,27 @@ data class AddExpenseUiState(
     val isEditing: Boolean = false
 ) {
     val canSave: Boolean
-        get() = driverInput.isNotBlank() && 
+        get() = driverInput.isNotBlank() &&
+                resolvedDriverId != null &&
                 vehicleInput.isNotBlank() &&
                 amount.isNotBlank() &&
                 amountError == null &&
                 notesError == null &&
                 (amount.toDoubleOrNull() ?: 0.0) > 0
-    
+
     val hasValidationErrors: Boolean
         get() = amountError != null || notesError != null
-    
+
+    val resolvedDriverId: String?
+        get() {
+            selectedDriver?.id?.let { return it }
+            selectedDriverId?.takeUnless { it.isBlank() }?.let { return it }
+            if (driverInput.isBlank()) return null
+            return drivers.firstOrNull { driver ->
+                driver.name.equals(driverInput, ignoreCase = true) || driver.id.equals(driverInput, ignoreCase = true)
+            }?.id
+        }
+
     // Driver names from Firestore only
     val allDriverNames: List<String>
         get() = drivers.map { it.name }.sorted()
@@ -117,18 +129,26 @@ class AddExpenseViewModel @Inject constructor(
 
                     val shouldAutoFill = shouldAutoFillDriver(currentState)
                     val userProfile = currentState.currentUserProfile
-                    val autoSelectedDriver = if (shouldAutoFill) {
-                        drivers.firstOrNull { it.userId == userProfile?.id }
-                    } else {
-                        currentState.selectedDriver
+                    val candidateDriverId = when {
+                        shouldAutoFill -> drivers.firstOrNull { it.userId == userProfile?.id }?.id
+                            ?: userProfile?.id
+                        !currentState.selectedDriverId.isNullOrBlank() -> currentState.selectedDriverId
+                        else -> drivers.firstOrNull { driver ->
+                            driver.name.equals(currentState.driverInput, ignoreCase = true) ||
+                                driver.id.equals(currentState.driverInput, ignoreCase = true)
+                        }?.id
                     }
 
-                    val autoFilledDriverName = if (shouldAutoFill) {
-                        autoSelectedDriver?.name
+                    val resolvedDriver = candidateDriverId?.let { id ->
+                        drivers.firstOrNull { it.id == id }
+                    }
+
+                    val driverInputValue = when {
+                        shouldAutoFill -> resolvedDriver?.name
                             ?: userProfile?.name
                             ?: currentState.driverInput
-                    } else {
-                        currentState.driverInput
+                        currentState.driverInput.isBlank() && resolvedDriver != null -> resolvedDriver.name
+                        else -> currentState.driverInput
                     }
 
                     currentState.copy(
@@ -136,8 +156,9 @@ class AddExpenseViewModel @Inject constructor(
                         vehicles = vehicles,
                         expenseTypes = expenseTypes,
                         selectedExpenseType = selectedExpenseType,
-                        selectedDriver = autoSelectedDriver,
-                        driverInput = autoFilledDriverName
+                        selectedDriver = resolvedDriver,
+                        selectedDriverId = candidateDriverId ?: currentState.selectedDriverId,
+                        driverInput = driverInputValue
                     )
                 }
             }
@@ -163,7 +184,8 @@ class AddExpenseViewModel @Inject constructor(
 
                         updatedState.copy(
                             driverInput = driverName,
-                            selectedDriver = matchingDriver ?: updatedState.selectedDriver
+                            selectedDriver = matchingDriver ?: updatedState.selectedDriver,
+                            selectedDriverId = matchingDriver?.id ?: userProfile.id
                         )
                     } else {
                         updatedState
@@ -182,7 +204,13 @@ class AddExpenseViewModel @Inject constructor(
     }
     
     fun selectDriver(driver: Driver) {
-        updateState { it.copy(selectedDriver = driver, driverInput = driver.name) }
+        updateState {
+            it.copy(
+                selectedDriver = driver,
+                selectedDriverId = driver.id,
+                driverInput = driver.name
+            )
+        }
     }
     
     fun selectVehicle(vehicle: Vehicle) {
@@ -190,11 +218,15 @@ class AddExpenseViewModel @Inject constructor(
     }
     
     fun updateDriverInput(input: String) {
-        updateState { 
-            it.copy(
+        updateState { state ->
+            val matchingDriver = state.drivers.firstOrNull { driver ->
+                driver.name.equals(input, ignoreCase = true) || driver.id.equals(input, ignoreCase = true)
+            }
+            state.copy(
                 driverInput = input,
-                selectedDriver = null // We no longer maintain selectedDriver state
-            ) 
+                selectedDriver = matchingDriver,
+                selectedDriverId = matchingDriver?.id
+            )
         }
     }
     
@@ -288,14 +320,24 @@ class AddExpenseViewModel @Inject constructor(
             val now = Date()
             val expenseId = currentState.expenseId ?: UUID.randomUUID().toString()
             val createdAt = currentState.createdAt ?: now
+            val driverId = currentState.resolvedDriverId
+
+            if (driverId.isNullOrBlank()) {
+                updateState { it.copy(isSaving = false, errorMessage = "Please select a driver from the list") }
+                return@executeAsync
+            }
+
+            val driverName = currentState.drivers.firstOrNull { it.id == driverId }?.name
+                ?: currentState.driverInput
 
             val expense = Expense(
                 id = expenseId,
-                userId = currentState.userId,
+                userId = driverId,
+                driverId = driverId,
                 type = currentState.selectedExpenseType,
                 amount = currentState.amount.toDoubleOrNull() ?: 0.0,
                 date = currentState.date,
-                driverName = currentState.driverInput,
+                driverName = driverName,
                 vehicle = currentState.vehicleInput,
                 notes = currentState.notes,
                 photoUrls = currentState.existingPhotoUrls,
@@ -311,9 +353,9 @@ class AddExpenseViewModel @Inject constructor(
                 onFailure = { error ->
                     updateState { 
                         it.copy(
-                            isSaving = false, 
+                            isSaving = false,
                             errorMessage = error.message ?: "Failed to save expense"
-                        ) 
+                        )
                     }
                 }
             )
@@ -333,6 +375,7 @@ class AddExpenseViewModel @Inject constructor(
                 .filterNotNull()
                 .firstOrNull()
                 ?.let { expense ->
+                    val resolvedDriverId = expense.driverId.takeIf { it.isNotBlank() } ?: expense.userId
                     updateState { state ->
                         state.copy(
                             expenseId = expense.id,
@@ -342,6 +385,9 @@ class AddExpenseViewModel @Inject constructor(
                             selectedExpenseType = expense.type,
                             amount = expense.amount.takeIf { it != 0.0 }?.toString() ?: "",
                             driverInput = expense.driverName,
+                            selectedDriverId = resolvedDriverId,
+                            selectedDriver = state.drivers.firstOrNull { it.id == resolvedDriverId }
+                                ?: state.selectedDriver,
                             vehicleInput = expense.vehicle,
                             notes = expense.notes,
                             existingPhotoUrls = expense.photoUrls,

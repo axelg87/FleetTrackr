@@ -18,8 +18,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -454,7 +456,8 @@ class FirestoreService @Inject constructor(
      *      "amount": 50.75,
      *      "date": Timestamp,
      *      "driver": "Ahmed",
-     *      "car": "Mitsubishi Outlander 1", 
+     *      "driverId": "driver-uuid",
+     *      "car": "Mitsubishi Outlander 1",
      *      "notes": "Fill up tank",
      *      "photos": ["https://storage.googleapis.com/..."],
      *      "createdAt": Timestamp,
@@ -464,14 +467,19 @@ class FirestoreService @Inject constructor(
      */
     suspend fun saveExpense(expense: Expense) {
         val currentUserId = requireAuth()
-        val targetUserId = expense.userId.takeIf { it.isNotBlank() } ?: currentUserId
-        Log.d(TAG, "Saving expense to Firestore for user $targetUserId: ${expense.id}")
+        val resolvedDriverId = expense.driverId
+            .takeIf { it.isNotBlank() }
+            ?: expense.userId.takeIf { it.isNotBlank() }
+            ?: currentUserId
+        val normalizedExpense = expense.copy(
+            userId = resolvedDriverId,
+            driverId = resolvedDriverId
+        )
+        Log.d(TAG, "Saving expense to Firestore for driver $resolvedDriverId: ${expense.id}")
         try {
-            // Add userId field to the expense
-            val expenseWithUserId = expense.copy(userId = targetUserId)
             getCollection("expenses")
                 .document(expense.id)
-                .set(expenseWithUserId)
+                .set(normalizedExpense)
                 .await()
             Log.d(TAG, "Successfully saved expense to Firestore: ${expense.id}")
         } catch (e: Exception) {
@@ -485,33 +493,54 @@ class FirestoreService @Inject constructor(
     suspend fun getExpenses(): List<Expense> {
         val userId = requireAuth()
         val userRole = getCurrentUserRole()
-        
+
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
             getCollection("expenses")
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<Expense>() }
+                .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation() }
         } else {
-            // Drivers can only see their own expenses
-            getCollection("expenses")
+            val driverExpenses = getCollection("expenses")
+                .whereEqualTo("driverId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation(userId) }
+
+            val legacyExpenses = getCollection("expenses")
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<Expense>() }
+                .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation(userId) }
+
+            (driverExpenses + legacyExpenses)
+                .associateBy { it.id }
+                .values
+                .toList()
         }
     }
-    
+
     fun getExpensesFlow(): Flow<List<Expense>> {
-        val userId = authService.getCurrentUserId() ?: ""
-        return getCollection("expenses")
+        val userId = authService.getCurrentUserId() ?: return flowOf(emptyList())
+
+        val driverFlow = getCollection("expenses")
+            .whereEqualTo("driverId", userId)
+            .snapshots()
+
+        val legacyFlow = getCollection("expenses")
             .whereEqualTo("userId", userId)
             .snapshots()
-            .map { snapshot ->
-                snapshot.documents.mapNotNull { it.toObject<Expense>() }
-            }
+
+        return combine(driverFlow, legacyFlow) { driverSnapshot, legacySnapshot ->
+            (driverSnapshot.documents + legacySnapshot.documents)
+                .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation(userId) }
+                .associateBy { it.id }
+                .values
+                .toList()
+        }
     }
 
     suspend fun getExpenseById(expenseId: String): Expense? {
@@ -524,10 +553,10 @@ class FirestoreService @Inject constructor(
                 .get()
                 .await()
 
-            val expense = document.toObject<Expense>()
+            val expense = document.toObject<Expense>()?.normalizeDriverAssociation()
 
             if (expense != null) {
-                if (PermissionManager.canViewAll(userRole) || expense.userId == userId) {
+                if (PermissionManager.canViewAll(userRole) || expense.userId == userId || expense.driverId == userId) {
                     expense
                 } else {
                     Log.w(TAG, "User $userId does not have permission to view expense $expenseId")
@@ -552,16 +581,29 @@ class FirestoreService @Inject constructor(
             getCollection("expenses")
                 .snapshots()
                 .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<Expense>() }
+                    snapshot.documents
+                        .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation() }
                 }
         } else {
-            // Drivers can only see their own expenses
-            getCollection("expenses")
-                .whereEqualTo("userId", userId)
-                .snapshots()
-                .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<Expense>() }
+            if (userId.isBlank()) {
+                flowOf(emptyList())
+            } else {
+                val driverFlow = getCollection("expenses")
+                    .whereEqualTo("driverId", userId)
+                    .snapshots()
+
+                val legacyFlow = getCollection("expenses")
+                    .whereEqualTo("userId", userId)
+                    .snapshots()
+
+                combine(driverFlow, legacyFlow) { driverSnapshot, legacySnapshot ->
+                    (driverSnapshot.documents + legacySnapshot.documents)
+                        .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation(userId) }
+                        .associateBy { it.id }
+                        .values
+                        .toList()
                 }
+            }
         }
     }
     
@@ -858,4 +900,25 @@ class FirestoreService @Inject constructor(
             Log.e(TAG, "Failed to initialize default data: ${e.message}", e)
         }
     }
+}
+
+private fun Expense.normalizeDriverAssociation(defaultDriverId: String? = null): Expense {
+    val resolvedDriverId = when {
+        driverId.isNotBlank() -> driverId
+        userId.isNotBlank() -> userId
+        !defaultDriverId.isNullOrBlank() -> defaultDriverId
+        else -> ""
+    }
+
+    val resolvedUserId = when {
+        userId.isNotBlank() -> userId
+        resolvedDriverId.isNotBlank() -> resolvedDriverId
+        !defaultDriverId.isNullOrBlank() -> defaultDriverId
+        else -> ""
+    }
+
+    return copy(
+        driverId = resolvedDriverId,
+        userId = resolvedUserId
+    )
 }

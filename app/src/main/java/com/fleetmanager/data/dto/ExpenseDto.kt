@@ -13,6 +13,7 @@ data class ExpenseDto(
     @PrimaryKey
     val id: String,
     val userId: String = "",
+    val driverId: String = "",
     val type: String, // ExpenseType enum as string
     val amount: Double,
     val date: Date,

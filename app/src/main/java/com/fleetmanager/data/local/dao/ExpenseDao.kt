@@ -31,10 +31,16 @@ interface ExpenseDao {
     
     @Delete
     suspend fun deleteExpense(expense: ExpenseDto)
-    
+
     @Query("UPDATE expenses SET isSynced = 1 WHERE id = :id")
     suspend fun markAsSynced(id: String)
-    
+
+    @Query("DELETE FROM expenses WHERE isSynced = 1")
+    suspend fun deleteAllSynced()
+
+    @Query("DELETE FROM expenses WHERE isSynced = 1 AND id NOT IN (:ids)")
+    suspend fun deleteSyncedNotIn(ids: List<String>)
+
     @Query("SELECT SUM(amount) FROM expenses WHERE date BETWEEN :startDate AND :endDate")
     suspend fun getTotalExpensesForPeriod(startDate: Date, endDate: Date): Double
 }

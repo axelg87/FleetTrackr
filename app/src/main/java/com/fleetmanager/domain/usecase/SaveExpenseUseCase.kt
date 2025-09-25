@@ -41,6 +41,7 @@ class SaveExpenseUseCase @Inject constructor(
     private fun validateExpense(expense: Expense): com.fleetmanager.domain.validation.ValidationResult {
         return validator.validateAll(
             { validator.validateText(expense.id, "Expense ID") },
+            { validator.validateText(expense.driverId, "Driver ID") },
             { validator.validateName(expense.driverName, "Driver name") },
             { validator.validateText(expense.vehicle, "Vehicle") },
             { validator.validateEarnings(expense.amount.toString(), "Amount") },
