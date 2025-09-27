@@ -1,9 +1,11 @@
 package com.fleetmanager.ui.screens.analytics
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
@@ -33,7 +35,7 @@ enum class AnalyticsScopeFilter {
  * Analytics Screen with comprehensive analytics features including trends,
  * comparisons, ROI analysis, and performance insights.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class) // Material 3 scaffold & FlowRow are still experimental.
 @Composable
 fun AnalyticsScreen(
     onNavigateToProfile: (() -> Unit)? = null,
@@ -45,6 +47,7 @@ fun AnalyticsScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val comprehensiveMetrics by viewModel.comprehensiveMetrics.collectAsState()
     val driverFilterState by viewModel.driverFilterState.collectAsState()
+    val costSelection by viewModel.costSelection.collectAsState()
 
     var selectedCategory by rememberSaveable { mutableStateOf(AnalyticsCategory.PERFORMANCE) }
     var selectedScope by rememberSaveable { mutableStateOf(AnalyticsScopeFilter.INCOME_ONLY) }
@@ -102,7 +105,9 @@ fun AnalyticsScreen(
                 viewModel = viewModel,
                 scopeFilter = selectedScope,
                 comprehensiveMetrics = comprehensiveMetrics,
-                driverFilterState = driverFilterState
+                driverFilterState = driverFilterState,
+                costSelection = costSelection,
+                onCostSelectionChanged = viewModel::onCostFactorToggled
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -131,7 +136,9 @@ private fun ShowCategoryPanels(
     viewModel: AnalyticsViewModel,
     scopeFilter: AnalyticsScopeFilter,
     comprehensiveMetrics: ComprehensiveAnalyticsMetrics,
-    driverFilterState: DriverFilterState
+    driverFilterState: DriverFilterState,
+    costSelection: CostSelection,
+    onCostSelectionChanged: (CostFactor, Boolean) -> Unit
 ) {
     when (category) {
         AnalyticsCategory.PERFORMANCE -> {
@@ -161,6 +168,8 @@ private fun ShowCategoryPanels(
                 AllAnalyticsTiles(
                     metrics = comprehensiveMetrics,
                     driverFilterOption = driverFilterState.selectedOption,
+                    costSelection = costSelection,
+                    onCostSelectionChanged = onCostSelectionChanged,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
@@ -348,6 +357,8 @@ private fun DriverFilterRow(
 private fun AllAnalyticsTiles(
     metrics: ComprehensiveAnalyticsMetrics,
     driverFilterOption: DriverFilterOption,
+    costSelection: CostSelection,
+    onCostSelectionChanged: (CostFactor, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -355,6 +366,12 @@ private fun AllAnalyticsTiles(
             text = "Comprehensive Financial Overview",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        CostSelectionControls(
+            selection = costSelection,
+            onCostSelectionChanged = onCostSelectionChanged,
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
@@ -374,38 +391,50 @@ private fun AllAnalyticsTiles(
         }
 
         val hasIncome = metrics.totalIncome > 0
+        val hasVehicleCostValue = metrics.vehicleFixedCosts > 0
+        val vehicleCostsEnabled = costSelection.includeVehicleInstallments || costSelection.includeVehicleInsurance
         val ratioColor = when {
             !hasIncome -> MaterialTheme.colorScheme.onSurface
             metrics.vehicleCostRatio < 0.4 -> AnalyticsUtils.Colors.SUCCESS
             metrics.vehicleCostRatio < 0.6 -> AnalyticsUtils.Colors.WARNING
             else -> AnalyticsUtils.Colors.ERROR
         }
-        val ratioBackground = if (hasIncome) {
-            ratioColor.copy(alpha = 0.12f)
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        }
         val ratioText = if (hasIncome) {
             String.format(Locale.US, "%.2f", metrics.vehicleCostRatio)
         } else {
             "N/A"
         }
-        val ratioSubtitle = if (hasIncome) {
-            "AED $ratioText spent per AED 1 earned"
-        } else {
-            "Vehicle costs unavailable due to no income"
+        val ratioSubtitle = when {
+            !hasIncome -> "Vehicle costs unavailable due to no income"
+            hasVehicleCostValue -> "AED $ratioText in selected vehicle costs per AED 1 earned"
+            vehicleCostsEnabled -> "No vehicle costs recorded for selected factors"
+            else -> "No vehicle cost factors selected"
         }
-        val ratioValue = if (hasIncome) {
-            "AED $ratioText"
-        } else {
-            ratioText
+        val ratioValue = when {
+            !hasIncome -> ratioText
+            hasVehicleCostValue -> "AED $ratioText"
+            vehicleCostsEnabled -> "AED 0.00"
+            else -> "AED 0.00"
         }
-        val ratioValueColor = if (hasIncome) ratioColor else MaterialTheme.colorScheme.onSurface
+        val ratioValueColor = when {
+            !hasIncome -> MaterialTheme.colorScheme.onSurface
+            hasVehicleCostValue -> ratioColor
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+        val ratioBackground = when {
+            !hasIncome || !hasVehicleCostValue -> MaterialTheme.colorScheme.surfaceVariant
+            else -> ratioColor.copy(alpha = 0.12f)
+        }
+        val netIncomeSubtitle = if (costSelection.allEnabled()) {
+            "after fixed and variable costs"
+        } else {
+            "after selected cost factors"
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AnalyticsSummaryTile(
                 title = "Driver Net Income",
-                subtitle = "after fixed and variable costs",
+                subtitle = netIncomeSubtitle,
                 value = AnalyticsUtils.formatCurrency(metrics.driverNetIncome),
                 badgeLabel = if (driverFilterOption.id == null) "ALL" else "DRIVER",
                 valueColor = if (metrics.driverNetIncome >= 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
@@ -419,21 +448,28 @@ private fun AllAnalyticsTiles(
                 }
                 if (driverFilterOption.id != null) {
                     Text(
-                        text = "Vehicle cost: ${AnalyticsUtils.formatCurrency(metrics.driverVehicleCost)}",
+                        text = "Selected vehicle cost: ${AnalyticsUtils.formatCurrency(metrics.driverVehicleCost)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(
-                    text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.driverFixedCosts)}",
+                    text = "Selected fixed costs: ${AnalyticsUtils.formatCurrency(metrics.driverFixedCosts)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Total expenses: ${AnalyticsUtils.formatCurrency(metrics.totalExpenses)}",
+                    text = "Selected expenses: ${AnalyticsUtils.formatCurrency(metrics.totalExpenses)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (!costSelection.allEnabled()) {
+                    Text(
+                        text = "Cost filters applied",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             AnalyticsSummaryTile(
@@ -452,16 +488,21 @@ private fun AllAnalyticsTiles(
                     )
                 }
                 Text(
-                    text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.vehicleFixedCosts)}",
+                    text = "Selected vehicle costs: ${AnalyticsUtils.formatCurrency(metrics.vehicleFixedCosts)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             val totalFixedCosts = metrics.driverFixedCosts + metrics.vehicleFixedCosts
-            val breakdownSubtitle = "Income ${AnalyticsUtils.formatCurrency(metrics.totalIncome)} • " +
-                "Variable ${AnalyticsUtils.formatCurrency(metrics.variableExpenses)} • " +
-                "Fixed ${AnalyticsUtils.formatCurrency(totalFixedCosts)}"
+            val breakdownSubtitle = buildString {
+                append("Income ${AnalyticsUtils.formatCurrency(metrics.totalIncome)} • ")
+                append("Variable ${AnalyticsUtils.formatCurrency(metrics.variableExpenses)} • ")
+                append("Fixed ${AnalyticsUtils.formatCurrency(totalFixedCosts)}")
+                if (!costSelection.allEnabled()) {
+                    append(" • Filters applied")
+                }
+            }
             AnalyticsSummaryTile(
                 title = "Net Operational Profit",
                 subtitle = breakdownSubtitle,
@@ -471,6 +512,114 @@ private fun AllAnalyticsTiles(
             )
         }
     }
+}
+
+private data class CostSelectionOption(
+    val factor: CostFactor,
+    val label: String
+)
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class) // FlowRow support is still experimental in Compose.
+private fun CostSelectionControls(
+    selection: CostSelection,
+    onCostSelectionChanged: (CostFactor, Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Cost Factors",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Choose which costs are included in the overview tiles.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            val options = remember {
+                listOf(
+                    CostSelectionOption(
+                        factor = CostFactor.SALARY,
+                        label = "Salary"
+                    ),
+                    CostSelectionOption(
+                        factor = CostFactor.VISA_LICENSE_FEES,
+                        label = "Visa & license"
+                    ),
+                    CostSelectionOption(
+                        factor = CostFactor.EXPENSES,
+                        label = "Expenses"
+                    ),
+                    CostSelectionOption(
+                        factor = CostFactor.INSTALLMENTS,
+                        label = "Installments"
+                    ),
+                    CostSelectionOption(
+                        factor = CostFactor.INSURANCE,
+                        label = "Insurance"
+                    )
+                )
+            }
+
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                options.forEach { option ->
+                    CostSelectionOptionChip(
+                        option = option,
+                        selected = selection.isEnabled(option.factor),
+                        onSelectionChanged = { isSelected ->
+                            onCostSelectionChanged(option.factor, isSelected)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class) // FilterChip is still experimental in Material 3.
+@Composable
+private fun CostSelectionOptionChip(
+    option: CostSelectionOption,
+    selected: Boolean,
+    onSelectionChanged: (Boolean) -> Unit
+) {
+    FilterChip(
+        modifier = Modifier.widthIn(max = 220.dp),
+        selected = selected,
+        onClick = { onSelectionChanged(!selected) },
+        label = {
+            Text(
+                text = option.label,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        leadingIcon = if (selected) {
+            {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null
+                )
+            }
+        } else {
+            null
+        }
+    )
 }
 
 @Composable
