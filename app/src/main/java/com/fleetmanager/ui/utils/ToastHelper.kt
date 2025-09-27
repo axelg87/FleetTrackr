@@ -33,11 +33,11 @@ class ToastHelper @Inject constructor() {
         context?.let { ctx ->
             if (Looper.myLooper() == Looper.getMainLooper()) {
                 // Already on UI thread
-                Toast.makeText(ctx, "Error: $message", Toast.LENGTH_LONG).show()
+                Toast.makeText(ctx, "Error: AEDmessage", Toast.LENGTH_LONG).show()
             } else {
                 // Post to UI thread
                 Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(ctx, "Error: $message", Toast.LENGTH_LONG).show()
+                    Toast.makeText(ctx, "Error: AEDmessage", Toast.LENGTH_LONG).show()
                 }
             }
         }

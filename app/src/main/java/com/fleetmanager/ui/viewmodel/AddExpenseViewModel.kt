@@ -108,7 +108,7 @@ class AddExpenseViewModel @Inject constructor(
     private fun loadFirestoreData() {
         executeAsync(
             onError = { error ->
-                updateState { it.copy(errorMessage = "Failed to load data: $error") }
+                updateState { it.copy(errorMessage = "Failed to load data: AEDerror") }
             }
         ) {
             combine(

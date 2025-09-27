@@ -112,7 +112,7 @@ object MockDataProvider {
             uberEarnings = if (Random.nextDouble() > 0.3) Random.nextDouble() * 200 + 50 else 0.0,
             yangoEarnings = if (Random.nextDouble() > 0.4) Random.nextDouble() * 150 + 30 else 0.0,
             privateJobsEarnings = if (Random.nextDouble() > 0.6) Random.nextDouble() * 100 + 20 else 0.0,
-            notes = "Mock entry for $date",
+            notes = "Mock entry for AEDdate",
             isSynced = true,
             createdAt = dateAsDate,
             updatedAt = dateAsDate
@@ -144,7 +144,7 @@ object MockDataProvider {
             date = dateAsDate,
             driverName = driver,
             vehicle = vehicle,
-            notes = "Mock ${expenseType.displayName} expense",
+            notes = "Mock AED{expenseType.displayName} expense",
             isSynced = true,
             createdAt = dateAsDate,
             updatedAt = dateAsDate

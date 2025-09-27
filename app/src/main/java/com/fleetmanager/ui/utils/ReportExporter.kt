@@ -30,13 +30,13 @@ class ReportExporter @Inject constructor() {
         fileName: String? = null
     ): ExportResult {
         return try {
-            val actualFileName = fileName ?: "fleet_report_${fileNameFormatter.format(Date())}"
+            val actualFileName = fileName ?: "fleet_report_AED{fileNameFormatter.format(Date())}"
             val file = createCsvFile(context, actualFileName, entries)
             ExportResult.Success(file.absolutePath)
         } catch (e: IOException) {
-            ExportResult.Error("Failed to export: ${e.message}")
+            ExportResult.Error("Failed to export: AED{e.message}")
         } catch (e: Exception) {
-            ExportResult.Error("Unexpected error: ${e.message}")
+            ExportResult.Error("Unexpected error: AED{e.message}")
         }
     }
     
@@ -49,7 +49,7 @@ class ReportExporter @Inject constructor() {
         val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             ?: context.filesDir
         
-        val file = File(externalDir, "$fileName.csv")
+        val file = File(externalDir, "AEDfileName.csv")
         
         FileWriter(file).use { writer ->
             // Write CSV header
@@ -58,13 +58,13 @@ class ReportExporter @Inject constructor() {
             // Write data rows
             entries.forEach { entry ->
                 writer.append(
-                    "${dateFormatter.format(entry.date)}," +
-                    "${if (entry.isIncome) "Income" else "Expense"}," +
-                    "${escapeCsvValue(entry.typeDisplayName)}," +
-                    "${escapeCsvValue(entry.driverName)}," +
-                    "${escapeCsvValue(entry.vehicle)}," +
-                    "${entry.amount}," +
-                    "${escapeCsvValue(entry.notes)}\n"
+                    "AED{dateFormatter.format(entry.date)}," +
+                    "AED{if (entry.isIncome) "Income" else "Expense"}," +
+                    "AED{escapeCsvValue(entry.typeDisplayName)}," +
+                    "AED{escapeCsvValue(entry.driverName)}," +
+                    "AED{escapeCsvValue(entry.vehicle)}," +
+                    "AED{entry.amount}," +
+                    "AED{escapeCsvValue(entry.notes)}\n"
                 )
             }
         }
@@ -77,7 +77,7 @@ class ReportExporter @Inject constructor() {
      */
     private fun escapeCsvValue(value: String): String {
         return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            "\"${value.replace("\"", "\"\"")}\""
+            "\"AED{value.replace("\"", "\"\"")}\""
         } else {
             value
         }

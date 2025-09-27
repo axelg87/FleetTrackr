@@ -246,7 +246,7 @@ fun EntryDetailContent(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "$${String.format("%.2f", entry.totalEarnings)}",
+                        text = "AEDAED{String.format("%.2f", entry.totalEarnings)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -348,13 +348,13 @@ fun EntryDetailContent(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Created: ${SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(entry.createdAt)}",
+                    text = "Created: AED{SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(entry.createdAt)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (entry.updatedAt != entry.createdAt) {
                     Text(
-                        text = "Updated: ${SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(entry.updatedAt)}",
+                        text = "Updated: AED{SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(entry.updatedAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -382,7 +382,7 @@ fun EarningsRow(
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            text = "$${String.format("%.2f", amount)}",
+            text = "AEDAED{String.format("%.2f", amount)}",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
         )

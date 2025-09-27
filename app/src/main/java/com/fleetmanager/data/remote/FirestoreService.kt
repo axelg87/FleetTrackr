@@ -47,7 +47,7 @@ class FirestoreService @Inject constructor(
             Log.e(TAG, "User not authenticated! Cannot perform Firestore operations.")
             throw IllegalStateException("User must be authenticated to access Firestore")
         }
-        Log.d(TAG, "User authenticated with ID: $userId")
+        Log.d(TAG, "User authenticated with ID: AEDuserId")
         return userId
     }
     
@@ -106,13 +106,13 @@ class FirestoreService @Inject constructor(
         }
         
         val userId = currentUser.uid
-        Log.d(TAG, "Checking user document for: $userId")
+        Log.d(TAG, "Checking user document for: AEDuserId")
         
         try {
             val userDoc = getCollection("users").document(userId).get().await()
             
             if (!userDoc.exists()) {
-                Log.d(TAG, "Creating new user document for: $userId")
+                Log.d(TAG, "Creating new user document for: AEDuserId")
                 
                 val userData = mapOf(
                     "id" to userId,
@@ -127,14 +127,14 @@ class FirestoreService @Inject constructor(
                     .set(userData)
                     .await()
                 
-                Log.d(TAG, "✅ User document created successfully for: $userId")
+                Log.d(TAG, "✅ User document created successfully for: AEDuserId")
                 toastHelper.showMessage(context, "✅ User profile created")
             } else {
-                Log.d(TAG, "User document already exists for: $userId")
+                Log.d(TAG, "User document already exists for: AEDuserId")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to create user document: ${e.message}", e)
-            toastHelper.showError(context, "❌ Failed to create user: ${e.message}")
+            Log.e(TAG, "❌ Failed to create user document: AED{e.message}", e)
+            toastHelper.showError(context, "❌ Failed to create user: AED{e.message}")
             throw e
         }
     }
@@ -143,7 +143,7 @@ class FirestoreService @Inject constructor(
     suspend fun saveDailyEntry(entry: DailyEntry) {
         val currentUserId = requireAuth()
         val targetUserId = entry.userId.takeIf { it.isNotBlank() } ?: currentUserId
-        Log.d(TAG, "Saving daily entry to Firestore for user $targetUserId: ${entry.id}")
+        Log.d(TAG, "Saving daily entry to Firestore for user AEDtargetUserId: AED{entry.id}")
         try {
             // Add userId field to the entry
             val entryWithUserId = entry.copy(userId = targetUserId)
@@ -151,9 +151,9 @@ class FirestoreService @Inject constructor(
                 .document(entry.id)
                 .set(entryWithUserId)
                 .await()
-            Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
+            Log.d(TAG, "Successfully saved daily entry to Firestore: AED{entry.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save daily entry: ${e.message}"
+            val errorMessage = "Failed to save daily entry: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -209,15 +209,15 @@ class FirestoreService @Inject constructor(
                 if (PermissionManager.canViewAll(userRole) || entry.userId == userId) {
                     entry
                 } else {
-                    Log.w(TAG, "User $userId does not have permission to view entry $entryId")
+                    Log.w(TAG, "User AEDuserId does not have permission to view entry AEDentryId")
                     null
                 }
             } else {
-                Log.w(TAG, "Entry not found: $entryId")
+                Log.w(TAG, "Entry not found: AEDentryId")
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get daily entry by ID: ${e.message}", e)
+            Log.e(TAG, "Failed to get daily entry by ID: AED{e.message}", e)
             null
         }
     }
@@ -265,9 +265,9 @@ class FirestoreService @Inject constructor(
                 .document(driver.id)
                 .set(driverWithOwner)
                 .await()
-            Log.d(TAG, "Successfully saved driver to Firestore: ${driver.id}")
+            Log.d(TAG, "Successfully saved driver to Firestore: AED{driver.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save driver: ${e.message}"
+            val errorMessage = "Failed to save driver: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -307,7 +307,7 @@ class FirestoreService @Inject constructor(
                     try {
                         document.toObject<Driver>()
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse driver document: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse driver document: AED{document.id}", e)
                         null
                     }
                 }
@@ -321,9 +321,9 @@ class FirestoreService @Inject constructor(
                 .document(driverId)
                 .delete()
                 .await()
-            Log.d(TAG, "Successfully deleted driver: $driverId")
+            Log.d(TAG, "Successfully deleted driver: AEDdriverId")
         } catch (e: Exception) {
-            val errorMessage = "Failed to delete driver: ${e.message}"
+            val errorMessage = "Failed to delete driver: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -343,9 +343,9 @@ class FirestoreService @Inject constructor(
                 .document(vehicle.id)
                 .set(vehicleWithOwner)
                 .await()
-            Log.d(TAG, "Successfully saved vehicle to Firestore: ${vehicle.id}")
+            Log.d(TAG, "Successfully saved vehicle to Firestore: AED{vehicle.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save vehicle: ${e.message}"
+            val errorMessage = "Failed to save vehicle: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -375,9 +375,9 @@ class FirestoreService @Inject constructor(
                 .document(vehicleId)
                 .delete()
                 .await()
-            Log.d(TAG, "Successfully deleted vehicle: $vehicleId")
+            Log.d(TAG, "Successfully deleted vehicle: AEDvehicleId")
         } catch (e: Exception) {
-            val errorMessage = "Failed to delete vehicle: ${e.message}"
+            val errorMessage = "Failed to delete vehicle: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -475,15 +475,15 @@ class FirestoreService @Inject constructor(
             userId = resolvedDriverId,
             driverId = resolvedDriverId
         )
-        Log.d(TAG, "Saving expense to Firestore for driver $resolvedDriverId: ${expense.id}")
+        Log.d(TAG, "Saving expense to Firestore for driver AEDresolvedDriverId: AED{expense.id}")
         try {
             getCollection("expenses")
                 .document(expense.id)
                 .set(normalizedExpense)
                 .await()
-            Log.d(TAG, "Successfully saved expense to Firestore: ${expense.id}")
+            Log.d(TAG, "Successfully saved expense to Firestore: AED{expense.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save expense: ${e.message}"
+            val errorMessage = "Failed to save expense: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -559,15 +559,15 @@ class FirestoreService @Inject constructor(
                 if (PermissionManager.canViewAll(userRole) || expense.userId == userId || expense.driverId == userId) {
                     expense
                 } else {
-                    Log.w(TAG, "User $userId does not have permission to view expense $expenseId")
+                    Log.w(TAG, "User AEDuserId does not have permission to view expense AEDexpenseId")
                     null
                 }
             } else {
-                Log.w(TAG, "Expense not found: $expenseId")
+                Log.w(TAG, "Expense not found: AEDexpenseId")
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get expense by ID: ${e.message}", e)
+            Log.e(TAG, "Failed to get expense by ID: AED{e.message}", e)
             null
         }
     }
@@ -624,9 +624,9 @@ class FirestoreService @Inject constructor(
                 .document(vehicle.id)
                 .set(vehicle)
                 .await()
-            Log.d(TAG, "Successfully saved vehicle to collection: ${vehicle.id}")
+            Log.d(TAG, "Successfully saved vehicle to collection: AED{vehicle.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save vehicle: ${e.message}"
+            val errorMessage = "Failed to save vehicle: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -642,7 +642,7 @@ class FirestoreService @Inject constructor(
                 .documents
                 .mapNotNull { it.toObject<Vehicle>() }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch vehicles: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch vehicles: AED{e.message}", e)
             emptyList()
         }
     }
@@ -663,9 +663,9 @@ class FirestoreService @Inject constructor(
                 .document(expenseType.id)
                 .set(expenseType)
                 .await()
-            Log.d(TAG, "Successfully saved expense type: ${expenseType.id}")
+            Log.d(TAG, "Successfully saved expense type: AED{expenseType.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save expense type: ${e.message}"
+            val errorMessage = "Failed to save expense type: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -681,7 +681,7 @@ class FirestoreService @Inject constructor(
                 .documents
                 .mapNotNull { it.toObject<ExpenseTypeItem>() }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch expense types: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch expense types: AED{e.message}", e)
             emptyList()
         }
     }
@@ -711,12 +711,12 @@ class FirestoreService @Inject constructor(
                             role = UserRole.DRIVER
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse driver user: AED{document.id}", e)
                         null
                     }
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch driver users: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch driver users: AED{e.message}", e)
             emptyList()
         }
     }
@@ -734,7 +734,7 @@ class FirestoreService @Inject constructor(
                             role = UserRole.DRIVER
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse driver user: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse driver user: AED{document.id}", e)
                         null
                     }
                 }
@@ -897,7 +897,7 @@ class FirestoreService @Inject constructor(
             }
             
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize default data: ${e.message}", e)
+            Log.e(TAG, "Failed to initialize default data: AED{e.message}", e)
         }
     }
 }

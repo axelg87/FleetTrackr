@@ -459,7 +459,7 @@ private fun getInitials(name: String): String {
     val words = name.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
     return when {
         words.size >= 2 -> {
-            "${words.first().first().uppercase()}${words.last().first().uppercase()}"
+            "AED{words.first().first().uppercase()}AED{words.last().first().uppercase()}"
         }
         words.size == 1 -> {
             val word = words.first()

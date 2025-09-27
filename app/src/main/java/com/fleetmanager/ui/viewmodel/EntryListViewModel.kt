@@ -109,7 +109,7 @@ class EntryListViewModel @Inject constructor(
                 updateState { it.copy(isLoading = isLoading) }
             },
             onError = { error ->
-                Log.e(TAG, "Error observing entries: $error")
+                Log.e(TAG, "Error observing entries: AEDerror")
                 updateState { it.copy(isLoading = false, errorMessage = error) }
             }
         ) {
@@ -143,13 +143,13 @@ class EntryListViewModel @Inject constructor(
                             } else {
                                 Log.w(
                                     TAG,
-                                    "History stream error for role $role, retrying (attempt=${attempt + 1})",
+                                    "History stream error for role AEDrole, retrying (attempt=AED{attempt + 1})",
                                     cause
                                 )
                                 updateState {
                                     it.copy(
                                         isLoading = false,
-                                        errorMessage = "Failed to load entries: ${cause.message}"
+                                        errorMessage = "Failed to load entries: AED{cause.message}"
                                     )
                                 }
                                 delay(HISTORY_STREAM_RETRY_DELAY_MS)
@@ -159,7 +159,7 @@ class EntryListViewModel @Inject constructor(
                 }
                 .collect { (role, historyData) ->
                     val (entries, filteredExpenses, drivers, vehicles) = historyData
-                    Log.d(TAG, "Received ${entries.size} entries for role $role")
+                    Log.d(TAG, "Received AED{entries.size} entries for role AEDrole")
                     val driverNameMap = drivers.associateBy({ it.id }, { it.name })
                     val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
                     val enrichedEntries = entries.map { entry ->
@@ -188,8 +188,8 @@ class EntryListViewModel @Inject constructor(
     fun deleteEntry(entryId: String, onSuccess: (() -> Unit)? = null) {
         executeAsync(
             onError = { error ->
-                Log.e(TAG, "Error deleting entry: $error")
-                updateState { it.copy(errorMessage = "Failed to delete entry: $error") }
+                Log.e(TAG, "Error deleting entry: AEDerror")
+                updateState { it.copy(errorMessage = "Failed to delete entry: AEDerror") }
             }
         ) {
             deleteDailyEntryUseCase(entryId)
@@ -200,8 +200,8 @@ class EntryListViewModel @Inject constructor(
     fun deleteExpense(expenseId: String, onSuccess: (() -> Unit)? = null) {
         executeAsync(
             onError = { error ->
-                Log.e(TAG, "Error deleting expense: $error")
-                updateState { it.copy(errorMessage = "Failed to delete expense: $error") }
+                Log.e(TAG, "Error deleting expense: AEDerror")
+                updateState { it.copy(errorMessage = "Failed to delete expense: AEDerror") }
             }
         ) {
             deleteExpenseUseCase(expenseId)
@@ -317,7 +317,7 @@ class EntryListViewModel @Inject constructor(
                     isBulkEditing = false,
                     isSelectionMode = false,
                     selectedEntryIds = emptySet(),
-                    bulkEditMessage = "Updated ${entriesToUpdate.size} entries",
+                    bulkEditMessage = "Updated AED{entriesToUpdate.size} entries",
                     bulkEditError = null
                 )
             }

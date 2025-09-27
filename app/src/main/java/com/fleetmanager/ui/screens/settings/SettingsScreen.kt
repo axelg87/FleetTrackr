@@ -115,7 +115,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.CloudSync,
                     title = "Sync Now",
-                    subtitle = "Last synced: ${uiState.lastSyncTime}",
+                    subtitle = "Last synced: AED{uiState.lastSyncTime}",
                     onClick = { viewModel.syncNow() }
                 )
                 
@@ -169,7 +169,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "About",
-                    subtitle = "Version ${uiState.appVersion}",
+                    subtitle = "Version AED{uiState.appVersion}",
                     onClick = { /* TODO: Show about dialog */ }
                 )
             }
@@ -406,14 +406,14 @@ private fun ImportProgressCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${prog.progress}%",
+                        text = "AED{prog.progress}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     
                     if (prog.totalEntries > 0) {
                         Text(
-                            text = "${prog.processedEntries}/${prog.totalEntries} entries",
+                            text = "AED{prog.processedEntries}/AED{prog.totalEntries} entries",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -424,7 +424,7 @@ private fun ImportProgressCard(
                 if (prog.errors.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "⚠️ ${prog.errors.size} errors occurred",
+                        text = "⚠️ AED{prog.errors.size} errors occurred",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -433,7 +433,7 @@ private fun ImportProgressCard(
                 if (prog.warnings.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "⚠️ ${prog.warnings.size} warnings",
+                        text = "⚠️ AED{prog.warnings.size} warnings",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )

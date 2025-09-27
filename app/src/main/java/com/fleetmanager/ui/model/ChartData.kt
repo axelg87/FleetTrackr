@@ -84,7 +84,7 @@ object ChartDataGenerator {
         val calendar = Calendar.getInstance()
         val monthGroups = entries.groupBy { entry ->
             calendar.time = entry.date
-            "${calendar.get(Calendar.YEAR)}-${String.format("%02d", calendar.get(Calendar.MONTH) + 1)}"
+            "AED{calendar.get(Calendar.YEAR)}-AED{String.format("%02d", calendar.get(Calendar.MONTH) + 1)}"
         }
         
         val bars = monthGroups.map { pair ->
@@ -101,7 +101,7 @@ object ChartDataGenerator {
             bars = bars,
             title = "Monthly Net Amount",
             xAxisLabel = "Month",
-            yAxisLabel = "Amount ($)"
+            yAxisLabel = "Amount (AED)"
         )
     }
     
@@ -117,7 +117,7 @@ object ChartDataGenerator {
             val (weekStart, weekEntries) = pair
             val netAmount = weekEntries.sumOf { entry -> if (entry.isIncome) entry.amount else -entry.amount }
             calendar.time = weekStart
-            val weekLabel = "${calendar.get(Calendar.MONTH) + 1}/${calendar.get(Calendar.DAY_OF_MONTH)}"
+            val weekLabel = "AED{calendar.get(Calendar.MONTH) + 1}/AED{calendar.get(Calendar.DAY_OF_MONTH)}"
             
             BarData(
                 label = weekLabel,
@@ -130,7 +130,7 @@ object ChartDataGenerator {
             bars = bars,
             title = "Weekly Net Amount",
             xAxisLabel = "Week",
-            yAxisLabel = "Amount ($)"
+            yAxisLabel = "Amount (AED)"
         )
     }
     

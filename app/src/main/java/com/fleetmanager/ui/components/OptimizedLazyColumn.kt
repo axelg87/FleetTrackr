@@ -72,7 +72,7 @@ fun PerformanceMonitor(
     SideEffect {
         recompositionCount.intValue++
         if (recompositionCount.intValue > 1) {
-            println("$tag: Recomposition #${recompositionCount.intValue}")
+            println("AEDtag: Recomposition #AED{recompositionCount.intValue}")
         }
     }
     

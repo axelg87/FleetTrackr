@@ -171,9 +171,9 @@ fun DriverDetailDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 DriverDetailRow(label = "Driver ID", value = driver.id)
                 DriverDetailRow(label = "Status", value = if (driver.isActive) "Active" else "Inactive")
-                DriverDetailRow(label = "Monthly Salary", value = "AED ${"%.2f".format(driver.salary)}")
-                DriverDetailRow(label = "Annual License", value = "AED ${"%.2f".format(driver.annualLicenseCost)}")
-                DriverDetailRow(label = "Annual Visa", value = "AED ${"%.2f".format(driver.annualVisaCost)}")
+                DriverDetailRow(label = "Monthly Salary", value = "AED AED{"%.2f".format(driver.salary)}")
+                DriverDetailRow(label = "Annual License", value = "AED AED{"%.2f".format(driver.annualLicenseCost)}")
+                DriverDetailRow(label = "Annual Visa", value = "AED AED{"%.2f".format(driver.annualVisaCost)}")
             }
         },
         confirmButton = {

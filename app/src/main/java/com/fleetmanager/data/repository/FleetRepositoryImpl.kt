@@ -90,13 +90,13 @@ class FleetRepositoryImpl @Inject constructor(
                             emit(null)
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to fetch entry from Firestore: ${e.message}", e)
+                        Log.e(TAG, "Failed to fetch entry from Firestore: AED{e.message}", e)
                         emit(null)
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting entry by ID: ${e.message}", e)
+            Log.e(TAG, "Error getting entry by ID: AED{e.message}", e)
             emit(null)
         }
     }
@@ -108,7 +108,7 @@ class FleetRepositoryImpl @Inject constructor(
             photoUris.isNotEmpty() -> {
                 try {
                     val photoUrls = photoUris.map { uri ->
-                        storageService.uploadPhoto(uri, "${entry.id}_${System.currentTimeMillis()}")
+                        storageService.uploadPhoto(uri, "AED{entry.id}_AED{System.currentTimeMillis()}")
                     }
                     entry.copy(userId = existingOwnerId, photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
@@ -134,12 +134,12 @@ class FleetRepositoryImpl @Inject constructor(
         // Try to sync to Firestore
         if (entryToSave.isSynced || (photoUri == null && photoUris.isEmpty())) {
             try {
-                Log.d(TAG, "Attempting to save daily entry to Firestore: ${entryToSave.id}")
+                Log.d(TAG, "Attempting to save daily entry to Firestore: AED{entryToSave.id}")
                 firestoreService.saveDailyEntry(entryToSave.copy(isSynced = true))
                 dailyEntryDao.markAsSynced(entryToSave.id)
-                Log.d(TAG, "Successfully saved daily entry to Firestore: ${entryToSave.id}")
+                Log.d(TAG, "Successfully saved daily entry to Firestore: AED{entryToSave.id}")
             } catch (e: Exception) {
-                val errorMessage = "Failed to save daily entry to Firestore: ${e.message}"
+                val errorMessage = "Failed to save daily entry to Firestore: AED{e.message}"
                 Log.e(TAG, errorMessage, e)
                 toastHelper.showError(context, errorMessage)
                 // Will be synced later by WorkManager
@@ -169,7 +169,7 @@ class FleetRepositoryImpl @Inject constructor(
                 firestoreService.saveDailyEntry(syncedEntry)
                 dailyEntryDao.updateEntry(DailyEntryMapper.toDto(syncedEntry))
             } catch (e: Exception) {
-                val errorMessage = "Failed to sync daily entry ${entryDto.id}: ${e.message}"
+                val errorMessage = "Failed to sync daily entry AED{entryDto.id}: AED{e.message}"
                 Log.e(TAG, errorMessage, e)
                 toastHelper.showError(context, errorMessage)
                 // Keep as unsynced for next attempt
@@ -205,7 +205,7 @@ class FleetRepositoryImpl @Inject constructor(
         try {
             firestoreService.saveDriver(driverToPersist)
         } catch (e: Exception) {
-            val errorMessage = "Failed to save driver to Firestore: ${e.message}"
+            val errorMessage = "Failed to save driver to Firestore: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             // Will be synced later
@@ -222,7 +222,7 @@ class FleetRepositoryImpl @Inject constructor(
                 driverDao.deleteDriver(driverDto)
             }
         } catch (e: Exception) {
-            val errorMessage = "Failed to delete driver from Firestore: ${e.message}"
+            val errorMessage = "Failed to delete driver from Firestore: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw RuntimeException(errorMessage, e)
@@ -253,7 +253,7 @@ class FleetRepositoryImpl @Inject constructor(
         try {
             firestoreService.saveVehicle(vehicleToPersist)
         } catch (e: Exception) {
-            val errorMessage = "Failed to save vehicle to Firestore: ${e.message}"
+            val errorMessage = "Failed to save vehicle to Firestore: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             // Will be synced later
@@ -270,7 +270,7 @@ class FleetRepositoryImpl @Inject constructor(
                 vehicleDao.deleteVehicle(vehicleDto)
             }
         } catch (e: Exception) {
-            val errorMessage = "Failed to delete vehicle from Firestore: ${e.message}"
+            val errorMessage = "Failed to delete vehicle from Firestore: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw RuntimeException(errorMessage, e)
@@ -307,7 +307,7 @@ class FleetRepositoryImpl @Inject constructor(
                 emit(remoteExpense)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting expense by ID: ${e.message}", e)
+            Log.e(TAG, "Error getting expense by ID: AED{e.message}", e)
             emit(null)
         }
     }
@@ -337,7 +337,7 @@ class FleetRepositoryImpl @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to observe remote expenses: ${e.message}", e)
+                Log.e(TAG, "Failed to observe remote expenses: AED{e.message}", e)
             }
         }
     }
@@ -358,7 +358,7 @@ class FleetRepositoryImpl @Inject constructor(
             photoUris.isNotEmpty() -> {
                 try {
                     val photoUrls = photoUris.map { uri ->
-                        storageService.uploadPhoto(uri, "${expense.id}_${System.currentTimeMillis()}")
+                        storageService.uploadPhoto(uri, "AED{expense.id}_AED{System.currentTimeMillis()}")
                     }
                     baseExpense.copy(photoUrls = photoUrls, isSynced = true)
                 } catch (e: Exception) {
@@ -384,12 +384,12 @@ class FleetRepositoryImpl @Inject constructor(
         // Try to sync to Firestore
         if (expenseToSave.isSynced || (photoUri == null && photoUris.isEmpty())) {
             try {
-                Log.d(TAG, "Attempting to save expense to Firestore: ${expenseToSave.id}")
+                Log.d(TAG, "Attempting to save expense to Firestore: AED{expenseToSave.id}")
                 firestoreService.saveExpense(expenseToSave.copy(isSynced = true))
                 expenseDao.markAsSynced(expenseToSave.id)
-                Log.d(TAG, "Successfully saved expense to Firestore: ${expenseToSave.id}")
+                Log.d(TAG, "Successfully saved expense to Firestore: AED{expenseToSave.id}")
             } catch (e: Exception) {
-                val errorMessage = "Failed to save expense to Firestore: ${e.message}"
+                val errorMessage = "Failed to save expense to Firestore: AED{e.message}"
                 Log.e(TAG, errorMessage, e)
                 toastHelper.showError(context, errorMessage)
                 // Will be synced later by WorkManager
@@ -405,7 +405,7 @@ class FleetRepositoryImpl @Inject constructor(
         try {
             firestoreService.deleteExpense(expenseId)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete expense from Firestore: ${e.message}", e)
+            Log.e(TAG, "Failed to delete expense from Firestore: AED{e.message}", e)
         }
     }
     
@@ -423,7 +423,7 @@ class FleetRepositoryImpl @Inject constructor(
                 firestoreService.saveExpense(syncedExpense)
                 expenseDao.updateExpense(ExpenseMapper.toDto(syncedExpense))
             } catch (e: Exception) {
-                val errorMessage = "Failed to sync expense ${expenseDto.id}: ${e.message}"
+                val errorMessage = "Failed to sync expense AED{expenseDto.id}: AED{e.message}"
                 Log.e(TAG, errorMessage, e)
                 toastHelper.showError(context, errorMessage)
                 // Keep as unsynced for next attempt

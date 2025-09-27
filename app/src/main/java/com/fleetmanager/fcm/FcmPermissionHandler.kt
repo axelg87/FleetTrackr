@@ -130,7 +130,7 @@ fun FcmStatusIndicator(
     if (uiState.fcmStatus != null) {
         val status = uiState.fcmStatus!!
         Text(
-            text = "FCM: ${if (status.isFullySetup) "✓ Ready" else "⚠ Setup needed"}",
+            text = "FCM: AED{if (status.isFullySetup) "✓ Ready" else "⚠ Setup needed"}",
             color = if (status.isFullySetup) 
                 androidx.compose.material3.MaterialTheme.colorScheme.primary 
             else 

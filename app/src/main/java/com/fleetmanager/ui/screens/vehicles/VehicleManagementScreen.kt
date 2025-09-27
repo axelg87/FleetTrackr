@@ -200,7 +200,7 @@ private fun VehicleListItemContent(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = vehicle.displayName, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = "License: ${vehicle.licensePlate}",
+                text = "License: AED{vehicle.licensePlate}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -233,7 +233,7 @@ private fun ConfirmDeleteVehicleDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = "Delete Vehicle") },
-        text = { Text(text = "Are you sure you want to delete ${vehicle.displayName}?") },
+        text = { Text(text = "Are you sure you want to delete AED{vehicle.displayName}?") },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Delete")

@@ -79,7 +79,7 @@ class DashboardViewModel @Inject constructor(
     fun syncNow() {
         executeAsync(
             onError = { error ->
-                updateState { it.copy(error = "Sync failed: $error") }
+                updateState { it.copy(error = "Sync failed: AEDerror") }
             }
         ) {
             syncManager.syncNow()
@@ -114,19 +114,19 @@ class DashboardViewModel @Inject constructor(
                 val quickStats = buildList {
                     add(StatItem(
                         icon = Icons.Default.CalendarToday,
-                        value = "$${String.format("%.0f", dashboardData.thisMonthEarnings)}",
+                        value = "AEDAED{String.format("%.0f", dashboardData.thisMonthEarnings)}",
                         label = "This Month",
                         shortcut = DashboardShortcut.TimeRange.ThisMonth
                     ))
                     add(StatItem(
                         icon = Icons.Default.TrendingUp,
-                        value = "$${String.format("%.0f", dashboardData.thisWeekEarnings)}",
+                        value = "AEDAED{String.format("%.0f", dashboardData.thisWeekEarnings)}",
                         label = "This Week",
                         shortcut = DashboardShortcut.TimeRange.ThisWeek
                     ))
                     add(StatItem(
                         icon = Icons.Default.Schedule,
-                        value = "$${String.format("%.0f", dashboardData.last24hEarnings)}",
+                        value = "AEDAED{String.format("%.0f", dashboardData.last24hEarnings)}",
                         label = "Last 24h",
                         shortcut = DashboardShortcut.TimeRange.Last24Hours
                     ))
@@ -145,25 +145,25 @@ class DashboardViewModel @Inject constructor(
                 val earningsStats = listOf(
                     StatItem(
                         icon = Icons.Default.AttachMoney,
-                        value = "$${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
+                        value = "AEDAED{String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
                         label = "Uber (Month)",
                         shortcut = DashboardShortcut.IncomeSource.Uber
                     ),
                     StatItem(
                         icon = Icons.Default.AttachMoney,
-                        value = "$${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
+                        value = "AEDAED{String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
                         label = "Yango (Month)",
                         shortcut = DashboardShortcut.IncomeSource.Yango
                     ),
                     StatItem(
                         icon = Icons.Default.AttachMoney,
-                        value = "$${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
+                        value = "AEDAED{String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
                         label = "Private (Month)",
                         shortcut = DashboardShortcut.IncomeSource.Private
                     ),
                     StatItem(
                         icon = Icons.Default.Assignment,
-                        value = "${dashboardData.recentEntries.size}",
+                        value = "AED{dashboardData.recentEntries.size}",
                         label = "Recent Entries",
                         shortcut = DashboardShortcut.AllEntries
                     )

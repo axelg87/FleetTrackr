@@ -48,7 +48,7 @@ class ProfileViewModel @Inject constructor(
                     .catch { exception ->
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = "Failed to load profile: ${exception.message}"
+                            error = "Failed to load profile: AED{exception.message}"
                         )
                     }
                     .collect { userProfile ->
@@ -61,7 +61,7 @@ class ProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Failed to load profile: ${e.message}"
+                    error = "Failed to load profile: AED{e.message}"
                 )
             }
         }
@@ -91,7 +91,7 @@ class ProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isUpdating = false,
-                    error = "Failed to update profile: ${e.message}"
+                    error = "Failed to update profile: AED{e.message}"
                 )
             }
         }
@@ -121,7 +121,7 @@ class ProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isUploadingPicture = false,
-                    error = "Failed to update profile picture: ${e.message}"
+                    error = "Failed to update profile picture: AED{e.message}"
                 )
             }
         }

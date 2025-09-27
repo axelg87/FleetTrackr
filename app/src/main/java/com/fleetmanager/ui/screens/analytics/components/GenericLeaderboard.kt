@@ -504,7 +504,7 @@ private fun RankedListItem(
                 ) {
                     item.secondaryValue?.let { value ->
                         Text(
-                            text = "${item.secondaryLabel ?: "Secondary"}: ${AnalyticsUtils.formatCurrency(value)}",
+                            text = "AED{item.secondaryLabel ?: "Secondary"}: AED{AnalyticsUtils.formatCurrency(value)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -517,7 +517,7 @@ private fun RankedListItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${item.tertiaryLabel ?: "Other"}: $value",
+                            text = "AED{item.tertiaryLabel ?: "Other"}: AEDvalue",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -674,7 +674,7 @@ private fun CardLeaderboardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "#$rank ${item.name}",
+                    text = "#AEDrank AED{item.name}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

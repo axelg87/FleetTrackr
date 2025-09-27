@@ -120,7 +120,7 @@ fun MonthlyGoalPlanner(
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Text(
-                    text = "${AnalyticsUtils.formatCurrency(currentTotal)} of ${AnalyticsUtils.formatCurrency(targetAmount)} (${AnalyticsUtils.formatPercentage(progress * 100)})",
+                    text = "AED{AnalyticsUtils.formatCurrency(currentTotal)} of AED{AnalyticsUtils.formatCurrency(targetAmount)} (AED{AnalyticsUtils.formatPercentage(progress * 100)})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
@@ -178,8 +178,8 @@ fun MonthlyGoalPlanner(
 
                 val statusMessage = when {
                     remainingAmount <= 0.0 -> "Great job! You're already ahead of this month's goal."
-                    remainingDays == 0 -> "Goal deadline is here. Every additional ${AnalyticsUtils.formatCurrency(remainingAmount)} gets you to the finish line."
-                    else -> "You need ${AnalyticsUtils.formatCurrency(requiredDailyAverage)} per day for the next $remainingDays days to hit your goal."
+                    remainingDays == 0 -> "Goal deadline is here. Every additional AED{AnalyticsUtils.formatCurrency(remainingAmount)} gets you to the finish line."
+                    else -> "You need AED{AnalyticsUtils.formatCurrency(requiredDailyAverage)} per day for the next AEDremainingDays days to hit your goal."
                 }
 
                 Text(

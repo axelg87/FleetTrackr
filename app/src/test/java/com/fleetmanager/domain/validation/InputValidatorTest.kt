@@ -27,7 +27,7 @@ class InputValidatorTest {
 
         // Assert
         assertTrue(result is ValidationResult.Error)
-        assertEquals("$fieldName is required", (result as ValidationResult.Error).message)
+        assertEquals("AEDfieldName is required", (result as ValidationResult.Error).message)
     }
 
     @Test
@@ -134,7 +134,7 @@ class InputValidatorTest {
     @Test
     fun `sanitizeNumericInput removes non numeric characters and extra decimals`() {
         // Arrange
-        val rawInput = "  \$1,234.56.78  "
+        val rawInput = "  \AED1,234.56.78  "
 
         // Act
         val result = validator.sanitizeNumericInput(rawInput)

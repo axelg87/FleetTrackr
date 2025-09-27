@@ -101,7 +101,7 @@ fun EntryListScreen(
                     )
                 ) {
                     Text(
-                        text = "Viewing as ${userRole.name} - Showing all entries",
+                        text = "Viewing as AED{userRole.name} - Showing all entries",
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -245,7 +245,7 @@ fun EntryListScreen(
                 },
                 title = { Text("Delete Entry") },
                 text = { 
-                    Text("Are you sure you want to delete the entry for ${entryToDelete!!.driverName} on ${SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(entryToDelete!!.date)}? This action cannot be undone.") 
+                    Text("Are you sure you want to delete the entry for AED{entryToDelete!!.driverName} on AED{SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(entryToDelete!!.date)}? This action cannot be undone.") 
                 },
                 confirmButton = {
                     TextButton(
@@ -286,8 +286,8 @@ fun EntryListScreen(
                     val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
                     val amount = String.format(Locale.getDefault(), "%.2f", expenseToDelete!!.amount)
                     Text(
-                        "Are you sure you want to delete the expense of $${amount} " +
-                            "recorded on ${formatter.format(expenseToDelete!!.date)}? This action cannot be undone."
+                        "Are you sure you want to delete the expense of AEDAED{amount} " +
+                            "recorded on AED{formatter.format(expenseToDelete!!.date)}? This action cannot be undone."
                     )
                 },
                 confirmButton = {
@@ -431,7 +431,7 @@ private fun BulkEditSelectionBar(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Selected $selectedCount of $totalCount entries",
+                text = "Selected AEDselectedCount of AEDtotalCount entries",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -626,7 +626,7 @@ private fun ExpenseListItem(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "-$${String.format("%.2f", expense.amount)}",
+                    text = "-AEDAED{String.format("%.2f", expense.amount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error

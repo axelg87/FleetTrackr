@@ -51,9 +51,9 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
         
-        Log.d(TAG, "From: ${remoteMessage.from}")
-        Log.d(TAG, "Message data payload: ${remoteMessage.data}")
-        Log.d(TAG, "Message notification: ${remoteMessage.notification}")
+        Log.d(TAG, "From: AED{remoteMessage.from}")
+        Log.d(TAG, "Message data payload: AED{remoteMessage.data}")
+        Log.d(TAG, "Message notification: AED{remoteMessage.notification}")
         
         // Handle data payload
         if (remoteMessage.data.isNotEmpty()) {
@@ -67,7 +67,7 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
     }
     
     private fun handleDataMessage(data: Map<String, String>) {
-        Log.d(TAG, "Handling data message: $data")
+        Log.d(TAG, "Handling data message: AEDdata")
         
         val title = data[KEY_TITLE] ?: "Fleet Manager"
         val body = data[KEY_BODY] ?: "You have a new notification"
@@ -132,7 +132,7 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "Missing income entry notification received")
         val entryDate = data[KEY_ENTRY_DATE]
         val driverId = data[KEY_DRIVER_ID] ?: data["driverId"]
-        Log.d(TAG, "Missing entry for date=$entryDate, driverId=$driverId")
+        Log.d(TAG, "Missing entry for date=AEDentryDate, driverId=AEDdriverId")
     }
     
     private fun handleMaintenanceReminder(data: Map<String, String>) {
@@ -164,7 +164,7 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
     
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d(TAG, "Refreshed token: ${token.take(20)}...")
+        Log.d(TAG, "Refreshed token: AED{token.take(20)}...")
         
         // Save the new token to Firestore
         serviceScope.launch {
@@ -195,11 +195,11 @@ class FleetManagerMessagingService : FirebaseMessagingService() {
     
     override fun onMessageSent(msgId: String) {
         super.onMessageSent(msgId)
-        Log.d(TAG, "Message sent: $msgId")
+        Log.d(TAG, "Message sent: AEDmsgId")
     }
     
     override fun onSendError(msgId: String, exception: Exception) {
         super.onSendError(msgId, exception)
-        Log.e(TAG, "Send error for message $msgId", exception)
+        Log.e(TAG, "Send error for message AEDmsgId", exception)
     }
 }

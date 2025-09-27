@@ -319,7 +319,7 @@ private fun ExpenseBar(
         }
         
         Text(
-            text = "${expense.count} transactions",
+            text = "AED{expense.count} transactions",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp)
@@ -383,7 +383,7 @@ private fun ExpenseListItem(expense: ExpenseBreakdown) {
                     color = expenseColor
                 )
                 Text(
-                    text = "${AnalyticsUtils.formatPercentage(expense.percentage)} • ${expense.count} transactions",
+                    text = "AED{AnalyticsUtils.formatPercentage(expense.percentage)} • AED{expense.count} transactions",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -422,7 +422,7 @@ private fun ExpenseLegend(expenseBreakdown: List<ExpenseBreakdown>) {
                 }
                 
                 Text(
-                    text = "${AnalyticsUtils.formatPercentage(expense.percentage)} (${AnalyticsUtils.formatCurrency(expense.totalAmount)})",
+                    text = "AED{AnalyticsUtils.formatPercentage(expense.percentage)} (AED{AnalyticsUtils.formatCurrency(expense.totalAmount)})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -537,7 +537,7 @@ private fun ExpenseSummary(expenseBreakdown: List<ExpenseBreakdown>) {
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "${mostFrequentCategory.count} transactions",
+                            text = "AED{mostFrequentCategory.count} transactions",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

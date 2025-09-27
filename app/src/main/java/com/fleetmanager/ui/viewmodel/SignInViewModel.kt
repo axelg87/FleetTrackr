@@ -102,7 +102,7 @@ class SignInViewModel @Inject constructor(
     fun signOut() {
         executeAsync(
             onError = { error ->
-                updateState { it.copy(errorMessage = "Sign out failed: $error") }
+                updateState { it.copy(errorMessage = "Sign out failed: AEDerror") }
             }
         ) {
             authRepository.signOut()

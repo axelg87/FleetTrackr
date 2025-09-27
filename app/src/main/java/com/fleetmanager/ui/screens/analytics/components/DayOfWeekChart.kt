@@ -225,7 +225,7 @@ private fun DayOfWeekBar(
             ) {
                 DetailItem(
                     label = "Total Days",
-                    value = "${dayData.totalDays}"
+                    value = "AED{dayData.totalDays}"
                 )
                 DetailItem(
                     label = "Total Income",
@@ -378,7 +378,7 @@ private fun DayOfWeekInsights(dayOfWeekAnalysis: List<DayOfWeekAnalysis>) {
                                 ((weekendAverage - weekdayAverage) / weekdayAverage) * 100
                             } else 0.0
                             Text(
-                                text = "${if (comparison > 0) "+" else ""}${AnalyticsUtils.formatDecimal(comparison)}%",
+                                text = "AED{if (comparison > 0) "+" else ""}AED{AnalyticsUtils.formatDecimal(comparison)}%",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (comparison > 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR
@@ -445,8 +445,8 @@ private fun generateInsightText(dayOfWeekAnalysis: List<DayOfWeekAnalysis>): Str
     } else 100.0
     
     return when {
-        percentageDiff > 50 -> "${AnalyticsUtils.getDayDisplayName(bestDay.dayOfWeek)} significantly outperforms other days. Consider focusing marketing efforts on high-performing days."
-        percentageDiff > 25 -> "There's a notable difference between your best and worst performing days. Analyze what makes ${AnalyticsUtils.getDayDisplayName(bestDay.dayOfWeek, TextStyle.SHORT)} successful."
+        percentageDiff > 50 -> "AED{AnalyticsUtils.getDayDisplayName(bestDay.dayOfWeek)} significantly outperforms other days. Consider focusing marketing efforts on high-performing days."
+        percentageDiff > 25 -> "There's a notable difference between your best and worst performing days. Analyze what makes AED{AnalyticsUtils.getDayDisplayName(bestDay.dayOfWeek, TextStyle.SHORT)} successful."
         percentageDiff > 10 -> "Your income is fairly consistent across the week with slight variations."
         else -> "Very consistent performance across all days of the week."
     }

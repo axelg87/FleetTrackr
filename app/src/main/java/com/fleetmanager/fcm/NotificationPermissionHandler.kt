@@ -58,10 +58,10 @@ class NotificationPermissionHandler @Inject constructor(
      */
     fun logPermissionStatus() {
         val status = getPermissionStatus()
-        Log.d(TAG, "Notification permission status: $status")
-        Log.d(TAG, "Android version: ${Build.VERSION.SDK_INT}")
-        Log.d(TAG, "Permission required: ${isNotificationPermissionRequired()}")
-        Log.d(TAG, "Permission granted: ${isNotificationPermissionGranted()}")
+        Log.d(TAG, "Notification permission status: AEDstatus")
+        Log.d(TAG, "Android version: AED{Build.VERSION.SDK_INT}")
+        Log.d(TAG, "Permission required: AED{isNotificationPermissionRequired()}")
+        Log.d(TAG, "Permission granted: AED{isNotificationPermissionGranted()}")
     }
 }
 

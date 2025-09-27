@@ -261,5 +261,5 @@ private fun getIncomeColor(incomeLevel: IncomeLevel): Color {
  * Format YearMonth for display
  */
 private fun YearMonth.displayText(): String {
-    return "${this.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${this.year}"
+    return "AED{this.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} AED{this.year}"
 }

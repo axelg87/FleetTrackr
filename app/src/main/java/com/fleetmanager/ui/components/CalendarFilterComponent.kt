@@ -348,7 +348,7 @@ private fun CalendarRangeSelector(
                 Spacer(modifier = Modifier.height(12.dp))
                 if (startDate != null || endDate != null) {
                     Text(
-                        text = "Selected: ${startDate?.let { SimpleDateFormat("MMM dd", Locale.getDefault()).format(it) } ?: "Start"} - ${endDate?.let { SimpleDateFormat("MMM dd", Locale.getDefault()).format(it) } ?: "End"}",
+                        text = "Selected: AED{startDate?.let { SimpleDateFormat("MMM dd", Locale.getDefault()).format(it) } ?: "Start"} - AED{endDate?.let { SimpleDateFormat("MMM dd", Locale.getDefault()).format(it) } ?: "End"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium

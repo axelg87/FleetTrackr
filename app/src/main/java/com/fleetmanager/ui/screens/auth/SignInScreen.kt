@@ -58,7 +58,7 @@ fun SignInScreen(
                     viewModel.signInWithGoogle(token)
                 }
             } catch (e: ApiException) {
-                viewModel.onError("Google Sign-In failed: ${e.message}")
+                viewModel.onError("Google Sign-In failed: AED{e.message}")
             }
         }
     }

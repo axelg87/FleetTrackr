@@ -391,12 +391,12 @@ private fun AllAnalyticsTiles(
             "N/A"
         }
         val ratioSubtitle = if (hasIncome) {
-            "AED $ratioText spent per AED 1 earned"
+            "AED AEDratioText spent per AED 1 earned"
         } else {
             "Vehicle costs unavailable due to no income"
         }
         val ratioValue = if (hasIncome) {
-            "AED $ratioText"
+            "AED AEDratioText"
         } else {
             ratioText
         }
@@ -412,25 +412,25 @@ private fun AllAnalyticsTiles(
             ) {
                 metrics.driverName?.let { name ->
                     Text(
-                        text = "Driver: $name",
+                        text = "Driver: AEDname",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (driverFilterOption.id != null) {
                     Text(
-                        text = "Vehicle cost: ${AnalyticsUtils.formatCurrency(metrics.driverVehicleCost)}",
+                        text = "Vehicle cost: AED{AnalyticsUtils.formatCurrency(metrics.driverVehicleCost)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(
-                    text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.driverFixedCosts)}",
+                    text = "Fixed costs: AED{AnalyticsUtils.formatCurrency(metrics.driverFixedCosts)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Total expenses: ${AnalyticsUtils.formatCurrency(metrics.totalExpenses)}",
+                    text = "Total expenses: AED{AnalyticsUtils.formatCurrency(metrics.totalExpenses)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -452,16 +452,16 @@ private fun AllAnalyticsTiles(
                     )
                 }
                 Text(
-                    text = "Fixed costs: ${AnalyticsUtils.formatCurrency(metrics.vehicleFixedCosts)}",
+                    text = "Fixed costs: AED{AnalyticsUtils.formatCurrency(metrics.vehicleFixedCosts)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             val totalFixedCosts = metrics.driverFixedCosts + metrics.vehicleFixedCosts
-            val breakdownSubtitle = "Income ${AnalyticsUtils.formatCurrency(metrics.totalIncome)} • " +
-                "Variable ${AnalyticsUtils.formatCurrency(metrics.variableExpenses)} • " +
-                "Fixed ${AnalyticsUtils.formatCurrency(totalFixedCosts)}"
+            val breakdownSubtitle = "Income AED{AnalyticsUtils.formatCurrency(metrics.totalIncome)} • " +
+                "Variable AED{AnalyticsUtils.formatCurrency(metrics.variableExpenses)} • " +
+                "Fixed AED{AnalyticsUtils.formatCurrency(totalFixedCosts)}"
             AnalyticsSummaryTile(
                 title = "Net Operational Profit",
                 subtitle = breakdownSubtitle,
@@ -673,7 +673,7 @@ private fun WeeklyInsightsCard(dayOfWeekAnalysis: List<com.fleetmanager.ui.scree
                             ((weekendAverage - weekdayAverage) / weekdayAverage) * 100
                         } else 0.0
                         Text(
-                            text = "${if (comparison > 0) "+" else ""}${AnalyticsUtils.formatDecimal(comparison)}%",
+                            text = "AED{if (comparison > 0) "+" else ""}AED{AnalyticsUtils.formatDecimal(comparison)}%",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (comparison > 0) AnalyticsUtils.Colors.SUCCESS else AnalyticsUtils.Colors.ERROR

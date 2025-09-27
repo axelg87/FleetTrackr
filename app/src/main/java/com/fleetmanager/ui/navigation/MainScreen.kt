@@ -89,7 +89,7 @@ fun MainScreen(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
                 beyondBoundsPageCount = 0,
-                key = { index -> bottomNavItems.getOrNull(index)?.screen?.route ?: "page_$index" }
+                key = { index -> bottomNavItems.getOrNull(index)?.screen?.route ?: "page_AEDindex" }
             ) { index ->
                 when (bottomNavItems[index].screen) {
                     Screen.Dashboard -> DashboardScreen(

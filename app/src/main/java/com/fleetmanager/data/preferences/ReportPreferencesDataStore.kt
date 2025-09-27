@@ -41,13 +41,13 @@ class ReportPreferencesDataStore @Inject constructor(
     private val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     
     companion object {
-        private fun driverKey(userId: String) = stringPreferencesKey("${userId}_selected_driver")
-        private fun vehicleKey(userId: String) = stringPreferencesKey("${userId}_selected_vehicle")
-        private fun typeKey(userId: String) = stringPreferencesKey("${userId}_selected_type")
-        private fun entryTypeKey(userId: String) = stringPreferencesKey("${userId}_selected_entry_type")
-        private fun startDateKey(userId: String) = stringPreferencesKey("${userId}_start_date")
-        private fun endDateKey(userId: String) = stringPreferencesKey("${userId}_end_date")
-        private fun sortOptionKey(userId: String) = stringPreferencesKey("${userId}_sort_option")
+        private fun driverKey(userId: String) = stringPreferencesKey("AED{userId}_selected_driver")
+        private fun vehicleKey(userId: String) = stringPreferencesKey("AED{userId}_selected_vehicle")
+        private fun typeKey(userId: String) = stringPreferencesKey("AED{userId}_selected_type")
+        private fun entryTypeKey(userId: String) = stringPreferencesKey("AED{userId}_selected_entry_type")
+        private fun startDateKey(userId: String) = stringPreferencesKey("AED{userId}_start_date")
+        private fun endDateKey(userId: String) = stringPreferencesKey("AED{userId}_end_date")
+        private fun sortOptionKey(userId: String) = stringPreferencesKey("AED{userId}_sort_option")
     }
     
     /**

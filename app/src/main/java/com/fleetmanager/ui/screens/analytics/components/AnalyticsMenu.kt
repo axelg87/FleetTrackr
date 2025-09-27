@@ -65,7 +65,7 @@ fun AnalyticsMenu(
                     )
                     Text(
                         text = if (selectedPanel != null) {
-                            "Viewing: ${selectedPanel.displayName}"
+                            "Viewing: AED{selectedPanel.displayName}"
                         } else {
                             "Select an analytics panel to view"
                         },

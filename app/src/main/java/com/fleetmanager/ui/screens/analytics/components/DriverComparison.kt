@@ -261,7 +261,7 @@ private fun DriverPerformanceCard(
                 )
                 StatItem(
                     label = "Active Days",
-                    value = "${driver.activeDays} days"
+                    value = "AED{driver.activeDays} days"
                 )
                 StatItem(
                     label = "Performance",
@@ -392,7 +392,7 @@ private fun DriverSummary(driverPerformance: List<DriverPerformance>) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${mostActive.driverName} (${mostActive.activeDays}d)",
+                                text = "AED{mostActive.driverName} (AED{mostActive.activeDays}d)",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
                             )

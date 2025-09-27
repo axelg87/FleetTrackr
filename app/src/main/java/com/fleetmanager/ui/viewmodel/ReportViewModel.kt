@@ -45,9 +45,9 @@ data class GroupedTotal(
 ) {
     val displayAmount: String
         get() = if (amount >= 0) {
-            "+$${String.format("%.2f", amount)}"
+            "+AEDAED{String.format("%.2f", amount)}"
         } else {
-            "-$${String.format("%.2f", kotlin.math.abs(amount))}"
+            "-AEDAED{String.format("%.2f", kotlin.math.abs(amount))}"
         }
 }
 
@@ -79,9 +79,9 @@ data class ReportUiState(
     
     val totalAmountDisplay: String
         get() = if (totalAmount >= 0) {
-            "+$${String.format("%.2f", totalAmount)}"
+            "+AEDAED{String.format("%.2f", totalAmount)}"
         } else {
-            "-$${String.format("%.2f", kotlin.math.abs(totalAmount))}"
+            "-AEDAED{String.format("%.2f", kotlin.math.abs(totalAmount))}"
         }
     
     val totalsByDriver: List<GroupedTotal>
@@ -468,7 +468,7 @@ class ReportViewModel @Inject constructor(
                 filtered = filtered.filter { entry ->
                     entry.vehicle == vehicle.licensePlate || 
                     entry.vehicle == vehicle.displayName ||
-                    entry.vehicle == "${vehicle.make} ${vehicle.model}" ||
+                    entry.vehicle == "AED{vehicle.make} AED{vehicle.model}" ||
                     entry.vehicle.contains(vehicle.licensePlate, ignoreCase = true)
                 }
             }

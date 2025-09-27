@@ -72,19 +72,19 @@ class StorageService @Inject constructor(
             Log.e(TAG, "User not authenticated! Cannot perform Storage operations.")
             throw IllegalStateException("User must be authenticated to access Firebase Storage")
         }
-        Log.d(TAG, "User authenticated with ID: $userId")
+        Log.d(TAG, "User authenticated with ID: AEDuserId")
         return userId
     }
     
     suspend fun uploadPhoto(uri: Uri, entryId: String): String {
         try {
-            val fileName = "${entryId}_${UUID.randomUUID()}.jpg"
+            val fileName = "AED{entryId}_AED{UUID.randomUUID()}.jpg"
             val photoRef = getUserStorage().child(fileName)
             
-            Log.d(TAG, "Starting photo upload: $fileName")
+            Log.d(TAG, "Starting photo upload: AEDfileName")
             photoRef.putFile(uri).await()
             val downloadUrl = photoRef.downloadUrl.await().toString()
-            Log.d(TAG, "Successfully uploaded photo: $fileName")
+            Log.d(TAG, "Successfully uploaded photo: AEDfileName")
             return downloadUrl
         } catch (e: IllegalStateException) {
             // Authentication error - user not signed in
@@ -100,7 +100,7 @@ class StorageService @Inject constructor(
                     "Permission denied. Please make sure you're signed in."
                 e.message?.contains("network", ignoreCase = true) == true -> 
                     "Network error. Please check your internet connection."
-                else -> "Failed to upload photo: ${e.message}"
+                else -> "Failed to upload photo: AED{e.message}"
             }
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
@@ -110,13 +110,13 @@ class StorageService @Inject constructor(
     
     suspend fun uploadProfilePicture(uri: Uri): String {
         try {
-            val fileName = "profile_picture_${UUID.randomUUID()}.jpg"
+            val fileName = "profile_picture_AED{UUID.randomUUID()}.jpg"
             val photoRef = getUserStorage().child("profile").child(fileName)
             
-            Log.d(TAG, "Starting profile picture upload: $fileName")
+            Log.d(TAG, "Starting profile picture upload: AEDfileName")
             photoRef.putFile(uri).await()
             val downloadUrl = photoRef.downloadUrl.await().toString()
-            Log.d(TAG, "Successfully uploaded profile picture: $fileName")
+            Log.d(TAG, "Successfully uploaded profile picture: AEDfileName")
             return downloadUrl
         } catch (e: IllegalStateException) {
             // Authentication error - user not signed in
@@ -132,7 +132,7 @@ class StorageService @Inject constructor(
                     "Permission denied. Please make sure you're signed in."
                 e.message?.contains("network", ignoreCase = true) == true -> 
                     "Network error. Please check your internet connection."
-                else -> "Failed to upload profile picture: ${e.message}"
+                else -> "Failed to upload profile picture: AED{e.message}"
             }
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
@@ -145,7 +145,7 @@ class StorageService @Inject constructor(
             // Verify authentication before attempting delete
             requireAuth()
             storage.getReferenceFromUrl(photoUrl).delete().await()
-            Log.d(TAG, "Successfully deleted photo: $photoUrl")
+            Log.d(TAG, "Successfully deleted photo: AEDphotoUrl")
         } catch (e: IllegalStateException) {
             // Authentication error - user not signed in
             val errorMessage = "Please sign in to delete photos"
@@ -158,7 +158,7 @@ class StorageService @Inject constructor(
                     "Photo already deleted or doesn't exist"
                 e.message?.contains("permission", ignoreCase = true) == true -> 
                     "Permission denied. Please make sure you're signed in."
-                else -> "Failed to delete photo: ${e.message}"
+                else -> "Failed to delete photo: AED{e.message}"
             }
             Log.e(TAG, errorMessage, e)
             // Don't show toast for photo deletion errors - they're not critical

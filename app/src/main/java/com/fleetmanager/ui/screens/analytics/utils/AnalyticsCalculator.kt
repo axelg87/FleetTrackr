@@ -211,7 +211,7 @@ object AnalyticsCalculator {
                             actualValue = income,
                             expectedValue = averageIncome,
                             deviation = deviationFromAverage,
-                            reason = "Income ${String.format("%.0f", deviationFromAverage * 100)}% below average"
+                            reason = "Income AED{String.format("%.0f", deviationFromAverage * 100)}% below average"
                         )
                     )
                 }
@@ -233,7 +233,7 @@ object AnalyticsCalculator {
                         actualValue = expenseTotal,
                         expectedValue = averageExpenses,
                         deviation = deviationFromAverage,
-                        reason = "Expenses ${String.format("%.0f", deviationFromAverage * 100)}% above average"
+                        reason = "Expenses AED{String.format("%.0f", deviationFromAverage * 100)}% above average"
                     )
                 )
             }

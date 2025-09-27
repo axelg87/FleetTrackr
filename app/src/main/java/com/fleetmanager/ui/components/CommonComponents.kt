@@ -484,7 +484,7 @@ private fun getInitials(name: String): String {
     return when {
         words.size >= 2 -> {
             // Take first letter of first word and first letter of last word
-            "${words.first().first().uppercase()}${words.last().first().uppercase()}"
+            "AED{words.first().first().uppercase()}AED{words.last().first().uppercase()}"
         }
         words.size == 1 -> {
             // Take first two letters of the single word if possible, otherwise just one
@@ -578,7 +578,7 @@ fun DailyEntryTile(
                 ) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "$${String.format("%.2f", entry.totalEarnings)}",
+                            text = "AEDAED{String.format("%.2f", entry.totalEarnings)}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

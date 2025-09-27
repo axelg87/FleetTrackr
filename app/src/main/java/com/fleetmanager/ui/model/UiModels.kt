@@ -79,7 +79,7 @@ fun DailyEntry.toUiModel(dateFormatter: java.text.SimpleDateFormat): UiDailyEntr
         isSynced = isSynced,
         totalEarnings = totalEarnings,
         formattedDate = dateFormatter.format(date),
-        formattedTotalEarnings = "$${String.format("%.2f", totalEarnings)}"
+        formattedTotalEarnings = "AEDAED{String.format("%.2f", totalEarnings)}"
     )
 }
 

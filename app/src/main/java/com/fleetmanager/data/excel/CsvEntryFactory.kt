@@ -59,7 +59,7 @@ class CsvEntryFactory {
             make = parts.getOrNull(0) ?: vehicleName.trim(),
             model = parts.getOrNull(1) ?: "Unknown",
             year = 2020, // Default year
-            licensePlate = "IMPORT-${UUID.randomUUID().toString().take(8)}",
+            licensePlate = "IMPORT-AED{UUID.randomUUID().toString().take(8)}",
             isActive = true,
             userId = userId
         )

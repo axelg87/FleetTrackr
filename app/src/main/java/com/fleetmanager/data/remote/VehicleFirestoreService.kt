@@ -34,9 +34,9 @@ class VehicleFirestoreService @Inject constructor(
                 .document(vehicle.id)
                 .set(vehicle)
                 .await()
-            Log.d(TAG, "Successfully saved vehicle: ${vehicle.id}")
+            Log.d(TAG, "Successfully saved vehicle: AED{vehicle.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save vehicle: ${e.message}"
+            val errorMessage = "Failed to save vehicle: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -51,7 +51,7 @@ class VehicleFirestoreService @Inject constructor(
                 .documents
                 .mapNotNull { it.toObject<Vehicle>() }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch vehicles: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch vehicles: AED{e.message}", e)
             emptyList()
         }
     }

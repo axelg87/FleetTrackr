@@ -133,7 +133,7 @@ private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "${if (monthlyComparison.growthPercentage > 0) "+" else ""}${AnalyticsUtils.formatDecimal(monthlyComparison.growthPercentage)}%",
+                        text = "AED{if (monthlyComparison.growthPercentage > 0) "+" else ""}AED{AnalyticsUtils.formatDecimal(monthlyComparison.growthPercentage)}%",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = growthColor
@@ -157,7 +157,7 @@ private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "${if (monthlyComparison.growthAmount > 0) "+" else ""}${AnalyticsUtils.formatCurrency(monthlyComparison.growthAmount)}",
+                        text = "AED{if (monthlyComparison.growthAmount > 0) "+" else ""}AED{AnalyticsUtils.formatCurrency(monthlyComparison.growthAmount)}",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = growthColor
@@ -417,19 +417,19 @@ private fun generateMonthlyInsight(monthlyComparison: MonthlyComparison): String
     
     return when {
         monthlyComparison.growthPercentage > 15 -> 
-            "Excellent performance! Revenue increased by ${String.format("%.1f", monthlyComparison.growthPercentage)}% compared to ${monthlyComparison.previousMonth}. This represents an additional ${AnalyticsCalculator.formatCurrency(monthlyComparison.growthAmount)} in revenue."
+            "Excellent performance! Revenue increased by AED{String.format("%.1f", monthlyComparison.growthPercentage)}% compared to AED{monthlyComparison.previousMonth}. This represents an additional AED{AnalyticsCalculator.formatCurrency(monthlyComparison.growthAmount)} in revenue."
         
         monthlyComparison.growthPercentage > 5 -> 
-            "Positive trend with ${String.format("%.1f", monthlyComparison.growthPercentage)}% growth. You're on the right track with ${AnalyticsCalculator.formatCurrency(monthlyComparison.growthAmount)} more revenue than last month."
+            "Positive trend with AED{String.format("%.1f", monthlyComparison.growthPercentage)}% growth. You're on the right track with AED{AnalyticsCalculator.formatCurrency(monthlyComparison.growthAmount)} more revenue than last month."
         
         absGrowth <= 5 -> 
-            "Performance is relatively stable with minimal change (${String.format("%.1f", monthlyComparison.growthPercentage)}%). This consistency can be valuable for planning."
+            "Performance is relatively stable with minimal change (AED{String.format("%.1f", monthlyComparison.growthPercentage)}%). This consistency can be valuable for planning."
         
         monthlyComparison.growthPercentage < -15 -> 
-            "Revenue decreased by ${String.format("%.1f", abs(monthlyComparison.growthPercentage))}% this month. This represents ${AnalyticsCalculator.formatCurrency(abs(monthlyComparison.growthAmount))} less revenue than ${monthlyComparison.previousMonth}."
+            "Revenue decreased by AED{String.format("%.1f", abs(monthlyComparison.growthPercentage))}% this month. This represents AED{AnalyticsCalculator.formatCurrency(abs(monthlyComparison.growthAmount))} less revenue than AED{monthlyComparison.previousMonth}."
         
         else -> 
-            "Revenue declined by ${String.format("%.1f", abs(monthlyComparison.growthPercentage))}%. While concerning, this could be due to seasonal factors or market conditions."
+            "Revenue declined by AED{String.format("%.1f", abs(monthlyComparison.growthPercentage))}%. While concerning, this could be due to seasonal factors or market conditions."
     }
 }
 

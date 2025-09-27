@@ -95,7 +95,7 @@ class FcmViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error initializing FCM", e)
-                _error.value = "Error initializing FCM: ${e.message}"
+                _error.value = "Error initializing FCM: AED{e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -161,7 +161,7 @@ class FcmViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error refreshing FCM token", e)
-                _error.value = "Error refreshing token: ${e.message}"
+                _error.value = "Error refreshing token: AED{e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -190,7 +190,7 @@ class FcmViewModel @Inject constructor(
             try {
                 val status = fcmManager.getFcmStatus()
                 _fcmStatus.value = status
-                Log.d(TAG, "FCM Status: $status")
+                Log.d(TAG, "FCM Status: AEDstatus")
             } catch (e: Exception) {
                 Log.e(TAG, "Error refreshing FCM status", e)
             }
@@ -213,13 +213,13 @@ class FcmViewModel @Inject constructor(
             try {
                 val success = fcmManager.subscribeToTopic(topic)
                 if (success) {
-                    Log.d(TAG, "Subscribed to topic: $topic")
+                    Log.d(TAG, "Subscribed to topic: AEDtopic")
                 } else {
-                    _error.value = "Failed to subscribe to topic: $topic"
+                    _error.value = "Failed to subscribe to topic: AEDtopic"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error subscribing to topic: $topic", e)
-                _error.value = "Error subscribing to topic: ${e.message}"
+                Log.e(TAG, "Error subscribing to topic: AEDtopic", e)
+                _error.value = "Error subscribing to topic: AED{e.message}"
             }
         }
     }
@@ -232,13 +232,13 @@ class FcmViewModel @Inject constructor(
             try {
                 val success = fcmManager.unsubscribeFromTopic(topic)
                 if (success) {
-                    Log.d(TAG, "Unsubscribed from topic: $topic")
+                    Log.d(TAG, "Unsubscribed from topic: AEDtopic")
                 } else {
-                    _error.value = "Failed to unsubscribe from topic: $topic"
+                    _error.value = "Failed to unsubscribe from topic: AEDtopic"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error unsubscribing from topic: $topic", e)
-                _error.value = "Error unsubscribing from topic: ${e.message}"
+                Log.e(TAG, "Error unsubscribing from topic: AEDtopic", e)
+                _error.value = "Error unsubscribing from topic: AED{e.message}"
             }
         }
     }

@@ -313,7 +313,7 @@ private fun LeaderboardRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "${driver.activeDays} days",
+                        text = "AED{driver.activeDays} days",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -323,7 +323,7 @@ private fun LeaderboardRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${AnalyticsUtils.formatCurrency(driver.averageRevenuePerDay)}/day",
+                        text = "AED{AnalyticsUtils.formatCurrency(driver.averageRevenuePerDay)}/day",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -439,7 +439,7 @@ private fun LeaderboardStats(topDrivers: List<DriverPerformance>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${AnalyticsUtils.formatDecimal(topPerformerAdvantage)}% ahead",
+                            text = "AED{AnalyticsUtils.formatDecimal(topPerformerAdvantage)}% ahead",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = AnalyticsUtils.Colors.SUCCESS

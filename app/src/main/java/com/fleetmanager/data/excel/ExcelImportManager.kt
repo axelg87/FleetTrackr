@@ -55,7 +55,7 @@ class ExcelImportManager @Inject constructor(
         if (userId.isNullOrBlank()) {
             val errorMsg = "User must be authenticated to import data"
             Log.e(TAG, errorMsg)
-            toastHelper.showError(context, "❌ Authentication Error: $errorMsg")
+            toastHelper.showError(context, "❌ Authentication Error: AEDerrorMsg")
             return@withContext ImportProgress(
                 currentStep = "Authentication failed",
                 progress = 0,
@@ -66,9 +66,9 @@ class ExcelImportManager @Inject constructor(
         val userRole = try {
             firestoreService.getCurrentUserRole()
         } catch (e: Exception) {
-            val errorMsg = "Failed to check user permissions: ${e.message}"
+            val errorMsg = "Failed to check user permissions: AED{e.message}"
             Log.e(TAG, errorMsg, e)
-            toastHelper.showError(context, "❌ Permission Error: $errorMsg")
+            toastHelper.showError(context, "❌ Permission Error: AEDerrorMsg")
             return@withContext ImportProgress(
                 currentStep = "Permission check failed",
                 progress = 0,
@@ -77,9 +77,9 @@ class ExcelImportManager @Inject constructor(
         }
         
         if (!PermissionManager.canImportData(userRole)) {
-            val errorMsg = "Only admins can import CSV data. Your role: ${userRole.name}"
+            val errorMsg = "Only admins can import CSV data. Your role: AED{userRole.name}"
             Log.e(TAG, errorMsg)
-            toastHelper.showError(context, "❌ Access Denied: $errorMsg")
+            toastHelper.showError(context, "❌ Access Denied: AEDerrorMsg")
             return@withContext ImportProgress(
                 currentStep = "Permission denied",
                 progress = 0,
@@ -97,9 +97,9 @@ class ExcelImportManager @Inject constructor(
             val importResult = try {
                 excelImportService.importExcelFile(uri, userId)
             } catch (e: Exception) {
-                val errorMsg = "Failed to parse CSV file: ${e.message}"
+                val errorMsg = "Failed to parse CSV file: AED{e.message}"
                 Log.e(TAG, errorMsg, e)
-                toastHelper.showError(context, "❌ File Parsing Error: $errorMsg")
+                toastHelper.showError(context, "❌ File Parsing Error: AEDerrorMsg")
                 return@withContext ImportProgress(
                     currentStep = "CSV parsing failed",
                     progress = 0,
@@ -108,20 +108,20 @@ class ExcelImportManager @Inject constructor(
             }
             
             if (importResult.errors.isNotEmpty()) {
-                val errorMsg = "CSV parsing failed with ${importResult.errors.size} errors"
-                Log.e(TAG, "$errorMsg:")
+                val errorMsg = "CSV parsing failed with AED{importResult.errors.size} errors"
+                Log.e(TAG, "AEDerrorMsg:")
                 
                 // Log first 10 errors for debugging
                 importResult.errors.take(10).forEach { error ->
-                    Log.e(TAG, "  - $error")
+                    Log.e(TAG, "  - AEDerror")
                 }
                 if (importResult.errors.size > 10) {
-                    Log.e(TAG, "  ... and ${importResult.errors.size - 10} more errors")
+                    Log.e(TAG, "  ... and AED{importResult.errors.size - 10} more errors")
                 }
                 
                 // Show first few errors in toast for immediate feedback
                 val firstErrors = importResult.errors.take(3).joinToString("; ")
-                toastHelper.showError(context, "❌ $errorMsg. First errors: $firstErrors")
+                toastHelper.showError(context, "❌ AEDerrorMsg. First errors: AEDfirstErrors")
                 
                 return@withContext ImportProgress(
                     currentStep = "CSV parsing failed",
@@ -150,16 +150,16 @@ class ExcelImportManager @Inject constructor(
 
             val existingUsers = try {
                 val users = firestoreService.getDriverUsers()
-                Log.d(TAG, "Found ${users.size} existing driver users")
+                Log.d(TAG, "Found AED{users.size} existing driver users")
                 users.forEach { user ->
-                    Log.d(TAG, "Existing user: name='${user.name}', id='${user.id}'")
+                    Log.d(TAG, "Existing user: name='AED{user.name}', id='AED{user.id}'")
                 }
                 // Use 'name' field (which should map to fullName in Firestore)
                 users.associateBy { it.name.lowercase() }
             } catch (e: Exception) {
-                val errorMsg = "Failed to fetch existing users: ${e.message}"
+                val errorMsg = "Failed to fetch existing users: AED{e.message}"
                 Log.e(TAG, errorMsg, e)
-                toastHelper.showError(context, "❌ Database Error: $errorMsg")
+                toastHelper.showError(context, "❌ Database Error: AEDerrorMsg")
                 return@withContext ImportProgress(
                     currentStep = "Failed to check existing users",
                     progress = 0,
@@ -168,11 +168,11 @@ class ExcelImportManager @Inject constructor(
             }
 
             val existingVehicles = try {
-                firestoreService.getVehicles().map { "${it.make} ${it.model}".trim().lowercase() }.toSet()
+                firestoreService.getVehicles().map { "AED{it.make} AED{it.model}".trim().lowercase() }.toSet()
             } catch (e: Exception) {
-                val errorMsg = "Failed to fetch existing vehicles: ${e.message}"
+                val errorMsg = "Failed to fetch existing vehicles: AED{e.message}"
                 Log.e(TAG, errorMsg, e)
-                toastHelper.showError(context, "❌ Database Error: $errorMsg")
+                toastHelper.showError(context, "❌ Database Error: AEDerrorMsg")
                 return@withContext ImportProgress(
                     currentStep = "Failed to check existing vehicles",
                     progress = 0,
@@ -185,36 +185,36 @@ class ExcelImportManager @Inject constructor(
                 !existingUsers.containsKey(it.name.lowercase())
             }.distinctBy { it.name.lowercase() }
 
-            Log.d(TAG, "Drivers to create: ${driversToCreate.map { it.name }}")
-            Log.d(TAG, "Existing users keys: ${existingUsers.keys}")
+            Log.d(TAG, "Drivers to create: AED{driversToCreate.map { it.name }}")
+            Log.d(TAG, "Existing users keys: AED{existingUsers.keys}")
 
             val createdUserIds = mutableMapOf<String, String>() // driverName -> userId mapping
             val creationErrors = mutableListOf<String>()
 
             if (driversToCreate.isNotEmpty()) {
                 onProgress(ImportProgress(
-                    currentStep = "Creating ${driversToCreate.size} new driver users...",
+                    currentStep = "Creating AED{driversToCreate.size} new driver users...",
                     progress = 30,
                     totalEntries = totalEntries
                 ))
 
                 driversToCreate.forEach { driver ->
                     try {
-                        Log.d(TAG, "Creating driver user: ${driver.name}")
+                        Log.d(TAG, "Creating driver user: AED{driver.name}")
                         val newUserId = createDriverUserFromImport(driver.name)
                         createdUserIds[driver.name.lowercase()] = newUserId
-                        Log.d(TAG, "✅ Created driver user: '${driver.name}' with ID: $newUserId")
-                        toastHelper.showMessage(context, "✅ Created driver: ${driver.name}")
+                        Log.d(TAG, "✅ Created driver user: 'AED{driver.name}' with ID: AEDnewUserId")
+                        toastHelper.showMessage(context, "✅ Created driver: AED{driver.name}")
                     } catch (e: Exception) {
-                        val errorMsg = "Failed to create driver user '${driver.name}': ${e.message}"
+                        val errorMsg = "Failed to create driver user 'AED{driver.name}': AED{e.message}"
                         Log.e(TAG, errorMsg, e)
                         creationErrors.add(errorMsg)
-                        toastHelper.showError(context, "❌ Driver creation failed: ${driver.name}")
+                        toastHelper.showError(context, "❌ Driver creation failed: AED{driver.name}")
                     }
                 }
 
                 if (creationErrors.isNotEmpty()) {
-                    Log.w(TAG, "Some drivers could not be created: ${creationErrors.joinToString("; ")}")
+                    Log.w(TAG, "Some drivers could not be created: AED{creationErrors.joinToString("; ")}")
                 }
             } else {
                 Log.d(TAG, "No new drivers to create")
@@ -222,12 +222,12 @@ class ExcelImportManager @Inject constructor(
 
             // Step 4: Create missing vehicles
             val vehiclesToCreate = importResult.vehiclesToCreate.filter { 
-                !existingVehicles.contains("${it.make} ${it.model}".trim().lowercase())
-            }.distinctBy { "${it.make} ${it.model}".trim().lowercase() }
+                !existingVehicles.contains("AED{it.make} AED{it.model}".trim().lowercase())
+            }.distinctBy { "AED{it.make} AED{it.model}".trim().lowercase() }
 
             if (vehiclesToCreate.isNotEmpty()) {
                 onProgress(ImportProgress(
-                    currentStep = "Creating ${vehiclesToCreate.size} new vehicles...",
+                    currentStep = "Creating AED{vehiclesToCreate.size} new vehicles...",
                     progress = 40,
                     totalEntries = totalEntries
                 ))
@@ -235,9 +235,9 @@ class ExcelImportManager @Inject constructor(
                 vehiclesToCreate.forEach { vehicle ->
                     try {
                         firestoreService.saveVehicle(vehicle)
-                        Log.d(TAG, "Created vehicle: ${vehicle.make} ${vehicle.model}")
+                        Log.d(TAG, "Created vehicle: AED{vehicle.make} AED{vehicle.model}")
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to create vehicle: ${vehicle.make} ${vehicle.model}", e)
+                        Log.e(TAG, "Failed to create vehicle: AED{vehicle.make} AED{vehicle.model}", e)
                     }
                 }
             }
@@ -257,27 +257,27 @@ class ExcelImportManager @Inject constructor(
                 try {
                     // Find the correct userId for this driver
                     val driverName = entry.driverName.lowercase()
-                    Log.d(TAG, "Processing entry for driver: '$driverName'")
+                    Log.d(TAG, "Processing entry for driver: 'AEDdriverName'")
                     
                     val correctUserId = when {
                         // Check if we just created this user
                         createdUserIds.containsKey(driverName) -> {
                             val userId = createdUserIds[driverName]!!
-                            Log.d(TAG, "Using newly created user ID: $userId for driver: $driverName")
+                            Log.d(TAG, "Using newly created user ID: AEDuserId for driver: AEDdriverName")
                             userId
                         }
                         // Check if user already exists
                         existingUsers.containsKey(driverName) -> {
                             val userId = existingUsers[driverName]!!.id
-                            Log.d(TAG, "Using existing user ID: $userId for driver: $driverName")
+                            Log.d(TAG, "Using existing user ID: AEDuserId for driver: AEDdriverName")
                             userId
                         }
                         // Fallback - this should not happen with proper logic
                         else -> {
-                            Log.w(TAG, "⚠️ No user found for driver '$driverName'. Available users: ${existingUsers.keys}. Created users: ${createdUserIds.keys}")
-                            val errorMsg = "No user found for driver '$driverName'"
+                            Log.w(TAG, "⚠️ No user found for driver 'AEDdriverName'. Available users: AED{existingUsers.keys}. Created users: AED{createdUserIds.keys}")
+                            val errorMsg = "No user found for driver 'AEDdriverName'"
                             errors.add(errorMsg)
-                            toastHelper.showError(context, "❌ $errorMsg")
+                            toastHelper.showError(context, "❌ AEDerrorMsg")
                             userId // Fallback to admin user
                         }
                     }
@@ -289,13 +289,13 @@ class ExcelImportManager @Inject constructor(
                         vehicleId = if (entry.vehicleId.isNotBlank()) entry.vehicleId else entry.vehicle
                     )
                     
-                    Log.d(TAG, "Saving entry: driver='${entry.driverName}', date='${entry.date}', userId='$correctUserId'")
+                    Log.d(TAG, "Saving entry: driver='AED{entry.driverName}', date='AED{entry.date}', userId='AEDcorrectUserId'")
                     firestoreService.saveDailyEntry(entryWithCorrectUserId)
                     processedEntries++
                     
                     val progressPercent = 50 + ((processedEntries.toFloat() / totalEntries) * 40).toInt()
                     onProgress(ImportProgress(
-                        currentStep = "Importing entries... ($processedEntries/$totalEntries)",
+                        currentStep = "Importing entries... (AEDprocessedEntries/AEDtotalEntries)",
                         progress = progressPercent,
                         totalEntries = totalEntries,
                         processedEntries = processedEntries,
@@ -303,26 +303,26 @@ class ExcelImportManager @Inject constructor(
                         warnings = warnings
                     ))
                     
-                    Log.d(TAG, "✅ Imported entry for ${entry.driverName} on ${entry.date} with userId: $correctUserId")
+                    Log.d(TAG, "✅ Imported entry for AED{entry.driverName} on AED{entry.date} with userId: AEDcorrectUserId")
                 } catch (e: Exception) {
-                    val errorMessage = "Failed to import entry for ${entry.driverName} on ${entry.date}: ${e.message}"
+                    val errorMessage = "Failed to import entry for AED{entry.driverName} on AED{entry.date}: AED{e.message}"
                     errors.add(errorMessage)
                     Log.e(TAG, errorMessage, e)
-                    toastHelper.showError(context, "❌ Entry import failed: ${entry.driverName}")
+                    toastHelper.showError(context, "❌ Entry import failed: AED{entry.driverName}")
                 }
             }
 
             // Final result with toast notifications
             val finalStep = if (errors.isEmpty()) {
-                val successMsg = "✅ Import completed successfully! ${processedEntries} entries imported."
+                val successMsg = "✅ Import completed successfully! AED{processedEntries} entries imported."
                 Log.d(TAG, successMsg)
                 toastHelper.showMessage(context, successMsg)
                 "Import completed successfully"
             } else {
-                val errorMsg = "⚠️ Import completed with ${errors.size} errors. ${processedEntries} entries imported."
+                val errorMsg = "⚠️ Import completed with AED{errors.size} errors. AED{processedEntries} entries imported."
                 Log.w(TAG, errorMsg)
                 toastHelper.showError(context, errorMsg)
-                "Import completed with ${errors.size} errors"
+                "Import completed with AED{errors.size} errors"
             }
 
             return@withContext ImportProgress(
@@ -335,9 +335,9 @@ class ExcelImportManager @Inject constructor(
             )
 
         } catch (e: Exception) {
-            val errorMsg = "Import failed: ${e.message}"
+            val errorMsg = "Import failed: AED{e.message}"
             Log.e(TAG, "Error during CSV import", e)
-            toastHelper.showError(context, "❌ $errorMsg")
+            toastHelper.showError(context, "❌ AEDerrorMsg")
             return@withContext ImportProgress(
                 currentStep = "Import failed",
                 progress = 0,
@@ -352,7 +352,7 @@ class ExcelImportManager @Inject constructor(
      * @return The ID of the newly created user document
      */
     private suspend fun createDriverUserFromImport(fullName: String): String {
-        Log.d(TAG, "Creating user for driver: '$fullName'")
+        Log.d(TAG, "Creating user for driver: 'AEDfullName'")
         
         val newUserId = java.util.UUID.randomUUID().toString()
         
@@ -367,7 +367,7 @@ class ExcelImportManager @Inject constructor(
             "updatedAt" to com.google.firebase.Timestamp.now()
         )
         
-        Log.d(TAG, "User data to save: $userData")
+        Log.d(TAG, "User data to save: AEDuserData")
         
         try {
             // Save directly to Firestore users collection
@@ -376,7 +376,7 @@ class ExcelImportManager @Inject constructor(
                 .set(userData)
                 .await()
                 
-            Log.d(TAG, "✅ Successfully created user document with ID: $newUserId for driver: '$fullName'")
+            Log.d(TAG, "✅ Successfully created user document with ID: AEDnewUserId for driver: 'AEDfullName'")
             
             // Verify the document was created
             val createdDoc = firestoreService.getCollection("users")
@@ -385,15 +385,15 @@ class ExcelImportManager @Inject constructor(
                 .await()
                 
             if (createdDoc.exists()) {
-                Log.d(TAG, "✅ Verified: User document exists with data: ${createdDoc.data}")
+                Log.d(TAG, "✅ Verified: User document exists with data: AED{createdDoc.data}")
             } else {
                 Log.e(TAG, "❌ User document was not created properly")
                 throw Exception("User document verification failed")
             }
             
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to create user document for '$fullName'", e)
-            throw Exception("Failed to create user document: ${e.message}", e)
+            Log.e(TAG, "❌ Failed to create user document for 'AEDfullName'", e)
+            throw Exception("Failed to create user document: AED{e.message}", e)
         }
         
         return newUserId

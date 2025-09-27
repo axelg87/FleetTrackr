@@ -45,7 +45,7 @@ fun rememberExcelFilePicker(
         try {
             launcher.launch("text/*")
         } catch (e: Exception) {
-            onError("Failed to open file picker: ${e.message}")
+            onError("Failed to open file picker: AED{e.message}")
         }
     }
 }

@@ -439,7 +439,7 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${bestPerformer.vehicleName.take(15)}...",
+                            text = "AED{bestPerformer.vehicleName.take(15)}...",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -457,7 +457,7 @@ private fun VehicleROISummary(vehicleROI: List<VehicleROI>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${worstPerformer.vehicleName.take(15)}...",
+                            text = "AED{worstPerformer.vehicleName.take(15)}...",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold
                         )

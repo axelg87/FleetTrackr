@@ -50,7 +50,7 @@ sealed class Screen(val route: String) {
     object AddEntry : Screen("add_entry") {
         const val ARG_PREFILL_DATE = "prefillDate"
         const val ARG_PREFILL_DRIVER_ID = "prefillDriverId"
-        val routeWithOptionalArgs = "${route}?$ARG_PREFILL_DATE={${ARG_PREFILL_DATE}}&$ARG_PREFILL_DRIVER_ID={${ARG_PREFILL_DRIVER_ID}}"
+        val routeWithOptionalArgs = "AED{route}?AEDARG_PREFILL_DATE={AED{ARG_PREFILL_DATE}}&AEDARG_PREFILL_DRIVER_ID={AED{ARG_PREFILL_DRIVER_ID}}"
 
         fun createRoute(prefillDate: String? = null, prefillDriverId: String? = null): String {
             val encodedDate = prefillDate?.let { Uri.encode(it) }
@@ -61,13 +61,13 @@ sealed class Screen(val route: String) {
                 if (!encodedDate.isNullOrBlank() || !encodedDriver.isNullOrBlank()) {
                     append("?")
                     if (!encodedDate.isNullOrBlank()) {
-                        append("$ARG_PREFILL_DATE=$encodedDate")
+                        append("AEDARG_PREFILL_DATE=AEDencodedDate")
                     }
                     if (!encodedDriver.isNullOrBlank()) {
                         if (!encodedDate.isNullOrBlank()) {
                             append("&")
                         }
-                        append("$ARG_PREFILL_DRIVER_ID=$encodedDriver")
+                        append("AEDARG_PREFILL_DRIVER_ID=AEDencodedDriver")
                     }
                 }
             }
@@ -77,13 +77,13 @@ sealed class Screen(val route: String) {
     object Drivers : Screen("drivers")
     object Vehicles : Screen("vehicles")
     object EntryDetail : Screen("entry_detail/{entryId}") {
-        fun createRoute(entryId: String) = "entry_detail/$entryId"
+        fun createRoute(entryId: String) = "entry_detail/AEDentryId"
     }
     object EditEntry : Screen("edit_entry/{entryId}") {
-        fun createRoute(entryId: String) = "edit_entry/$entryId"
+        fun createRoute(entryId: String) = "edit_entry/AEDentryId"
     }
     object EditExpense : Screen("edit_expense/{expenseId}") {
-        fun createRoute(expenseId: String) = "edit_expense/$expenseId"
+        fun createRoute(expenseId: String) = "edit_expense/AEDexpenseId"
     }
 }
 

@@ -86,7 +86,7 @@ fun ReportScreen(
         viewModel.exportData { 
             when (val result = reportExporter.exportToCsv(context, uiState.filteredEntries)) {
                 is com.fleetmanager.ui.utils.ExportResult.Success -> {
-                    Toast.makeText(context, "Report exported to: ${result.filePath}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Report exported to: AED{result.filePath}", Toast.LENGTH_LONG).show()
                 }
                 is com.fleetmanager.ui.utils.ExportResult.Error -> {
                     Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
@@ -283,11 +283,11 @@ private fun CollapsibleFiltersSection(
                         // Show active filters summary when collapsed
                         if (!isExpanded) {
                             val activeFilters = mutableListOf<String>()
-                            selectedDriver?.let { activeFilters.add("Driver: $it") }
-                            selectedVehicle?.let { activeFilters.add("Vehicle: $it") }
-                            selectedType?.let { activeFilters.add("Type: $it") }
+                            selectedDriver?.let { activeFilters.add("Driver: AEDit") }
+                            selectedVehicle?.let { activeFilters.add("Vehicle: AEDit") }
+                            selectedType?.let { activeFilters.add("Type: AEDit") }
                             if (selectedEntryType != EntryTypeFilter.ALL) {
-                                activeFilters.add("Entry: ${selectedEntryType.displayName}")
+                                activeFilters.add("Entry: AED{selectedEntryType.displayName}")
                             }
                             if (startDate != null || endDate != null) {
                                 activeFilters.add("Date Range")
@@ -295,7 +295,7 @@ private fun CollapsibleFiltersSection(
                             
                             if (activeFilters.isNotEmpty()) {
                                 Text(
-                                    text = "${activeFilters.size} filter${if (activeFilters.size == 1) "" else "s"} active",
+                                    text = "AED{activeFilters.size} filterAED{if (activeFilters.size == 1) "" else "s"} active",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.secondary,
                                     fontWeight = FontWeight.Medium
@@ -430,7 +430,7 @@ private fun FilterDropdown(
             onValueChange = { },
             readOnly = true,
             label = { Text(label) },
-            placeholder = { Text("All ${label.lowercase()}s") },
+            placeholder = { Text("All AED{label.lowercase()}s") },
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
@@ -445,7 +445,7 @@ private fun FilterDropdown(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("All ${label.lowercase()}s") },
+                text = { Text("All AED{label.lowercase()}s") },
                 onClick = {
                     onOptionSelected(null)
                     expanded = false
@@ -835,7 +835,7 @@ private fun GroupedTotalsList(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "${total.count} entries",
+                        text = "AED{total.count} entries",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -856,7 +856,7 @@ private fun GroupedTotalsList(
         
         if (totals.size > 5) {
             Text(
-                text = "... and ${totals.size - 5} more",
+                text = "... and AED{totals.size - 5} more",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(top = 4.dp)
@@ -1047,12 +1047,12 @@ private fun ReportEntryCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Driver: ${entry.driverName}",
+                        text = "Driver: AED{entry.driverName}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline
                     )
                     Text(
-                        text = "Vehicle: ${entry.vehicle}",
+                        text = "Vehicle: AED{entry.vehicle}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline
                     )

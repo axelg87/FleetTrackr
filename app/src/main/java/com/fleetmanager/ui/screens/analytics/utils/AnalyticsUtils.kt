@@ -184,7 +184,7 @@ object AnalyticsUtils {
      * Format currency values consistently across all components
      */
     fun formatCurrency(amount: Double): String {
-        return "AED ${String.format("%.2f", amount)}"
+        return "AED AED{String.format("%.2f", amount)}"
     }
     
     /**
@@ -192,7 +192,7 @@ object AnalyticsUtils {
      * Format percentage values consistently
      */
     fun formatPercentage(percentage: Double): String {
-        return "${String.format("%.1f", percentage)}%"
+        return "AED{String.format("%.1f", percentage)}%"
     }
     
     /**

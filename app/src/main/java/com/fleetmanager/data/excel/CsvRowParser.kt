@@ -27,16 +27,16 @@ class CsvRowParser(
         val warnings = mutableListOf<String>()
         
         try {
-            Log.d(TAG, "Parsing row $rowNumber: ${row.joinToString(", ")}")
+            Log.d(TAG, "Parsing row AEDrowNumber: AED{row.joinToString(", ")}")
             
             // Parse date (critical field)
             val dateResult = columnMapping.mapping["date"]?.let { colIndex ->
                 if (colIndex < row.size) {
                     dateParser.parseDate(row[colIndex], rowNumber)
                 } else {
-                    DateParseResult.Error("Row $rowNumber: Date column index out of bounds")
+                    DateParseResult.Error("Row AEDrowNumber: Date column index out of bounds")
                 }
-            } ?: DateParseResult.Error("Row $rowNumber: No date column mapped")
+            } ?: DateParseResult.Error("Row AEDrowNumber: No date column mapped")
             
             val date = when (dateResult) {
                 is DateParseResult.Success -> dateResult.date
@@ -58,7 +58,7 @@ class CsvRowParser(
             }
             
             val finalDriver = if (driver.isNullOrBlank()) {
-                warnings.add("Row $rowNumber: Missing driver name, using 'Unknown Driver'")
+                warnings.add("Row AEDrowNumber: Missing driver name, using 'Unknown Driver'")
                 "Unknown Driver"
             } else driver
             
@@ -68,13 +68,13 @@ class CsvRowParser(
             }
             
             val finalVehicle = if (vehicle.isNullOrBlank()) {
-                warnings.add("Row $rowNumber: Missing vehicle name, using 'Unknown Vehicle'")
+                warnings.add("Row AEDrowNumber: Missing vehicle name, using 'Unknown Vehicle'")
                 "Unknown Vehicle"
             } else vehicle
             
             // Check if all earnings are zero
             if (careem == 0.0 && uber == 0.0 && yango == 0.0 && private == 0.0) {
-                warnings.add("Row $rowNumber: All earnings are zero")
+                warnings.add("Row AEDrowNumber: All earnings are zero")
             }
             
             val rowData = CsvRowData(
@@ -91,7 +91,7 @@ class CsvRowParser(
             return RowParseResult.Success(rowData, warnings)
             
         } catch (e: Exception) {
-            val errorMsg = "Row $rowNumber: Error parsing row - ${e.message}"
+            val errorMsg = "Row AEDrowNumber: Error parsing row - AED{e.message}"
             Log.e(TAG, errorMsg, e)
             errors.add(errorMsg)
             return RowParseResult.Error(errors, warnings)
@@ -117,17 +117,17 @@ class CsvRowParser(
             
             when {
                 doubleValue < 0 -> {
-                    errors.add("Row $rowNumber: $fieldName cannot be negative ($doubleValue)")
+                    errors.add("Row AEDrowNumber: AEDfieldName cannot be negative (AEDdoubleValue)")
                     0.0
                 }
                 doubleValue > 999999.99 -> {
-                    errors.add("Row $rowNumber: $fieldName value too large ($doubleValue)")
+                    errors.add("Row AEDrowNumber: AEDfieldName value too large (AEDdoubleValue)")
                     0.0
                 }
                 else -> doubleValue
             }
         } catch (e: Exception) {
-            errors.add("Row $rowNumber: Invalid $fieldName value '$value'")
+            errors.add("Row AEDrowNumber: Invalid AEDfieldName value 'AEDvalue'")
             0.0
         }
     }

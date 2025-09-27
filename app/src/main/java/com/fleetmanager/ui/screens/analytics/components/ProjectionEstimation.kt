@@ -171,7 +171,7 @@ private fun ProjectionMainCard(projectionData: ProjectionData) {
             val patternDaily = if (remainingDays > 0) projectedRemaining / remainingDays else 0.0
 
             Text(
-                text = "Expected additional: ${AnalyticsCalculator.formatCurrency(projectedRemaining)} over $remainingDays days",
+                text = "Expected additional: AED{AnalyticsCalculator.formatCurrency(projectedRemaining)} over AEDremainingDays days",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -179,7 +179,7 @@ private fun ProjectionMainCard(projectionData: ProjectionData) {
             if (projectionData.activeRevenueDays > 0) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Based on ${projectionData.activeRevenueDays} active revenue days and weekly day-of-week trends.",
+                    text = "Based on AED{projectionData.activeRevenueDays} active revenue days and weekly day-of-week trends.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -189,7 +189,7 @@ private fun ProjectionMainCard(projectionData: ProjectionData) {
             if (patternDaily > 0.0) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Aim for ~${AnalyticsCalculator.formatCurrency(patternDaily)} each remaining day to stay on projection.",
+                    text = "Aim for ~AED{AnalyticsCalculator.formatCurrency(patternDaily)} each remaining day to stay on projection.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
@@ -245,13 +245,13 @@ private fun MonthProgressVisualization(projectionData: ProjectionData) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Day ${projectionData.daysElapsed} of ${projectionData.totalDaysInMonth}",
+                text = "Day AED{projectionData.daysElapsed} of AED{projectionData.totalDaysInMonth}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
             Text(
-                text = "${String.format("%.1f", progressPercentage * 100)}% complete",
+                text = "AED{String.format("%.1f", progressPercentage * 100)}% complete",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
@@ -346,7 +346,7 @@ private fun ProjectionMetrics(projectionData: ProjectionData) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${String.format("%.0f", accuracyPercentage)}%",
+                        text = "AED{String.format("%.0f", accuracyPercentage)}%",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = getConfidenceColor(accuracyPercentage)
@@ -372,9 +372,9 @@ private fun DailyPaceDetails(
     val averageSource = when {
         projectionData.activeRevenueDays <= 0 -> "calendar pace"
         projectionData.activeRevenueDays == projectionData.daysElapsed ->
-            "${projectionData.activeRevenueDays} recorded days"
+            "AED{projectionData.activeRevenueDays} recorded days"
         else ->
-            "${projectionData.activeRevenueDays} revenue days over ${projectionData.daysElapsed} elapsed"
+            "AED{projectionData.activeRevenueDays} revenue days over AED{projectionData.daysElapsed} elapsed"
     }
 
     Column(
@@ -382,7 +382,7 @@ private fun DailyPaceDetails(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Daily average is based on $averageSource with weekly trend weighting for gaps.",
+            text = "Daily average is based on AEDaverageSource with weekly trend weighting for gaps.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -390,7 +390,7 @@ private fun DailyPaceDetails(
 
         if (weightedDaily > 0.0) {
             Text(
-                text = "You need about ${AnalyticsCalculator.formatCurrency(weightedDaily)} per remaining day to match the projection.",
+                text = "You need about AED{AnalyticsCalculator.formatCurrency(weightedDaily)} per remaining day to match the projection.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -533,13 +533,13 @@ private fun generateProjectionInsight(projectionData: ProjectionData): String {
     
     return when {
         currentPace > targetDaily * 1.1 -> 
-            "You're ahead of pace! Your daily average of ${AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)} is ${String.format("%.1f", ((currentPace / targetDaily - 1) * 100))}% above the projected rate."
+            "You're ahead of pace! Your daily average of AED{AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)} is AED{String.format("%.1f", ((currentPace / targetDaily - 1) * 100))}% above the projected rate."
         
         currentPace < targetDaily * 0.9 -> 
-            "You're slightly behind the projected pace. Your current daily average is ${AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)}, but you'd need ${AnalyticsCalculator.formatCurrency(targetDaily)} daily to meet typical projections."
+            "You're slightly behind the projected pace. Your current daily average is AED{AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)}, but you'd need AED{AnalyticsCalculator.formatCurrency(targetDaily)} daily to meet typical projections."
         
         else -> 
-            "You're on track with your current performance. At ${AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)} per day, you're maintaining a steady pace toward the month-end projection."
+            "You're on track with your current performance. At AED{AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)} per day, you're maintaining a steady pace toward the month-end projection."
     }
 }
 
@@ -551,15 +551,15 @@ private fun generateActionableRecommendation(projectionData: ProjectionData): St
     
     return when {
         remainingDays <= 5 -> 
-            "💡 Month is almost over! Focus on maximizing the remaining ${remainingDays} days with high-value activities."
+            "💡 Month is almost over! Focus on maximizing the remaining AED{remainingDays} days with high-value activities."
         
         neededDaily > projectionData.dailyAverage * 1.2 -> 
-            "💡 To exceed projections, aim for ${AnalyticsCalculator.formatCurrency(neededDaily)} per day. Consider peak hour optimization or additional drivers."
+            "💡 To exceed projections, aim for AED{AnalyticsCalculator.formatCurrency(neededDaily)} per day. Consider peak hour optimization or additional drivers."
         
         neededDaily < projectionData.dailyAverage * 0.8 -> 
             "💡 You're in a strong position! Maintain current performance or use this opportunity to focus on operational improvements."
         
         else -> 
-            "💡 Maintain your current pace of ${AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)} per day to meet projections."
+            "💡 Maintain your current pace of AED{AnalyticsCalculator.formatCurrency(projectionData.dailyAverage)} per day to meet projections."
     }
 }

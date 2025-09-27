@@ -60,7 +60,7 @@ class EntryDetailViewModel @Inject constructor(
                     error.contains("not found", ignoreCase = true) -> "Entry not found. It may have been deleted or you don't have permission to view it."
                     error.contains("network", ignoreCase = true) || error.contains("connection", ignoreCase = true) -> "Network error. Please check your connection and try again."
                     error.contains("permission", ignoreCase = true) -> "You don't have permission to view this entry."
-                    else -> "Failed to load entry: $error"
+                    else -> "Failed to load entry: AEDerror"
                 }
                 updateState { it.copy(isLoading = false, errorMessage = errorMessage) }
             }
@@ -95,7 +95,7 @@ class EntryDetailViewModel @Inject constructor(
     fun deleteEntry(entryId: String, onSuccess: () -> Unit) {
         executeAsync(
             onError = { error ->
-                updateState { it.copy(errorMessage = "Failed to delete entry: $error") }
+                updateState { it.copy(errorMessage = "Failed to delete entry: AEDerror") }
             }
         ) {
             deleteDailyEntryUseCase(entryId)

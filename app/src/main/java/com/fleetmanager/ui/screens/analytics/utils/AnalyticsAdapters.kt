@@ -68,7 +68,7 @@ object AnalyticsAdapters {
                 primaryLabel = "Total Revenue",
                 secondaryValue = driver.averageRevenuePerDay,
                 secondaryLabel = "Avg/Day",
-                tertiaryValue = "${driver.activeDays} days",
+                tertiaryValue = "AED{driver.activeDays} days",
                 tertiaryLabel = "Active Days",
                 metadata = mapOf(
                     "activeDays" to driver.activeDays,
@@ -90,7 +90,7 @@ object AnalyticsAdapters {
                 primaryLabel = "Net Profit",
                 secondaryValue = vehicle.totalIncome,
                 secondaryLabel = "Income",
-                tertiaryValue = "${AnalyticsUtils.formatDecimal(vehicle.roi)}%",
+                tertiaryValue = "AED{AnalyticsUtils.formatDecimal(vehicle.roi)}%",
                 tertiaryLabel = "ROI",
                 metadata = mapOf(
                     "roi" to vehicle.roi,
@@ -216,8 +216,8 @@ object AnalyticsAdapters {
                 } else 100.0
                 
                 when {
-                    gapPercentage > 100 -> "${topPerformer.name} significantly outperforms others with ${AnalyticsUtils.formatCurrency(gap)} more than the lowest performer."
-                    gapPercentage > 50 -> "There's a notable performance gap. ${topPerformer.name} leads by ${AnalyticsUtils.formatPercentage(gapPercentage)}."
+                    gapPercentage > 100 -> "AED{topPerformer.name} significantly outperforms others with AED{AnalyticsUtils.formatCurrency(gap)} more than the lowest performer."
+                    gapPercentage > 50 -> "There's a notable performance gap. AED{topPerformer.name} leads by AED{AnalyticsUtils.formatPercentage(gapPercentage)}."
                     gapPercentage > 20 -> "Performance is moderately varied across the leaderboard."
                     else -> "Very consistent performance across all items in the leaderboard."
                 }

@@ -55,7 +55,7 @@ class ExcelImportService @Inject constructor(
                 return createErrorResult("CSV file is empty")
             }
 
-            Log.d(TAG, "CSV loaded: ${allRows.size} rows, headers: ${allRows[0].joinToString(", ")}")
+            Log.d(TAG, "CSV loaded: AED{allRows.size} rows, headers: AED{allRows[0].joinToString(", ")}")
 
             // Map columns
             val columnMapping = columnMapper.mapColumns(allRows[0])
@@ -65,7 +65,7 @@ class ExcelImportService @Inject constructor(
             }
             
             warnings.addAll(columnMapping.warnings)
-            Log.d(TAG, "Column mapping: ${columnMapping.mapping}")
+            Log.d(TAG, "Column mapping: AED{columnMapping.mapping}")
 
             // Process data rows
             processDataRows(allRows, columnMapping, userId, entries, driversToCreate, vehiclesToCreate, errors, warnings)
@@ -74,7 +74,7 @@ class ExcelImportService @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Error importing CSV file", e)
-            errors.add("Error reading CSV file: ${e.message}")
+            errors.add("Error reading CSV file: AED{e.message}")
         }
 
         return ExcelImportResult(
@@ -141,7 +141,7 @@ class ExcelImportService @Inject constructor(
             }
         }
         
-        Log.d(TAG, "Processed $processedRows rows, skipped $skippedEmptyRows empty rows")
+        Log.d(TAG, "Processed AEDprocessedRows rows, skipped AEDskippedEmptyRows empty rows")
     }
     
     private fun createErrorResult(message: String) = ExcelImportResult(
@@ -153,7 +153,7 @@ class ExcelImportService @Inject constructor(
     )
     
     private fun logImportSummary(totalRows: Int, entries: Int, errors: Int, warnings: Int) {
-        Log.d(TAG, "Import summary: $totalRows total rows, $entries entries, $errors errors, $warnings warnings")
+        Log.d(TAG, "Import summary: AEDtotalRows total rows, AEDentries entries, AEDerrors errors, AEDwarnings warnings")
     }
     
     private fun isEmptyRow(row: Array<String>): Boolean {

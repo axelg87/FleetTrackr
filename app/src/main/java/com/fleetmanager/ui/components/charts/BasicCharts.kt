@@ -119,14 +119,14 @@ private fun PieChartLegend(data: PieChartData) {
                 )
                 
                 Text(
-                    text = "${slice.getPercentage(data.total).roundToInt()}%",
+                    text = "AED{slice.getPercentage(data.total).roundToInt()}%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 
                 Text(
-                    text = "$${String.format("%.2f", slice.value)}",
+                    text = "AEDAED{String.format("%.2f", slice.value)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.End,

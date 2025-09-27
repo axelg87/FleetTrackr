@@ -81,7 +81,7 @@ fun FcmIntegrationExample(
                     // Show token (first 20 chars for security)
                     status.token?.let { token ->
                         Text(
-                            text = "Token: $token",
+                            text = "Token: AEDtoken",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

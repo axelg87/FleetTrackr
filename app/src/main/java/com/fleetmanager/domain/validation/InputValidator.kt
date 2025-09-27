@@ -15,8 +15,8 @@ class InputValidator @Inject constructor() {
         private const val MAX_NOTES_LENGTH = 5000
         private const val MIN_YEAR = 1900
         private val CURRENT_YEAR = Calendar.getInstance().get(Calendar.YEAR)
-        private val LICENSE_PLATE_REGEX = Regex("^[A-Z0-9-]{3,10}$")
-        private val NAME_REGEX = Regex("^[a-zA-Z\\s'-]{2,50}$")
+        private val LICENSE_PLATE_REGEX = Regex("^[A-Z0-9-]{3,10}AED")
+        private val NAME_REGEX = Regex("^[a-zA-Z\\s'-]{2,50}AED")
     }
     
     /**
@@ -31,11 +31,11 @@ class InputValidator @Inject constructor() {
         val sanitized = sanitizeText(input)
         
         if (required && sanitized.isBlank()) {
-            return ValidationResult.Error("$fieldName is required")
+            return ValidationResult.Error("AEDfieldName is required")
         }
         
         if (sanitized.length > maxLength) {
-            return ValidationResult.Error("$fieldName must be $maxLength characters or less")
+            return ValidationResult.Error("AEDfieldName must be AEDmaxLength characters or less")
         }
         
         return ValidationResult.Success
@@ -48,11 +48,11 @@ class InputValidator @Inject constructor() {
         val sanitized = sanitizeText(name)
         
         if (sanitized.isBlank()) {
-            return ValidationResult.Error("$fieldName is required")
+            return ValidationResult.Error("AEDfieldName is required")
         }
         
         if (!NAME_REGEX.matches(sanitized)) {
-            return ValidationResult.Error("$fieldName contains invalid characters")
+            return ValidationResult.Error("AEDfieldName contains invalid characters")
         }
         
         return ValidationResult.Success
@@ -63,22 +63,22 @@ class InputValidator @Inject constructor() {
      */
     fun validateEarnings(amount: String?, fieldName: String): ValidationResult {
         if (amount.isNullOrBlank()) {
-            return ValidationResult.Error("$fieldName is required")
+            return ValidationResult.Error("AEDfieldName is required")
         }
 
         val sanitized = sanitizeNumericInput(amount)
         val value = sanitized.toDoubleOrNull()
 
         if (value == null) {
-            return ValidationResult.Error("$fieldName must be a valid number")
+            return ValidationResult.Error("AEDfieldName must be a valid number")
         }
 
         if (value < 0) {
-            return ValidationResult.Error("$fieldName cannot be negative")
+            return ValidationResult.Error("AEDfieldName cannot be negative")
         }
 
         if (value > 999999.99) {
-            return ValidationResult.Error("$fieldName is too large")
+            return ValidationResult.Error("AEDfieldName is too large")
         }
 
         return ValidationResult.Success
@@ -93,13 +93,13 @@ class InputValidator @Inject constructor() {
         required: Boolean = true
     ): ValidationResult {
         val value = amount ?: if (required) {
-            return ValidationResult.Error("$fieldName is required")
+            return ValidationResult.Error("AEDfieldName is required")
         } else {
             return ValidationResult.Success
         }
 
         if (value < 0.0) {
-            return ValidationResult.Error("$fieldName cannot be negative")
+            return ValidationResult.Error("AEDfieldName cannot be negative")
         }
 
         return ValidationResult.Success
@@ -111,13 +111,13 @@ class InputValidator @Inject constructor() {
         required: Boolean = true
     ): ValidationResult {
         val value = amount ?: if (required) {
-            return ValidationResult.Error("$fieldName is required")
+            return ValidationResult.Error("AEDfieldName is required")
         } else {
             return ValidationResult.Success
         }
 
         if (value <= 0.0) {
-            return ValidationResult.Error("$fieldName must be greater than 0")
+            return ValidationResult.Error("AEDfieldName must be greater than 0")
         }
 
         return ValidationResult.Success
@@ -128,7 +128,7 @@ class InputValidator @Inject constructor() {
      */
     fun validateYear(year: Int): ValidationResult {
         if (year < MIN_YEAR) {
-            return ValidationResult.Error("Year must be $MIN_YEAR or later")
+            return ValidationResult.Error("Year must be AEDMIN_YEAR or later")
         }
         
         if (year > CURRENT_YEAR + 1) {
@@ -157,13 +157,13 @@ class InputValidator @Inject constructor() {
 
     fun validatePositiveInt(value: Int?, fieldName: String, required: Boolean = true): ValidationResult {
         val result = value ?: if (required) {
-            return ValidationResult.Error("$fieldName is required")
+            return ValidationResult.Error("AEDfieldName is required")
         } else {
             return ValidationResult.Success
         }
 
         if (result <= 0) {
-            return ValidationResult.Error("$fieldName must be greater than 0")
+            return ValidationResult.Error("AEDfieldName must be greater than 0")
         }
 
         return ValidationResult.Success
@@ -176,7 +176,7 @@ class InputValidator @Inject constructor() {
         val sanitized = sanitizeText(notes)
         
         if (sanitized.length > MAX_NOTES_LENGTH) {
-            return ValidationResult.Error("Notes must be $MAX_NOTES_LENGTH characters or less")
+            return ValidationResult.Error("Notes must be AEDMAX_NOTES_LENGTH characters or less")
         }
         
         return ValidationResult.Success
@@ -221,7 +221,7 @@ class InputValidator @Inject constructor() {
                 // Ensure only one decimal point
                 val parts = sanitized.split(".")
                 if (parts.size > 2) {
-                    "${parts[0]}.${parts.drop(1).joinToString("")}"
+                    "AED{parts[0]}.AED{parts.drop(1).joinToString("")}"
                 } else {
                     sanitized
                 }

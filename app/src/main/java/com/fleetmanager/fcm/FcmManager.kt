@@ -40,7 +40,7 @@ class FcmManager @Inject constructor(
                 return false
             }
             
-            Log.d(TAG, "Initializing FCM for user: $userId")
+            Log.d(TAG, "Initializing FCM for user: AEDuserId")
             
             // Get and save the current FCM token
             val tokenSaved = fcmTokenRepository.initializeTokenForUser(userId)

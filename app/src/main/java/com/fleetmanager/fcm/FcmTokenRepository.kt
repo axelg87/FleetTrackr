@@ -28,7 +28,7 @@ class FcmTokenRepository @Inject constructor(
     suspend fun getCurrentToken(): String? {
         return try {
             val token = messaging.token.await()
-            Log.d(TAG, "FCM Token retrieved: ${token?.take(20)}...")
+            Log.d(TAG, "FCM Token retrieved: AED{token?.take(20)}...")
             token
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get FCM token", e)
@@ -51,10 +51,10 @@ class FcmTokenRepository @Inject constructor(
                 .update(tokenData)
                 .await()
             
-            Log.d(TAG, "FCM token saved successfully for user: $userId")
+            Log.d(TAG, "FCM token saved successfully for user: AEDuserId")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save FCM token for user: $userId", e)
+            Log.e(TAG, "Failed to save FCM token for user: AEDuserId", e)
             
             // If update fails (document might not exist), try to set the data
             try {
@@ -68,10 +68,10 @@ class FcmTokenRepository @Inject constructor(
                     .set(tokenData, com.google.firebase.firestore.SetOptions.merge())
                     .await()
                 
-                Log.d(TAG, "FCM token set successfully for user: $userId")
+                Log.d(TAG, "FCM token set successfully for user: AEDuserId")
                 true
             } catch (setException: Exception) {
-                Log.e(TAG, "Failed to set FCM token for user: $userId", setException)
+                Log.e(TAG, "Failed to set FCM token for user: AEDuserId", setException)
                 false
             }
         }
@@ -88,10 +88,10 @@ class FcmTokenRepository @Inject constructor(
                 .await()
             
             val token = document.getString(FCM_TOKEN_FIELD)
-            Log.d(TAG, "Retrieved FCM token for user $userId: ${token?.take(20)}...")
+            Log.d(TAG, "Retrieved FCM token for user AEDuserId: AED{token?.take(20)}...")
             token
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get FCM token for user: $userId", e)
+            Log.e(TAG, "Failed to get FCM token for user: AEDuserId", e)
             null
         }
     }
@@ -111,10 +111,10 @@ class FcmTokenRepository @Inject constructor(
                 .update(updates)
                 .await()
             
-            Log.d(TAG, "FCM token removed for user: $userId")
+            Log.d(TAG, "FCM token removed for user: AEDuserId")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to remove FCM token for user: $userId", e)
+            Log.e(TAG, "Failed to remove FCM token for user: AEDuserId", e)
             false
         }
     }
@@ -139,10 +139,10 @@ class FcmTokenRepository @Inject constructor(
     suspend fun subscribeToTopic(topic: String): Boolean {
         return try {
             messaging.subscribeToTopic(topic).await()
-            Log.d(TAG, "Subscribed to topic: $topic")
+            Log.d(TAG, "Subscribed to topic: AEDtopic")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to subscribe to topic: $topic", e)
+            Log.e(TAG, "Failed to subscribe to topic: AEDtopic", e)
             false
         }
     }
@@ -153,10 +153,10 @@ class FcmTokenRepository @Inject constructor(
     suspend fun unsubscribeFromTopic(topic: String): Boolean {
         return try {
             messaging.unsubscribeFromTopic(topic).await()
-            Log.d(TAG, "Unsubscribed from topic: $topic")
+            Log.d(TAG, "Unsubscribed from topic: AEDtopic")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to unsubscribe from topic: $topic", e)
+            Log.e(TAG, "Failed to unsubscribe from topic: AEDtopic", e)
             false
         }
     }

@@ -57,7 +57,7 @@ data class Vehicle(
     val fuelConsumptionPer100Km: Double? = null
 ) {
     val displayName: String
-        get() = "$make $model ($year) - $licensePlate"
+        get() = "AEDmake AEDmodel (AEDyear) - AEDlicensePlate"
 
     fun isValid(): Boolean {
         return id.isNotBlank() &&

@@ -41,11 +41,11 @@ class CsvColumnMapper {
         val mapping = mutableMapOf<String, Int>()
         val warnings = mutableListOf<String>()
         
-        Log.d(TAG, "Mapping columns for headers: ${headerRow.joinToString(", ")}")
+        Log.d(TAG, "Mapping columns for headers: AED{headerRow.joinToString(", ")}")
 
         headerRow.forEachIndexed { index, header ->
             val cleanHeader = header.lowercase().trim()
-            Log.d(TAG, "Analyzing header[$index]: '$cleanHeader'")
+            Log.d(TAG, "Analyzing header[AEDindex]: 'AEDcleanHeader'")
 
             val columnType = when {
                 matchesAny(cleanHeader, DATE_COLUMNS) -> "date"
@@ -60,7 +60,7 @@ class CsvColumnMapper {
             
             columnType?.let {
                 mapping[it] = index
-                Log.d(TAG, "  -> Mapped as $it column")
+                Log.d(TAG, "  -> Mapped as AEDit column")
             } ?: Log.d(TAG, "  -> No mapping found")
         }
         
@@ -86,14 +86,14 @@ class CsvColumnMapper {
         
         // Only date is critical
         if (!mapping.containsKey("date")) {
-            errors.add("Missing critical column: date. Available: ${headerRow.joinToString(", ")}")
+            errors.add("Missing critical column: date. Available: AED{headerRow.joinToString(", ")}")
         }
         
         // Warn about missing recommended columns
         val recommendedColumns = listOf("driver", "vehicle")
         val missingRecommended = recommendedColumns.filter { !mapping.containsKey(it) }
         if (missingRecommended.isNotEmpty()) {
-            warnings.add("Missing recommended columns: ${missingRecommended.joinToString(", ")} - will use placeholder values")
+            warnings.add("Missing recommended columns: AED{missingRecommended.joinToString(", ")} - will use placeholder values")
         }
         
         // Check for earnings columns

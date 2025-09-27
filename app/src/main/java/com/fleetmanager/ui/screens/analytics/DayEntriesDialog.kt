@@ -83,13 +83,13 @@ fun DayEntriesDialog(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "${String.format("%.2f", totalEarnings)} AED",
+                            text = "AED{String.format("%.2f", totalEarnings)} AED",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "${entries.size} ${if (entries.size == 1) "entry" else "entries"}",
+                            text = "AED{entries.size} AED{if (entries.size == 1) "entry" else "entries"}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -219,7 +219,7 @@ private fun EarningsRow(
             fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal
         )
         Text(
-            text = "${String.format("%.2f", amount)} AED",
+            text = "AED{String.format("%.2f", amount)} AED",
             style = if (isTotal) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
             fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal
         )

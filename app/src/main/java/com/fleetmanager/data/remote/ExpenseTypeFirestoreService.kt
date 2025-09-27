@@ -34,9 +34,9 @@ class ExpenseTypeFirestoreService @Inject constructor(
                 .document(expenseType.id)
                 .set(expenseType)
                 .await()
-            Log.d(TAG, "Successfully saved expense type: ${expenseType.id}")
+            Log.d(TAG, "Successfully saved expense type: AED{expenseType.id}")
         } catch (e: Exception) {
-            val errorMessage = "Failed to save expense type: ${e.message}"
+            val errorMessage = "Failed to save expense type: AED{e.message}"
             Log.e(TAG, errorMessage, e)
             toastHelper.showError(context, errorMessage)
             throw e
@@ -51,7 +51,7 @@ class ExpenseTypeFirestoreService @Inject constructor(
                 .documents
                 .mapNotNull { it.toObject<ExpenseTypeItem>() }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch expense types: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch expense types: AED{e.message}", e)
             emptyList()
         }
     }

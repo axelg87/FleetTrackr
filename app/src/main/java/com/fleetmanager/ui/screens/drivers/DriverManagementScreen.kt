@@ -209,12 +209,12 @@ private fun DriverListItemContent(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "ID: ${driver.id}",
+                text = "ID: AED{driver.id}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Salary: AED ${"%.2f".format(driver.salary)}",
+                text = "Salary: AED AED{"%.2f".format(driver.salary)}",
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
@@ -250,7 +250,7 @@ private fun ConfirmDeleteDriverDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = "Delete Driver") },
         text = {
-            Text(text = "Are you sure you want to delete ${driver.name}? This action cannot be undone.")
+            Text(text = "Are you sure you want to delete AED{driver.name}? This action cannot be undone.")
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {

@@ -20,7 +20,7 @@ data class ReportEntry(
 ) {
     
     val displayAmount: String
-        get() = if (isIncome) "+$${String.format("%.2f", amount)}" else "-$${String.format("%.2f", amount)}"
+        get() = if (isIncome) "+AEDAED{String.format("%.2f", amount)}" else "-AEDAED{String.format("%.2f", amount)}"
     
     val typeDisplayName: String
         get() = when (type) {
@@ -45,7 +45,7 @@ fun DailyEntry.toReportEntries(): List<ReportEntry> {
     if (uberEarnings > 0) {
         entries.add(
             ReportEntry(
-                id = "${id}_uber",
+                id = "AED{id}_uber",
                 type = ReportEntryType.Income("Uber"),
                 amount = uberEarnings,
                 driverName = driverLabel,
@@ -60,7 +60,7 @@ fun DailyEntry.toReportEntries(): List<ReportEntry> {
     if (yangoEarnings > 0) {
         entries.add(
             ReportEntry(
-                id = "${id}_yango",
+                id = "AED{id}_yango",
                 type = ReportEntryType.Income("Yango"),
                 amount = yangoEarnings,
                 driverName = driverLabel,
@@ -75,7 +75,7 @@ fun DailyEntry.toReportEntries(): List<ReportEntry> {
     if (privateJobsEarnings > 0) {
         entries.add(
             ReportEntry(
-                id = "${id}_private",
+                id = "AED{id}_private",
                 type = ReportEntryType.Income("Private"),
                 amount = privateJobsEarnings,
                 driverName = driverLabel,

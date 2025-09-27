@@ -41,10 +41,10 @@ class CsvDateParser {
      */
     fun parseDate(dateString: String, rowNumber: Int): DateParseResult {
         if (dateString.isBlank()) {
-            return DateParseResult.Error("Row $rowNumber: Date is blank")
+            return DateParseResult.Error("Row AEDrowNumber: Date is blank")
         }
 
-        Log.d(TAG, "Parsing American date format: '$dateString'")
+        Log.d(TAG, "Parsing American date format: 'AEDdateString'")
         
         for (format in americanDateFormats) {
             try {
@@ -52,7 +52,7 @@ class CsvDateParser {
                 format.timeZone = TimeZone.getTimeZone("UTC") // Parse as UTC for Firestore consistency
                 val parsedDate = format.parse(dateString)
                 
-                Log.d(TAG, "Successfully parsed '$dateString' using ${format.toPattern()} as UTC: $parsedDate")
+                Log.d(TAG, "Successfully parsed 'AEDdateString' using AED{format.toPattern()} as UTC: AEDparsedDate")
                 return DateParseResult.Success(parsedDate)
                 
             } catch (e: Exception) {
@@ -60,7 +60,7 @@ class CsvDateParser {
             }
         }
 
-        val errorMsg = "Row $rowNumber: Invalid date format '$dateString'. Expected American format: MM/dd/yyyy (e.g., 12/25/2023)"
+        val errorMsg = "Row AEDrowNumber: Invalid date format 'AEDdateString'. Expected American format: MM/dd/yyyy (e.g., 12/25/2023)"
         Log.e(TAG, errorMsg)
         return DateParseResult.Error(errorMsg)
     }

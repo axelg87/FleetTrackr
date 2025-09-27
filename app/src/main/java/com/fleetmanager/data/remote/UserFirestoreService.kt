@@ -108,13 +108,13 @@ class UserFirestoreService @Inject constructor(
         }
         
         val userId = currentUser.uid
-        Log.d(TAG, "Checking user document for: $userId")
+        Log.d(TAG, "Checking user document for: AEDuserId")
         
         try {
             val userDoc = getCollection().document(userId).get().await()
             
             if (!userDoc.exists()) {
-                Log.d(TAG, "Creating new user document for: $userId")
+                Log.d(TAG, "Creating new user document for: AEDuserId")
                 
                 val userData = mapOf(
                     "id" to userId,
@@ -129,14 +129,14 @@ class UserFirestoreService @Inject constructor(
                     .set(userData)
                     .await()
                 
-                Log.d(TAG, "✅ User document created successfully for: $userId")
+                Log.d(TAG, "✅ User document created successfully for: AEDuserId")
                 toastHelper.showMessage(context, "✅ User profile created")
             } else {
-                Log.d(TAG, "User document already exists for: $userId")
+                Log.d(TAG, "User document already exists for: AEDuserId")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to create user document: ${e.message}", e)
-            toastHelper.showError(context, "❌ Failed to create user: ${e.message}")
+            Log.e(TAG, "❌ Failed to create user document: AED{e.message}", e)
+            toastHelper.showError(context, "❌ Failed to create user: AED{e.message}")
             throw e
         }
     }
@@ -164,12 +164,12 @@ class UserFirestoreService @Inject constructor(
                             profilePictureUrl = document.getString("profilePictureUrl")
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse user: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse user: AED{document.id}", e)
                         null
                     }
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch users: ${e.message}", e)
+            Log.e(TAG, "Failed to fetch users: AED{e.message}", e)
             emptyList()
         }
     }
@@ -194,7 +194,7 @@ class UserFirestoreService @Inject constructor(
                             profilePictureUrl = document.getString("profilePictureUrl")
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to parse user: ${document.id}", e)
+                        Log.w(TAG, "Failed to parse user: AED{document.id}", e)
                         null
                     }
                 }
@@ -219,7 +219,7 @@ class UserFirestoreService @Inject constructor(
             .set(userData)
             .await()
         
-        Log.d(TAG, "✅ Created new driver user: $name ($userId)")
+        Log.d(TAG, "✅ Created new driver user: AEDname (AEDuserId)")
         
         return UserDto(
             id = userId,
@@ -247,12 +247,12 @@ class UserFirestoreService @Inject constructor(
                 .update(updateData)
                 .await()
             
-            Log.d(TAG, "✅ User profile updated successfully for: $userId")
+            Log.d(TAG, "✅ User profile updated successfully for: AEDuserId")
             toastHelper.showMessage(context, "✅ Profile updated successfully")
             
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to update user profile: ${e.message}", e)
-            toastHelper.showError(context, "❌ Failed to update profile: ${e.message}")
+            Log.e(TAG, "❌ Failed to update user profile: AED{e.message}", e)
+            toastHelper.showError(context, "❌ Failed to update profile: AED{e.message}")
             throw e
         }
     }
@@ -272,12 +272,12 @@ class UserFirestoreService @Inject constructor(
                 .update(updateData)
                 .await()
             
-            Log.d(TAG, "✅ Profile picture updated successfully for: $userId")
+            Log.d(TAG, "✅ Profile picture updated successfully for: AEDuserId")
             toastHelper.showMessage(context, "✅ Profile picture updated successfully")
             
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to update profile picture: ${e.message}", e)
-            toastHelper.showError(context, "❌ Failed to update profile picture: ${e.message}")
+            Log.e(TAG, "❌ Failed to update profile picture: AED{e.message}", e)
+            toastHelper.showError(context, "❌ Failed to update profile picture: AED{e.message}")
             throw e
         }
     }
@@ -297,12 +297,12 @@ class UserFirestoreService @Inject constructor(
                 .update(updateData)
                 .await()
             
-            Log.d(TAG, "✅ Profile picture removed successfully for: $userId")
+            Log.d(TAG, "✅ Profile picture removed successfully for: AEDuserId")
             toastHelper.showMessage(context, "✅ Profile picture removed successfully")
             
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to remove profile picture: ${e.message}", e)
-            toastHelper.showError(context, "❌ Failed to remove profile picture: ${e.message}")
+            Log.e(TAG, "❌ Failed to remove profile picture: AED{e.message}", e)
+            toastHelper.showError(context, "❌ Failed to remove profile picture: AED{e.message}")
             throw e
         }
     }

@@ -134,7 +134,7 @@ class SettingsViewModel @Inject constructor(
                 updateState { it.copy(isSyncing = isLoading, error = null) }
             },
             onError = { error ->
-                updateState { it.copy(isSyncing = false, error = "Sync failed: $error") }
+                updateState { it.copy(isSyncing = false, error = "Sync failed: AEDerror") }
             }
         ) {
             syncManager.syncNow()
@@ -154,7 +154,7 @@ class SettingsViewModel @Inject constructor(
                 updateState { it.copy(isExporting = isLoading, error = null) }
             },
             onError = { error ->
-                updateState { it.copy(isExporting = false, error = "Export failed: $error") }
+                updateState { it.copy(isExporting = false, error = "Export failed: AEDerror") }
             }
         ) {
             // Fetch all data for export
@@ -204,7 +204,7 @@ class SettingsViewModel @Inject constructor(
                     updateState { 
                         it.copy(
                             isExporting = false,
-                            message = "Data exported successfully to: ${result.filePath}"
+                            message = "Data exported successfully to: AED{result.filePath}"
                         )
                     }
                 }
@@ -223,7 +223,7 @@ class SettingsViewModel @Inject constructor(
     fun signOut() {
         executeAsync(
             onError = { error ->
-                updateState { it.copy(error = "Sign out failed: $error") }
+                updateState { it.copy(error = "Sign out failed: AEDerror") }
             }
         ) {
             val result = authRepository.signOut()
@@ -234,7 +234,7 @@ class SettingsViewModel @Inject constructor(
                     updateState { it.copy(message = "Signed out successfully") }
                 },
                 onFailure = { error ->
-                    updateState { it.copy(error = "Sign out failed: ${error.message}") }
+                    updateState { it.copy(error = "Sign out failed: AED{error.message}") }
                 }
             )
         }
@@ -247,7 +247,7 @@ class SettingsViewModel @Inject constructor(
     private fun loadUserRole() {
         executeAsync(
             onError = { error ->
-                updateState { it.copy(error = "Failed to load user role: $error") }
+                updateState { it.copy(error = "Failed to load user role: AEDerror") }
             }
         ) {
             userFirestoreService.getCurrentUserProfile().collect { userProfile ->
@@ -267,12 +267,12 @@ class SettingsViewModel @Inject constructor(
         
         executeAsync(
             onError = { error ->
-                updateState { it.copy(error = "Failed to add expense type: $error") }
+                updateState { it.copy(error = "Failed to add expense type: AEDerror") }
             }
         ) {
             val expenseType = expenseTypeFirestoreService.createExpenseType(name, displayName)
             updateState { 
-                it.copy(message = "Expense type '${expenseType.displayName}' added successfully") 
+                it.copy(message = "Expense type 'AED{expenseType.displayName}' added successfully") 
             }
         }
     }
@@ -320,7 +320,7 @@ class SettingsViewModel @Inject constructor(
                     it.copy(
                         isImporting = false,
                         importProgress = null,
-                        error = "Import failed: $error"
+                        error = "Import failed: AEDerror"
                     ) 
                 }
             }
@@ -336,9 +336,9 @@ class SettingsViewModel @Inject constructor(
                     isImporting = false,
                     importProgress = finalProgress,
                     message = if (finalProgress.errors.isEmpty()) {
-                        "✅ Successfully imported ${finalProgress.processedEntries} entries"
+                        "✅ Successfully imported AED{finalProgress.processedEntries} entries"
                     } else {
-                        "⚠️ Import completed with ${finalProgress.errors.size} errors"
+                        "⚠️ Import completed with AED{finalProgress.errors.size} errors"
                     }
                 ) 
             }
