@@ -7,7 +7,9 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Schedule
+import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
+import com.fleetmanager.data.remote.VehicleFirestoreService
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
@@ -18,7 +20,6 @@ import com.fleetmanager.ui.navigation.DashboardShortcut
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
@@ -37,6 +38,8 @@ class DashboardViewModel @Inject constructor(
     private val getDashboardDataRealtimeUseCase: GetDashboardDataRealtimeUseCase,
     private val syncManager: SyncManager,
     private val userFirestoreService: UserFirestoreService,
+    private val firestoreService: FirestoreService,
+    private val vehicleFirestoreService: VehicleFirestoreService,
     private val authRepository: com.fleetmanager.domain.repository.AuthRepository
 ) : BaseViewModel<DashboardUiState>() {
 
@@ -107,10 +110,26 @@ class DashboardViewModel @Inject constructor(
                 updateState { it.copy(error = error, isLoading = false) }
             }
         ) {
-            getDashboardDataRealtimeUseCase().collect { dashboardData ->
+            combine(
+                getDashboardDataRealtimeUseCase(),
+                firestoreService.getDriversFlow(),
+                vehicleFirestoreService.getVehiclesFlow()
+            ) { dashboardData, drivers, vehicles ->
+                val driverNameMap = drivers.associateBy({ it.id }, { it.name })
+                val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
+
+                dashboardData.copy(
+                    recentEntries = dashboardData.recentEntries.map { entry ->
+                        entry.withResolvedDisplayData(
+                            driverDisplayName = driverNameMap[entry.driverId],
+                            vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                        )
+                    }
+                )
+            }.collect { dashboardData ->
                 val currentUserRole = uiState.value.userProfile?.role ?: UserRole.DRIVER
                 val isAdmin = PermissionManager.canSeeAdminControls(currentUserRole)
-                
+
                 val quickStats = buildList {
                     add(StatItem(
                         icon = Icons.Default.CalendarToday,
