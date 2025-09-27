@@ -516,8 +516,7 @@ private fun AllAnalyticsTiles(
 
 private data class CostSelectionOption(
     val factor: CostFactor,
-    val label: String,
-    val description: String
+    val label: String
 )
 
 @Composable
@@ -552,28 +551,23 @@ private fun CostSelectionControls(
                 listOf(
                     CostSelectionOption(
                         factor = CostFactor.SALARY,
-                        label = "Salary",
-                        description = "Monthly driver salary"
+                        label = "Salary"
                     ),
                     CostSelectionOption(
                         factor = CostFactor.VISA_LICENSE_FEES,
-                        label = "Visa & license",
-                        description = "Recurring visa and license fees"
+                        label = "Visa & license"
                     ),
                     CostSelectionOption(
                         factor = CostFactor.EXPENSES,
-                        label = "Operational expenses",
-                        description = "Daily operational expenses and reimbursements"
+                        label = "Expenses"
                     ),
                     CostSelectionOption(
                         factor = CostFactor.INSTALLMENTS,
-                        label = "Vehicle installments",
-                        description = "Monthly loan or lease payments"
+                        label = "Installments"
                     ),
                     CostSelectionOption(
                         factor = CostFactor.INSURANCE,
-                        label = "Vehicle insurance",
-                        description = "Prorated annual insurance premiums"
+                        label = "Insurance"
                     )
                 )
             }
@@ -604,37 +598,28 @@ private fun CostSelectionOptionChip(
     selected: Boolean,
     onSelectionChanged: (Boolean) -> Unit
 ) {
-    Column(
-        modifier = Modifier.widthIn(max = 220.dp)
-    ) {
-        FilterChip(
-            selected = selected,
-            onClick = { onSelectionChanged(!selected) },
-            label = {
-                Text(
-                    text = option.label,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold
+    FilterChip(
+        modifier = Modifier.widthIn(max = 220.dp),
+        selected = selected,
+        onClick = { onSelectionChanged(!selected) },
+        label = {
+            Text(
+                text = option.label,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        leadingIcon = if (selected) {
+            {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null
                 )
-            },
-            leadingIcon = if (selected) {
-                {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null
-                    )
-                }
-            } else {
-                null
             }
-        )
-        Text(
-            text = option.description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-    }
+        } else {
+            null
+        }
+    )
 }
 
 @Composable
