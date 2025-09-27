@@ -15,6 +15,8 @@ import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.usecase.DeleteExpenseUseCase
 import com.fleetmanager.domain.usecase.GetAllExpensesRealtimeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import java.util.Date
@@ -60,6 +62,7 @@ class EntryListViewModel @Inject constructor(
     
     companion object {
         private const val TAG = "EntryListViewModel"
+        private const val HISTORY_STREAM_RETRY_DELAY_MS = 2_000L
     }
     
     override fun getInitialState() = EntryListUiState()
@@ -110,63 +113,75 @@ class EntryListViewModel @Inject constructor(
                 updateState { it.copy(isLoading = false, errorMessage = error) }
             }
         ) {
-            userRole.collect { role ->
-                combine(
-                    firestoreService.getDailyEntriesFlowForRole(role),
-                    getAllExpensesRealtimeUseCase(),
-                    firestoreService.getDriversFlow(),
-                    vehicleFirestoreService.getVehiclesFlow()
-                ) { entries, expenses, drivers, vehicles ->
-                    val currentUserId = authRepository.currentUserId
-                    val filteredExpenses = if (PermissionManager.canViewAll(role)) {
-                        expenses
-                    } else {
-                        val driverId = currentUserId.orEmpty()
-                        expenses.filter { expense ->
-                            when {
-                                driverId.isBlank() -> false
-                                expense.driverId.isNotBlank() -> expense.driverId == driverId
-                                expense.userId.isNotBlank() -> expense.userId == driverId
-                                else -> false
+            userRole
+                .flatMapLatest { role ->
+                    combine(
+                        firestoreService.getDailyEntriesFlowForRole(role),
+                        getAllExpensesRealtimeUseCase(),
+                        firestoreService.getDriversFlow(),
+                        vehicleFirestoreService.getVehiclesFlow()
+                    ) { entries, expenses, drivers, vehicles ->
+                        val currentUserId = authRepository.currentUserId
+                        val filteredExpenses = if (PermissionManager.canViewAll(role)) {
+                            expenses
+                        } else {
+                            val driverId = currentUserId.orEmpty()
+                            expenses.filter { expense ->
+                                when {
+                                    driverId.isBlank() -> false
+                                    expense.driverId.isNotBlank() -> expense.driverId == driverId
+                                    expense.userId.isNotBlank() -> expense.userId == driverId
+                                    else -> false
+                                }
                             }
                         }
+                        role to HistoryData(entries, filteredExpenses, drivers, vehicles)
                     }
-                    HistoryData(entries, filteredExpenses, drivers, vehicles)
+                        .retryWhen { cause, attempt ->
+                            if (cause is CancellationException) {
+                                false
+                            } else {
+                                Log.w(
+                                    TAG,
+                                    "History stream error for role $role, retrying (attempt=${attempt + 1})",
+                                    cause
+                                )
+                                updateState {
+                                    it.copy(
+                                        isLoading = false,
+                                        errorMessage = "Failed to load entries: ${cause.message}"
+                                    )
+                                }
+                                delay(HISTORY_STREAM_RETRY_DELAY_MS)
+                                true
+                            }
+                        }
                 }
-                    .catch { e ->
-                        Log.e(TAG, "Firestore snapshot listener error", e)
-                        updateState {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = "Failed to load entries: ${e.message}"
-                            ) 
-                        }
+                .collect { (role, historyData) ->
+                    val (entries, filteredExpenses, drivers, vehicles) = historyData
+                    Log.d(TAG, "Received ${entries.size} entries for role $role")
+                    val driverNameMap = drivers.associateBy({ it.id }, { it.name })
+                    val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
+                    val enrichedEntries = entries.map { entry ->
+                        entry.withResolvedDisplayData(
+                            driverDisplayName = driverNameMap[entry.driverId],
+                            vehicleDisplayName = vehicleNameMap[entry.vehicleId]
+                        )
                     }
-                    .collect { (entries, filteredExpenses, drivers, vehicles) ->
-                        Log.d(TAG, "Received ${entries.size} entries for role $role")
-                        val driverNameMap = drivers.associateBy({ it.id }, { it.name })
-                        val vehicleNameMap = vehicles.associateBy({ it.id }, { it.displayName })
-                        val enrichedEntries = entries.map { entry ->
-                            entry.withResolvedDisplayData(
-                                driverDisplayName = driverNameMap[entry.driverId],
-                                vehicleDisplayName = vehicleNameMap[entry.vehicleId]
-                            )
-                        }
-                        // Sort entries by date descending (most recent first)
-                        val sortedEntries = enrichedEntries.sortedByDescending { it.date }
-                        val sortedExpenses = filteredExpenses.sortedByDescending { it.date }
-                        updateState {
-                            it.copy(
-                                entries = sortedEntries,
-                                expenses = sortedExpenses,
-                                drivers = drivers,
-                                vehicles = vehicles,
-                                isLoading = false,
-                                errorMessage = null
-                            )
-                        }
+                    // Sort entries by date descending (most recent first)
+                    val sortedEntries = enrichedEntries.sortedByDescending { it.date }
+                    val sortedExpenses = filteredExpenses.sortedByDescending { it.date }
+                    updateState {
+                        it.copy(
+                            entries = sortedEntries,
+                            expenses = sortedExpenses,
+                            drivers = drivers,
+                            vehicles = vehicles,
+                            isLoading = false,
+                            errorMessage = null
+                        )
                     }
-            }
+                }
         }
     }
     
