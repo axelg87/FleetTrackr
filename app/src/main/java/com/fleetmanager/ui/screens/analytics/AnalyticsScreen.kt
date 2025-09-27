@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.screens.analytics
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,7 +35,7 @@ enum class AnalyticsScopeFilter {
  * Analytics Screen with comprehensive analytics features including trends,
  * comparisons, ROI analysis, and performance insights.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class) // Material 3 scaffold & FlowRow are still experimental.
 @Composable
 fun AnalyticsScreen(
     onNavigateToProfile: (() -> Unit)? = null,
@@ -520,7 +521,7 @@ private data class CostSelectionOption(
 )
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class) // FlowRow support is still experimental in Compose.
 private fun CostSelectionControls(
     selection: CostSelection,
     onCostSelectionChanged: (CostFactor, Boolean) -> Unit,
