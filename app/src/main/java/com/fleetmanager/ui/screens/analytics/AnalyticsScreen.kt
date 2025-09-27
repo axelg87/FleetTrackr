@@ -597,6 +597,7 @@ private fun CostSelectionControls(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class) // FilterChip is still experimental in Material 3.
 @Composable
 private fun CostSelectionOptionChip(
     option: CostSelectionOption,
