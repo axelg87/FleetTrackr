@@ -101,7 +101,7 @@ object ChartDataGenerator {
             bars = bars,
             title = "Monthly Net Amount",
             xAxisLabel = "Month",
-            yAxisLabel = "Amount ($)"
+            yAxisLabel = "Amount (AED)"
         )
     }
     
@@ -130,7 +130,7 @@ object ChartDataGenerator {
             bars = bars,
             title = "Weekly Net Amount",
             xAxisLabel = "Week",
-            yAxisLabel = "Amount ($)"
+            yAxisLabel = "Amount (AED)"
         )
     }
     

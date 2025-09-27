@@ -77,7 +77,7 @@ fun EntrySummaryCard(
             
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "$${String.format("%.2f", amount)}",
+                    text = "AED ${String.format("%.2f", amount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -192,7 +192,7 @@ private fun EarningChip(
         shape = RoundedCornerShape(20.dp)
     ) {
         Text(
-            text = "$label: $${String.format("%.0f", amount)}",
+            text = "$label: AED ${String.format("%.0f", amount)}",
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer

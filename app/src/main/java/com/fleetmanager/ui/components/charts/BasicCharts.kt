@@ -126,7 +126,7 @@ private fun PieChartLegend(data: PieChartData) {
                 )
                 
                 Text(
-                    text = "$${String.format("%.2f", slice.value)}",
+                    text = "AED ${String.format("%.2f", slice.value)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.End,

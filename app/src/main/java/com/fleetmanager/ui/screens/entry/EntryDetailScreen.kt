@@ -246,7 +246,7 @@ fun EntryDetailContent(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "$${String.format("%.2f", entry.totalEarnings)}",
+                        text = "AED ${String.format("%.2f", entry.totalEarnings)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -382,7 +382,7 @@ fun EarningsRow(
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            text = "$${String.format("%.2f", amount)}",
+            text = "AED ${String.format("%.2f", amount)}",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
         )

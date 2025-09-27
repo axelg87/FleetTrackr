@@ -45,9 +45,9 @@ data class GroupedTotal(
 ) {
     val displayAmount: String
         get() = if (amount >= 0) {
-            "+$${String.format("%.2f", amount)}"
+            "+AED ${String.format("%.2f", amount)}"
         } else {
-            "-$${String.format("%.2f", kotlin.math.abs(amount))}"
+            "-AED ${String.format("%.2f", kotlin.math.abs(amount))}"
         }
 }
 
@@ -79,9 +79,9 @@ data class ReportUiState(
     
     val totalAmountDisplay: String
         get() = if (totalAmount >= 0) {
-            "+$${String.format("%.2f", totalAmount)}"
+            "+AED ${String.format("%.2f", totalAmount)}"
         } else {
-            "-$${String.format("%.2f", kotlin.math.abs(totalAmount))}"
+            "-AED ${String.format("%.2f", kotlin.math.abs(totalAmount))}"
         }
     
     val totalsByDriver: List<GroupedTotal>

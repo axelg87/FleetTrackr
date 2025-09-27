@@ -578,7 +578,7 @@ fun DailyEntryTile(
                 ) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "$${String.format("%.2f", entry.totalEarnings)}",
+                            text = "AED ${String.format("%.2f", entry.totalEarnings)}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

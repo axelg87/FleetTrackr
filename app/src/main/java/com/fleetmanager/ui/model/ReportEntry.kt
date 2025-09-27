@@ -20,7 +20,7 @@ data class ReportEntry(
 ) {
     
     val displayAmount: String
-        get() = if (isIncome) "+$${String.format("%.2f", amount)}" else "-$${String.format("%.2f", amount)}"
+        get() = if (isIncome) "+AED ${String.format("%.2f", amount)}" else "-AED ${String.format("%.2f", amount)}"
     
     val typeDisplayName: String
         get() = when (type) {
