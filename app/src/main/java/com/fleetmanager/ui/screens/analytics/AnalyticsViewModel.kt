@@ -57,6 +57,13 @@ private data class AnalyticsRealtimeSnapshot(
     val vehicles: List<Vehicle> = emptyList()
 )
 
+private data class AnalyticsProcessingContext(
+    val snapshot: AnalyticsRealtimeSnapshot,
+    val timeFilter: TimeFilter,
+    val selectedDriverId: String?,
+    val costSelection: CostSelection
+)
+
 data class DriverFilterOption(
     val id: String?,
     val label: String
@@ -70,6 +77,37 @@ data class DriverFilterState(
     val options: List<DriverFilterOption> = listOf(DriverFilterOption.AllDrivers),
     val selectedOption: DriverFilterOption = DriverFilterOption.AllDrivers
 )
+
+enum class CostFactor {
+    SALARY,
+    EXPENSES,
+    INSTALLMENTS,
+    INSURANCE
+}
+
+data class CostSelection(
+    val includeSalary: Boolean = true,
+    val includeOperationalExpenses: Boolean = true,
+    val includeVehicleInstallments: Boolean = true,
+    val includeVehicleInsurance: Boolean = true
+) {
+    fun isEnabled(factor: CostFactor): Boolean = when (factor) {
+        CostFactor.SALARY -> includeSalary
+        CostFactor.EXPENSES -> includeOperationalExpenses
+        CostFactor.INSTALLMENTS -> includeVehicleInstallments
+        CostFactor.INSURANCE -> includeVehicleInsurance
+    }
+
+    fun withFactor(factor: CostFactor, isEnabled: Boolean): CostSelection = when (factor) {
+        CostFactor.SALARY -> copy(includeSalary = isEnabled)
+        CostFactor.EXPENSES -> copy(includeOperationalExpenses = isEnabled)
+        CostFactor.INSTALLMENTS -> copy(includeVehicleInstallments = isEnabled)
+        CostFactor.INSURANCE -> copy(includeVehicleInsurance = isEnabled)
+    }
+
+    fun allEnabled(): Boolean = includeSalary && includeOperationalExpenses &&
+        includeVehicleInstallments && includeVehicleInsurance
+}
 
 /**
  * ViewModel for Analytics Screen.
@@ -103,6 +141,8 @@ class AnalyticsViewModel @Inject constructor(
 
     private val _driverOptions = MutableStateFlow(listOf(DriverFilterOption.AllDrivers))
     private val _selectedDriverId = MutableStateFlow<String?>(null)
+    private val _costSelection = MutableStateFlow(CostSelection())
+    val costSelection: StateFlow<CostSelection> = _costSelection.asStateFlow()
     val driverFilterState: StateFlow<DriverFilterState> = combine(
         _driverOptions,
         _selectedDriverId
@@ -216,14 +256,24 @@ class AnalyticsViewModel @Inject constructor(
                         snapshot.copy(vehicles = vehicles)
                     }
 
-                realtimeDataFlow
-                    .combine(_timeFilter) { snapshot, timeFilter ->
-                        snapshot to timeFilter
-                    }
-                    .combine(_selectedDriverId) { (snapshot, timeFilter), selectedDriverId ->
-                        Triple(snapshot, timeFilter, selectedDriverId)
-                    }
-                    .collect { (snapshot, timeFilter, selectedDriverId) ->
+                combine(
+                    realtimeDataFlow,
+                    _timeFilter,
+                    _selectedDriverId,
+                    _costSelection
+                ) { snapshot, timeFilter, selectedDriverId, costSelection ->
+                    AnalyticsProcessingContext(
+                        snapshot = snapshot,
+                        timeFilter = timeFilter,
+                        selectedDriverId = selectedDriverId,
+                        costSelection = costSelection
+                    )
+                }
+                    .collect { context ->
+                        val snapshot = context.snapshot
+                        val timeFilter = context.timeFilter
+                        val selectedDriverId = context.selectedDriverId
+                        val costSelection = context.costSelection
                         val driverOptions = buildList {
                             add(DriverFilterOption.AllDrivers)
                             addAll(snapshot.drivers.sortedBy { it.name }.map { DriverFilterOption(it.id, it.name) })
@@ -286,7 +336,8 @@ class AnalyticsViewModel @Inject constructor(
                             drivers = snapshot.drivers,
                             vehicles = snapshot.vehicles,
                             targetMonth = _currentMonth.value,
-                            selectedDriverId = resolvedDriverId
+                            selectedDriverId = resolvedDriverId,
+                            costSelection = costSelection
                         )
 
                         // Filter data based on selected time filter
@@ -431,7 +482,8 @@ class AnalyticsViewModel @Inject constructor(
         drivers: List<Driver>,
         vehicles: List<Vehicle>,
         targetMonth: YearMonth,
-        selectedDriverId: String?
+        selectedDriverId: String?,
+        costSelection: CostSelection
     ): ComprehensiveAnalyticsMetrics {
         val scopedDrivers = if (selectedDriverId != null) {
             drivers.filter { it.id == selectedDriverId }
@@ -469,29 +521,54 @@ class AnalyticsViewModel @Inject constructor(
         } else {
             driverIdsInScope
         }
-        val assignedVehicleCost = relevantDriverIds.sumOf { driverId -> vehicleCostsByDriver[driverId] ?: 0.0 }
+        val assignedVehicleCosts = relevantDriverIds.fold(VehicleMonthlyCostBreakdown()) { acc, driverId ->
+            acc + (vehicleCostsByDriver[driverId] ?: VehicleMonthlyCostBreakdown())
+        }
+        val fallbackVehicleCosts = vehicles
+            .filter { it.isActive }
+            .ifEmpty { vehicles }
+            .fold(VehicleMonthlyCostBreakdown()) { acc, vehicle -> acc + vehicleMonthlyCost(vehicle) }
+        val aggregatedVehicleCosts = when {
+            selectedDriverId != null -> assignedVehicleCosts
+            assignedVehicleCosts.total > 0.0 -> assignedVehicleCosts
+            else -> fallbackVehicleCosts
+        }
+        val driverSpecificVehicleCosts = selectedDriverId?.let { driverId ->
+            vehicleCostsByDriver[driverId] ?: VehicleMonthlyCostBreakdown()
+        } ?: aggregatedVehicleCosts
 
         val totalIncome = entriesForMonth.sumOf { it.totalEarnings }
 
-        val driverFixedCosts = scopedDrivers.sumOf { driver ->
+        val driverFixedCostsBase = scopedDrivers.sumOf { driver ->
             driver.salary + (driver.annualVisaCost / 12.0) + (driver.annualLicenseCost / 12.0)
         }
+        val selectedDriverFixedCosts = if (costSelection.includeSalary) driverFixedCostsBase else 0.0
 
-        val vehicleFixedCosts = if (selectedDriverId != null) {
-            assignedVehicleCost
+        val selectedVehicleInstallments = if (costSelection.includeVehicleInstallments) {
+            aggregatedVehicleCosts.installment
         } else {
-            if (assignedVehicleCost > 0.0) {
-                assignedVehicleCost
-            } else {
-                vehicles.filter { it.isActive }.ifEmpty { vehicles }.sumOf { vehicleMonthlyCost(it) }
-            }
+            0.0
+        }
+        val selectedVehicleInsurance = if (costSelection.includeVehicleInsurance) {
+            aggregatedVehicleCosts.insurance
+        } else {
+            0.0
+        }
+        val selectedVehicleFixedCosts = selectedVehicleInstallments + selectedVehicleInsurance
+
+        val variableExpensesBase = expensesForMonth.sumOf { it.amount }
+        val selectedVariableExpenses = if (costSelection.includeOperationalExpenses) {
+            variableExpensesBase
+        } else {
+            0.0
         }
 
-        val variableExpenses = expensesForMonth.sumOf { it.amount }
-
-        val totalFixedCosts = driverFixedCosts + vehicleFixedCosts
-        val totalExpenses = totalFixedCosts + variableExpenses
-        val vehicleCostRatio = if (totalIncome > 0) vehicleFixedCosts / totalIncome else 0.0
+        val totalExpenses = selectedDriverFixedCosts + selectedVehicleFixedCosts + selectedVariableExpenses
+        val vehicleCostRatio = if (totalIncome > 0 && selectedVehicleFixedCosts > 0.0) {
+            selectedVehicleFixedCosts / totalIncome
+        } else {
+            0.0
+        }
         val netOperationalProfit = totalIncome - totalExpenses
 
         val hasData = entriesForMonth.isNotEmpty() || expensesForMonth.isNotEmpty()
@@ -508,17 +585,17 @@ class AnalyticsViewModel @Inject constructor(
 
         return ComprehensiveAnalyticsMetrics(
             driverNetIncome = netOperationalProfit,
-            driverFixedCosts = driverFixedCosts,
+            driverFixedCosts = selectedDriverFixedCosts,
             vehicleCostRatio = vehicleCostRatio,
-            vehicleFixedCosts = vehicleFixedCosts,
+            vehicleFixedCosts = selectedVehicleFixedCosts,
             totalIncome = totalIncome,
-            variableExpenses = variableExpenses,
+            variableExpenses = selectedVariableExpenses,
             netOperationalProfit = netOperationalProfit,
             driverName = singleDriverName,
             vehicleName = singleVehicleName,
             hasData = hasData,
             totalExpenses = totalExpenses,
-            driverVehicleCost = if (selectedDriverId != null) assignedVehicleCost else vehicleFixedCosts
+            driverVehicleCost = driverSpecificVehicleCosts.selectedTotal(costSelection)
         )
     }
 
@@ -528,7 +605,7 @@ class AnalyticsViewModel @Inject constructor(
         vehiclesByDisplayName: Map<String, Vehicle>,
         targetMonth: YearMonth,
         driverNameToId: Map<String, String>
-    ): Map<String, Double> {
+    ): Map<String, VehicleMonthlyCostBreakdown> {
         if (entries.isEmpty()) return emptyMap()
 
         val monthEndInstant = targetMonth.atEndOfMonth()
@@ -552,8 +629,31 @@ class AnalyticsViewModel @Inject constructor(
             .toMap()
     }
 
-    private fun vehicleMonthlyCost(vehicle: Vehicle): Double {
-        return (vehicle.installment ?: 0.0) + (vehicle.annualInsuranceAmount / 12.0)
+    private fun vehicleMonthlyCost(vehicle: Vehicle): VehicleMonthlyCostBreakdown {
+        return VehicleMonthlyCostBreakdown(
+            installment = vehicle.installment ?: 0.0,
+            insurance = vehicle.annualInsuranceAmount / 12.0
+        )
+    }
+
+    private data class VehicleMonthlyCostBreakdown(
+        val installment: Double = 0.0,
+        val insurance: Double = 0.0
+    ) {
+        val total: Double get() = installment + insurance
+
+        fun selectedTotal(selection: CostSelection): Double {
+            val selectedInstallments = if (selection.includeVehicleInstallments) installment else 0.0
+            val selectedInsurance = if (selection.includeVehicleInsurance) insurance else 0.0
+            return selectedInstallments + selectedInsurance
+        }
+
+        operator fun plus(other: VehicleMonthlyCostBreakdown): VehicleMonthlyCostBreakdown {
+            return VehicleMonthlyCostBreakdown(
+                installment = installment + other.installment,
+                insurance = insurance + other.insurance
+            )
+        }
     }
 
     private fun resolveDriverId(entry: DailyEntry, driverNameToId: Map<String, String>): String? {
@@ -623,7 +723,11 @@ class AnalyticsViewModel @Inject constructor(
     fun setDriverFilter(option: DriverFilterOption) {
         _selectedDriverId.value = option.id
     }
-    
+
+    fun onCostFactorToggled(factor: CostFactor, isEnabled: Boolean) {
+        _costSelection.value = _costSelection.value.withFactor(factor, isEnabled)
+    }
+
     /**
      * Calculate the income level for a given day based on total earnings.
      * This determines the color coding for calendar days.
