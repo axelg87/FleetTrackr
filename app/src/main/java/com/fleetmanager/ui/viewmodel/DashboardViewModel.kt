@@ -2,7 +2,7 @@ package com.fleetmanager.ui.viewmodel
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.CalendarToday
@@ -144,19 +144,19 @@ class DashboardViewModel @Inject constructor(
                 // Always show earnings stats so the layout stays consistent across roles
                 val earningsStats = listOf(
                     StatItem(
-                        icon = Icons.Default.AttachMoney,
+                        icon = Icons.Default.AccountBalance,
                         value = "AED ${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
                         label = "Uber (Month)",
                         shortcut = DashboardShortcut.IncomeSource.Uber
                     ),
                     StatItem(
-                        icon = Icons.Default.AttachMoney,
+                        icon = Icons.Default.AccountBalance,
                         value = "AED ${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
                         label = "Yango (Month)",
                         shortcut = DashboardShortcut.IncomeSource.Yango
                     ),
                     StatItem(
-                        icon = Icons.Default.AttachMoney,
+                        icon = Icons.Default.AccountBalance,
                         value = "AED ${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
                         label = "Private (Month)",
                         shortcut = DashboardShortcut.IncomeSource.Private
