@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
@@ -519,6 +520,7 @@ private data class CostSelectionOption(
 )
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun CostSelectionControls(
     selection: CostSelection,
     onCostSelectionChanged: (CostFactor, Boolean) -> Unit,
@@ -550,7 +552,12 @@ private fun CostSelectionControls(
                     CostSelectionOption(
                         factor = CostFactor.SALARY,
                         label = "Salary",
-                        description = "Driver salary plus visa and license fees"
+                        description = "Monthly driver salary"
+                    ),
+                    CostSelectionOption(
+                        factor = CostFactor.VISA_LICENSE_FEES,
+                        label = "Visa & license",
+                        description = "Recurring visa and license fees"
                     ),
                     CostSelectionOption(
                         factor = CostFactor.EXPENSES,
@@ -570,45 +577,61 @@ private fun CostSelectionControls(
                 )
             }
 
-            options.forEach { option ->
-                CostSelectionOptionRow(
-                    option = option,
-                    checked = selection.isEnabled(option.factor),
-                    onCheckedChange = { isChecked ->
-                        onCostSelectionChanged(option.factor, isChecked)
-                    }
-                )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                options.forEach { option ->
+                    CostSelectionOptionChip(
+                        option = option,
+                        selected = selection.isEnabled(option.factor),
+                        onSelectionChanged = { isSelected ->
+                            onCostSelectionChanged(option.factor, isSelected)
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun CostSelectionOptionRow(
+private fun CostSelectionOptionChip(
     option: CostSelectionOption,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    selected: Boolean,
+    onSelectionChanged: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier.widthIn(max = 220.dp)
     ) {
-        Checkbox(
-            checked = checked,
-            onCheckedChange = onCheckedChange
+        FilterChip(
+            selected = selected,
+            onClick = { onSelectionChanged(!selected) },
+            label = {
+                Text(
+                    text = option.label,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            leadingIcon = if (selected) {
+                {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null
+                    )
+                }
+            } else {
+                null
+            }
         )
-        Column(modifier = Modifier.padding(start = 8.dp)) {
-            Text(
-                text = option.label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = option.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            text = option.description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 

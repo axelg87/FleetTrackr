@@ -80,6 +80,7 @@ data class DriverFilterState(
 
 enum class CostFactor {
     SALARY,
+    VISA_LICENSE_FEES,
     EXPENSES,
     INSTALLMENTS,
     INSURANCE
@@ -87,12 +88,14 @@ enum class CostFactor {
 
 data class CostSelection(
     val includeSalary: Boolean = true,
+    val includeVisaLicenseFees: Boolean = true,
     val includeOperationalExpenses: Boolean = true,
     val includeVehicleInstallments: Boolean = true,
     val includeVehicleInsurance: Boolean = true
 ) {
     fun isEnabled(factor: CostFactor): Boolean = when (factor) {
         CostFactor.SALARY -> includeSalary
+        CostFactor.VISA_LICENSE_FEES -> includeVisaLicenseFees
         CostFactor.EXPENSES -> includeOperationalExpenses
         CostFactor.INSTALLMENTS -> includeVehicleInstallments
         CostFactor.INSURANCE -> includeVehicleInsurance
@@ -100,12 +103,13 @@ data class CostSelection(
 
     fun withFactor(factor: CostFactor, isEnabled: Boolean): CostSelection = when (factor) {
         CostFactor.SALARY -> copy(includeSalary = isEnabled)
+        CostFactor.VISA_LICENSE_FEES -> copy(includeVisaLicenseFees = isEnabled)
         CostFactor.EXPENSES -> copy(includeOperationalExpenses = isEnabled)
         CostFactor.INSTALLMENTS -> copy(includeVehicleInstallments = isEnabled)
         CostFactor.INSURANCE -> copy(includeVehicleInsurance = isEnabled)
     }
 
-    fun allEnabled(): Boolean = includeSalary && includeOperationalExpenses &&
+    fun allEnabled(): Boolean = includeSalary && includeVisaLicenseFees && includeOperationalExpenses &&
         includeVehicleInstallments && includeVehicleInsurance
 }
 
@@ -539,10 +543,17 @@ class AnalyticsViewModel @Inject constructor(
 
         val totalIncome = entriesForMonth.sumOf { it.totalEarnings }
 
-        val driverFixedCostsBase = scopedDrivers.sumOf { driver ->
-            driver.salary + (driver.annualVisaCost / 12.0) + (driver.annualLicenseCost / 12.0)
+        val driverSalaryCosts = scopedDrivers.sumOf { driver -> driver.salary }
+        val driverVisaLicenseCosts = scopedDrivers.sumOf { driver ->
+            (driver.annualVisaCost / 12.0) + (driver.annualLicenseCost / 12.0)
         }
-        val selectedDriverFixedCosts = if (costSelection.includeSalary) driverFixedCostsBase else 0.0
+        val selectedDriverSalaryCosts = if (costSelection.includeSalary) driverSalaryCosts else 0.0
+        val selectedDriverVisaLicenseCosts = if (costSelection.includeVisaLicenseFees) {
+            driverVisaLicenseCosts
+        } else {
+            0.0
+        }
+        val selectedDriverFixedCosts = selectedDriverSalaryCosts + selectedDriverVisaLicenseCosts
 
         val selectedVehicleInstallments = if (costSelection.includeVehicleInstallments) {
             aggregatedVehicleCosts.installment
