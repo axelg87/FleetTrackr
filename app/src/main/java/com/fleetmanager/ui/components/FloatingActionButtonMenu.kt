@@ -15,8 +15,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.MoneyOff
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -189,14 +189,14 @@ fun createDefaultFabMenuItems(
 ): List<FabMenuItem> {
     return listOf(
         FabMenuItem(
-            icon = Icons.Default.AttachMoney,
+            icon = Icons.Default.TrendingUp,
             label = "Income",
             onClick = onIncomeClick,
             backgroundColor = MaterialTheme.colorScheme.primaryContainer,
             iconTint = MaterialTheme.colorScheme.primary
         ),
         FabMenuItem(
-            icon = Icons.Default.MoneyOff,
+            icon = Icons.Default.ReceiptLong,
             label = "Expense",
             onClick = onExpenseClick,
             backgroundColor = MaterialTheme.colorScheme.errorContainer,

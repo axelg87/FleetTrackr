@@ -286,7 +286,7 @@ fun EntryListScreen(
                     val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
                     val amount = String.format(Locale.getDefault(), "%.2f", expenseToDelete!!.amount)
                     Text(
-                        "Are you sure you want to delete the expense of $${amount} " +
+                        "Are you sure you want to delete the expense of AED ${amount} " +
                             "recorded on ${formatter.format(expenseToDelete!!.date)}? This action cannot be undone."
                     )
                 },
@@ -626,7 +626,7 @@ private fun ExpenseListItem(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "-$${String.format("%.2f", expense.amount)}",
+                    text = "-AED ${String.format("%.2f", expense.amount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
