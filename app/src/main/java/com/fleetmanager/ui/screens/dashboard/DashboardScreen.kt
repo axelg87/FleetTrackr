@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.screens.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,7 +39,11 @@ fun DashboardScreen(
     val onExpenseClick: () -> Unit = rememberStableLambda0({ onAddExpenseClick() })
     val onSyncClick: () -> Unit = rememberStableLambda0({ viewModel.syncNow() })
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
