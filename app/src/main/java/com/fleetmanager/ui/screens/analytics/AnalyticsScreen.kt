@@ -54,14 +54,7 @@ fun AnalyticsScreen(
 
     val scrollState = rememberScrollState()
 
-    Scaffold(
-        bottomBar = {
-            AnalyticsCategoryNavigationBar(
-                selectedCategory = selectedCategory,
-                onCategorySelected = { selectedCategory = it }
-            )
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -95,6 +88,14 @@ fun AnalyticsScreen(
                 selectedScope = selectedScope,
                 onScopeSelected = { selectedScope = it },
                 modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            AnalyticsCategoryNavigationBar(
+                selectedCategory = selectedCategory,
+                onCategorySelected = { selectedCategory = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
             )
 
             // Show panels within the selected category for quicker access
