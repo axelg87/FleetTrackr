@@ -7,10 +7,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fleetmanager.ui.screens.analytics.model.AnalyticsCategory
 
@@ -53,13 +51,6 @@ fun AnalyticsCategoryNavigationBar(
                     Icon(
                         imageVector = category.icon,
                         contentDescription = category.displayName
-                    )
-                },
-                text = {
-                    Text(
-                        text = category.displayName,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (index == selectedIndex) FontWeight.SemiBold else FontWeight.Normal
                     )
                 }
             )
