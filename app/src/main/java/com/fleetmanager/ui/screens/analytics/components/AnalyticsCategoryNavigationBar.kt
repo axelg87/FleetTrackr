@@ -33,7 +33,7 @@ fun AnalyticsCategoryNavigationBar(
         contentColor = MaterialTheme.colorScheme.onSurface,
         indicator = { tabPositions ->
             if (tabPositions.isNotEmpty() && selectedIndex < tabPositions.size) {
-                TabRowDefaults.SecondaryIndicator(
+                TabRowDefaults.Indicator(
                     modifier = Modifier
                         .tabIndicatorOffset(tabPositions[selectedIndex])
                         .height(3.dp),
