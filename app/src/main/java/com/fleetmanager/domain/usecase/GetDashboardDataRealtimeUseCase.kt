@@ -88,7 +88,11 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
         val recentEntries = enrichedEntries
             .sortedByDescending { it.date }
             .take(5)
-        
+
+        val uberTrend = generateDailyTrend(enrichedEntries, now) { it.uberEarnings }
+        val yangoTrend = generateDailyTrend(enrichedEntries, now) { it.yangoEarnings }
+        val privateTrend = generateDailyTrend(enrichedEntries, now) { it.privateJobsEarnings }
+
         return DashboardData(
             thisMonthEarnings = thisMonthEarnings,
             thisWeekEarnings = thisWeekEarnings,
@@ -100,7 +104,36 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
             thisMonthPrivateEarnings = thisMonthPrivateEarnings,
             thisWeekUberEarnings = thisWeekUberEarnings,
             thisWeekYangoEarnings = thisWeekYangoEarnings,
-            thisWeekPrivateEarnings = thisWeekPrivateEarnings
+            thisWeekPrivateEarnings = thisWeekPrivateEarnings,
+            uberTrend = uberTrend,
+            yangoTrend = yangoTrend,
+            privateTrend = privateTrend
         )
     }
+}
+
+private fun generateDailyTrend(
+    entries: List<DailyEntry>,
+    referenceDate: Date,
+    selector: (DailyEntry) -> Double
+): List<Double> {
+    val daysBack = 7
+    return (daysBack - 1 downTo 0).map { offset ->
+        val start = startOfDay(referenceDate, offset)
+        val end = Date(start.time + TimeUnit.DAYS.toMillis(1))
+        entries
+            .filter { it.date >= start && it.date < end }
+            .sumOf(selector)
+    }
+}
+
+private fun startOfDay(referenceDate: Date, daysAgo: Int): Date {
+    val calendar = Calendar.getInstance()
+    calendar.time = referenceDate
+    calendar.add(Calendar.DAY_OF_YEAR, -daysAgo)
+    calendar.set(Calendar.HOUR_OF_DAY, 0)
+    calendar.set(Calendar.MINUTE, 0)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    return calendar.time
 }

@@ -17,6 +17,7 @@ import com.fleetmanager.domain.usecase.GetDashboardDataRealtimeUseCase
 import com.fleetmanager.sync.SyncManager
 import com.fleetmanager.ui.components.StatItem
 import com.fleetmanager.ui.navigation.DashboardShortcut
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -166,19 +167,25 @@ class DashboardViewModel @Inject constructor(
                         icon = Icons.Default.AccountBalance,
                         value = "AED ${String.format("%.0f", dashboardData.thisMonthUberEarnings)}",
                         label = "Uber (Month)",
-                        shortcut = DashboardShortcut.IncomeSource.Uber
+                        shortcut = DashboardShortcut.IncomeSource.Uber,
+                        trend = dashboardData.uberTrend,
+                        trendColor = Color(0xFF1A73E8)
                     ),
                     StatItem(
                         icon = Icons.Default.AccountBalance,
                         value = "AED ${String.format("%.0f", dashboardData.thisMonthYangoEarnings)}",
                         label = "Yango (Month)",
-                        shortcut = DashboardShortcut.IncomeSource.Yango
+                        shortcut = DashboardShortcut.IncomeSource.Yango,
+                        trend = dashboardData.yangoTrend,
+                        trendColor = Color(0xFFF9A825)
                     ),
                     StatItem(
                         icon = Icons.Default.AccountBalance,
                         value = "AED ${String.format("%.0f", dashboardData.thisMonthPrivateEarnings)}",
                         label = "Private (Month)",
-                        shortcut = DashboardShortcut.IncomeSource.Private
+                        shortcut = DashboardShortcut.IncomeSource.Private,
+                        trend = dashboardData.privateTrend,
+                        trendColor = Color(0xFF8E24AA)
                     ),
                     StatItem(
                         icon = Icons.Default.Assignment,

@@ -253,9 +253,21 @@ object AnalyticsCalculator {
     ): MonthlyComparison {
         val currentTotal = currentMonthEntries.sumOf { it.totalEarnings }
         val previousTotal = previousMonthEntries.sumOf { it.totalEarnings }
-        
+
         val growthAmount = currentTotal - previousTotal
         val growthPercentage = if (previousTotal > 0) (growthAmount / previousTotal) * 100 else 0.0
+
+        val currentTrend = currentMonthEntries
+            .groupBy { AnalyticsUtils.dateToLocalDate(it.date) }
+            .toSortedMap()
+            .values
+            .map { entries -> entries.sumOf { it.totalEarnings } }
+
+        val previousTrend = previousMonthEntries
+            .groupBy { AnalyticsUtils.dateToLocalDate(it.date) }
+            .toSortedMap()
+            .values
+            .map { entries -> entries.sumOf { it.totalEarnings } }
 
         return MonthlyComparison(
             currentMonth = currentMonthName,
@@ -263,7 +275,9 @@ object AnalyticsCalculator {
             previousMonth = previousMonthName,
             previousTotal = previousTotal,
             growthPercentage = growthPercentage,
-            growthAmount = growthAmount
+            growthAmount = growthAmount,
+            currentTrend = currentTrend,
+            previousTrend = previousTrend
         )
     }
 

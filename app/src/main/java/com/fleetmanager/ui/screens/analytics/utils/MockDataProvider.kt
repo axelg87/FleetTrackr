@@ -159,13 +159,18 @@ object MockDataProvider {
         val growthRate = Random.nextDouble() * 0.4 - 0.2 // -20% to +20%
         val currentTotal = previousTotal * (1 + growthRate)
 
+        val currentTrend = List(7) { Random.nextDouble(200.0, 800.0) }
+        val previousTrend = List(7) { Random.nextDouble(180.0, 750.0) }
+
         return MonthlyComparison(
             currentMonth = currentMonth,
             currentTotal = currentTotal,
             previousMonth = previousMonth,
             previousTotal = previousTotal,
             growthPercentage = growthRate * 100,
-            growthAmount = currentTotal - previousTotal
+            growthAmount = currentTotal - previousTotal,
+            currentTrend = currentTrend,
+            previousTrend = previousTrend
         )
     }
 }

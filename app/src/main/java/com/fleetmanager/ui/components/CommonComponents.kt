@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,9 +23,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,11 +101,18 @@ fun StatCard(
     value: String,
     label: String,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    trend: List<Double> = emptyList(),
+    trendColor: Color = Color.Unspecified
 ) {
     val cardModifier = if (onClick != null) {
         modifier.then(Modifier.clickable { onClick() })
     } else modifier
+
+    val resolvedTrendColor = if (trendColor == Color.Unspecified) {
+        MaterialTheme.colorScheme.primary
+    } else trendColor
+    val showTrend = trend.size >= 2 && trend.any { it != trend.first() }
 
     Card(
         modifier = cardModifier,
@@ -112,14 +124,32 @@ fun StatCard(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+
+                if (showTrend) {
+                    SparklineChart(
+                        values = trend,
+                        modifier = Modifier
+                            .width(72.dp)
+                            .height(28.dp),
+                        lineColor = resolvedTrendColor,
+                        fillColor = resolvedTrendColor.copy(alpha = 0.18f)
+                    )
+                }
+            }
+
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
@@ -159,7 +189,9 @@ fun StatsGrid(
                     value = stat.value,
                     label = stat.label,
                     onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    trend = stat.trend,
+                    trendColor = stat.trendColor
                 )
             }
             stats.getOrNull(1)?.let { stat ->
@@ -168,11 +200,13 @@ fun StatsGrid(
                     value = stat.value,
                     label = stat.label,
                     onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    trend = stat.trend,
+                    trendColor = stat.trendColor
                 )
             }
         }
-        
+
         // Second row
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -184,7 +218,9 @@ fun StatsGrid(
                     value = stat.value,
                     label = stat.label,
                     onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    trend = stat.trend,
+                    trendColor = stat.trendColor
                 )
             }
             stats.getOrNull(3)?.let { stat ->
@@ -193,7 +229,9 @@ fun StatsGrid(
                     value = stat.value,
                     label = stat.label,
                     onClick = stat.onClick ?: if (onStatClick != null) { { onStatClick(stat) } } else null,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    trend = stat.trend,
+                    trendColor = stat.trendColor
                 )
             }
         }
@@ -401,13 +439,86 @@ fun StatusCard(
     }
 }
 
+@Composable
+fun SparklineChart(
+    values: List<Double>,
+    modifier: Modifier = Modifier,
+    lineColor: Color = MaterialTheme.colorScheme.primary,
+    fillColor: Color = lineColor.copy(alpha = 0.2f)
+) {
+    if (values.isEmpty()) {
+        Box(modifier = modifier)
+        return
+    }
+
+    val minValue = values.minOrNull() ?: 0.0
+    val maxValue = values.maxOrNull() ?: 0.0
+    val range = (maxValue - minValue).takeIf { it > 0 } ?: 1.0
+    val normalizedValues = values.map { value ->
+        if (maxValue == minValue) {
+            0.5f
+        } else {
+            ((value - minValue) / range).toFloat()
+        }
+    }
+
+    Canvas(
+        modifier = modifier
+    ) {
+        val height = size.height
+        val width = size.width
+        val stepX = if (normalizedValues.size > 1) {
+            width / (normalizedValues.size - 1)
+        } else {
+            width
+        }
+
+        val linePath = Path()
+        val fillPath = Path()
+
+        normalizedValues.forEachIndexed { index, value ->
+            val x = if (normalizedValues.size > 1) stepX * index else width
+            val y = height - (value * height)
+
+            if (index == 0) {
+                linePath.moveTo(0f, y)
+                fillPath.moveTo(0f, height)
+                fillPath.lineTo(0f, y)
+            } else {
+                linePath.lineTo(x, y)
+                fillPath.lineTo(x, y)
+            }
+        }
+
+        fillPath.lineTo(width, height)
+        fillPath.close()
+
+        drawPath(
+            path = fillPath,
+            color = fillColor
+        )
+
+        drawPath(
+            path = linePath,
+            color = lineColor,
+            style = Stroke(
+                width = 2.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+    }
+}
+
 // Data Classes
 data class StatItem(
     val icon: ImageVector,
     val value: String,
     val label: String,
     val onClick: (() -> Unit)? = null,
-    val shortcut: DashboardShortcut? = null
+    val shortcut: DashboardShortcut? = null,
+    val trend: List<Double> = emptyList(),
+    val trendColor: Color = Color.Unspecified
 )
 
 data class ActionItem(
