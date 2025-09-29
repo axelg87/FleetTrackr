@@ -330,14 +330,16 @@ private fun MonthlyProgressComparison(monthlyComparison: MonthlyComparison) {
                 label = "Previous",
                 value = monthlyComparison.previousTotal,
                 maxAmount = maxAmount,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
             )
 
             ComparisonBar(
                 label = "Current",
                 value = monthlyComparison.currentTotal,
                 maxAmount = maxAmount,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -348,7 +350,8 @@ private fun ComparisonBar(
     label: String,
     value: Double,
     maxAmount: Double,
-    color: Color
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
     val progress = if (maxAmount > 0) (value / maxAmount).toFloat() else 0f
     val animatedProgress by animateFloatAsState(
@@ -358,7 +361,7 @@ private fun ComparisonBar(
     )
 
     Column(
-        modifier = Modifier.weight(1f),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
