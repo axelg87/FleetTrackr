@@ -36,6 +36,12 @@ data class BarData(
     val color: Color
 )
 
+data class CategoryBreakdownEntry(
+    val label: String,
+    val value: Double,
+    val color: Color
+)
+
 data class TimeSeriesData(
     val points: List<TimePoint>,
     val title: String = ""
@@ -52,32 +58,28 @@ data class TimePoint(
  */
 object ChartDataGenerator {
     
-    fun generatePieChartByType(entries: List<ReportEntry>): PieChartData {
+    fun generateCategoryBreakdownByType(entries: List<ReportEntry>): List<CategoryBreakdownEntry> {
         val typeGroups = entries.groupBy { entry -> entry.typeDisplayName }
-        val slices = typeGroups.toList().mapIndexed { index, pair ->
+        return typeGroups.toList().mapIndexed { index, pair ->
             val (type, typeEntries) = pair
-            PieSlice(
+            CategoryBreakdownEntry(
                 label = type,
                 value = typeEntries.sumOf { entry -> kotlin.math.abs(entry.amount) },
                 color = getColorForIndex(index)
             )
-        }.sortedByDescending { slice -> slice.value }
-        
-        return PieChartData(slices)
+        }.sortedByDescending { item -> item.value }
     }
-    
-    fun generatePieChartByDriver(entries: List<ReportEntry>): PieChartData {
+
+    fun generateCategoryBreakdownByDriver(entries: List<ReportEntry>): List<CategoryBreakdownEntry> {
         val driverGroups = entries.groupBy { entry -> entry.driverName }
-        val slices = driverGroups.toList().mapIndexed { index, pair ->
+        return driverGroups.toList().mapIndexed { index, pair ->
             val (driver, driverEntries) = pair
-            PieSlice(
+            CategoryBreakdownEntry(
                 label = driver,
                 value = driverEntries.sumOf { entry -> kotlin.math.abs(entry.amount) },
                 color = getColorForIndex(index)
             )
-        }.sortedByDescending { slice -> slice.value }
-        
-        return PieChartData(slices)
+        }.sortedByDescending { item -> item.value }
     }
     
     fun generateBarChartByMonth(entries: List<ReportEntry>): BarChartData {

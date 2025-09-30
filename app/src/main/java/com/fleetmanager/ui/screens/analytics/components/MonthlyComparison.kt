@@ -2,6 +2,7 @@ package com.fleetmanager.ui.screens.analytics.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fleetmanager.ui.components.SparklineChart
 import com.fleetmanager.ui.screens.analytics.model.MonthlyComparison
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
@@ -103,8 +105,36 @@ private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
         monthlyComparison.growthPercentage < -5 -> Icons.Default.TrendingDown
         else -> Icons.Default.TrendingFlat
     }
-    
+
+    val deltaText = "${if (monthlyComparison.growthPercentage >= 0) "+" else ""}${AnalyticsUtils.formatDecimal(monthlyComparison.growthPercentage)}%"
+    val showTrend = monthlyComparison.currentTrend.size >= 2
+
     Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            DeltaPill(
+                text = deltaText,
+                icon = growthIcon,
+                color = growthColor
+            )
+
+            if (showTrend) {
+                SparklineChart(
+                    values = monthlyComparison.currentTrend,
+                    modifier = Modifier
+                        .width(140.dp)
+                        .height(40.dp),
+                    lineColor = growthColor,
+                    fillColor = growthColor.copy(alpha = 0.15f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // Main comparison card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -205,6 +235,38 @@ private fun MonthlyComparisonContent(monthlyComparison: MonthlyComparison) {
 }
 
 @Composable
+private fun DeltaPill(
+    text: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Surface(
+        color = color.copy(alpha = 0.12f),
+        contentColor = color,
+        shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
 private fun MonthCard(
     title: String,
     amount: Double,
@@ -251,21 +313,6 @@ private fun MonthCard(
 @Composable
 private fun MonthlyProgressComparison(monthlyComparison: MonthlyComparison) {
     val maxAmount = maxOf(monthlyComparison.currentTotal, monthlyComparison.previousTotal)
-    val currentProgress = if (maxAmount > 0) (monthlyComparison.currentTotal / maxAmount).toFloat() else 0f
-    val previousProgress = if (maxAmount > 0) (monthlyComparison.previousTotal / maxAmount).toFloat() else 0f
-    
-    val animatedCurrentProgress by animateFloatAsState(
-        targetValue = currentProgress,
-        animationSpec = tween(1000),
-        label = "current_progress"
-    )
-    
-    val animatedPreviousProgress by animateFloatAsState(
-        targetValue = previousProgress,
-        animationSpec = tween(1000),
-        label = "previous_progress"
-    )
-    
     Column {
         Text(
             text = "Visual Comparison",
@@ -273,70 +320,81 @@ private fun MonthlyProgressComparison(monthlyComparison: MonthlyComparison) {
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
-        // Current month bar
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Bottom
         ) {
-            Text(
-                text = "Current",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.width(60.dp)
+            ComparisonBar(
+                label = "Previous",
+                value = monthlyComparison.previousTotal,
+                maxAmount = maxAmount,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
             )
+
+            ComparisonBar(
+                label = "Current",
+                value = monthlyComparison.currentTotal,
+                maxAmount = maxAmount,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ComparisonBar(
+    label: String,
+    value: Double,
+    maxAmount: Double,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    val progress = if (maxAmount > 0) (value / maxAmount).toFloat() else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(1000),
+        label = "comparison_bar_$label"
+    )
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.BottomCenter
+        ) {
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(20.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(animatedCurrentProgress)
-                        .fillMaxHeight()
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        // Previous month bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Previous",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.width(60.dp)
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(0.6f)
+                    .fillMaxHeight(animatedProgress)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(color)
             )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(20.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(animatedPreviousProgress)
-                        .fillMaxHeight()
-                        .background(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                )
-            }
         }
+
+        Text(
+            text = AnalyticsUtils.formatCurrency(value),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 

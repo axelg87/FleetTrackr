@@ -69,7 +69,9 @@ data class MonthlyComparison(
     val previousMonth: String,
     val previousTotal: Double,
     val growthPercentage: Double,
-    val growthAmount: Double
+    val growthAmount: Double,
+    val currentTrend: List<Double> = emptyList(),
+    val previousTrend: List<Double> = emptyList()
 )
 
 data class ProjectionData(

@@ -23,8 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.components.*
+import com.fleetmanager.ui.components.charts.CategoryBreakdownChart
 import com.fleetmanager.ui.components.charts.SimpleBarChart
-import com.fleetmanager.ui.components.charts.SimplePieChart
 import com.fleetmanager.ui.components.CalendarFilterComponent
 import com.fleetmanager.ui.model.ChartDataGenerator
 import com.fleetmanager.ui.model.ReportEntry
@@ -916,16 +916,16 @@ private fun ChartsSection(
             
             when (selectedChartTab) {
                 0 -> {
-                    val pieData = ChartDataGenerator.generatePieChartByType(entries)
-                    SimplePieChart(
-                        data = pieData,
+                    val breakdown = ChartDataGenerator.generateCategoryBreakdownByType(entries)
+                    CategoryBreakdownChart(
+                        entries = breakdown,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 1 -> {
-                    val pieData = ChartDataGenerator.generatePieChartByDriver(entries)
-                    SimplePieChart(
-                        data = pieData,
+                    val breakdown = ChartDataGenerator.generateCategoryBreakdownByDriver(entries)
+                    CategoryBreakdownChart(
+                        entries = breakdown,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

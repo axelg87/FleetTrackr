@@ -2,7 +2,6 @@ package com.fleetmanager.ui.screens.analytics.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,22 +15,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fleetmanager.domain.model.ExpenseType
+import com.fleetmanager.ui.components.charts.CategoryBreakdownChart
+import com.fleetmanager.ui.model.CategoryBreakdownEntry
 import com.fleetmanager.ui.screens.analytics.model.ExpenseBreakdown
-import com.fleetmanager.ui.screens.analytics.utils.AnalyticsCalculator
 import com.fleetmanager.ui.screens.analytics.utils.AnalyticsUtils
-import kotlin.math.*
+import kotlin.math.abs
 
 /**
- * Expense Deep Dive component showing detailed expense analysis with pie chart and breakdowns
+ * Expense Deep Dive component showing detailed expense analysis with stacked bar and breakdowns
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +36,7 @@ fun ExpenseDeepDive(
     isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var viewMode by remember { mutableStateOf(ExpenseViewMode.PIE_CHART) }
+    var viewMode by remember { mutableStateOf(ExpenseViewMode.STACKED_BAR) }
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -98,8 +94,8 @@ fun ExpenseDeepDive(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 when (viewMode) {
-                    ExpenseViewMode.PIE_CHART -> {
-                        ExpensePieChart(expenseBreakdown = expenseBreakdown)
+                    ExpenseViewMode.STACKED_BAR -> {
+                        ExpenseStackedBarChart(expenseBreakdown = expenseBreakdown)
                     }
                     ExpenseViewMode.BAR_CHART -> {
                         ExpenseBarChart(expenseBreakdown = expenseBreakdown)
@@ -156,79 +152,22 @@ private fun ExpenseViewModeSelector(
 }
 
 @Composable
-private fun ExpensePieChart(expenseBreakdown: List<ExpenseBreakdown>) {
-    val totalAmount = expenseBreakdown.sumOf { it.totalAmount }
-    
-    Column {
-        // Pie chart
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .align(Alignment.CenterHorizontally)
-        ) {
-            Canvas(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                drawPieChart(
-                    expenseData = expenseBreakdown,
-                    totalAmount = totalAmount,
-                    canvasSize = size
-                )
-            }
+private fun ExpenseStackedBarChart(expenseBreakdown: List<ExpenseBreakdown>) {
+    val entries = remember(expenseBreakdown) {
+        expenseBreakdown.map { expense ->
+            CategoryBreakdownEntry(
+                label = expense.expenseType.displayName,
+                value = abs(expense.totalAmount),
+                color = AnalyticsUtils.getExpenseTypeColor(expense.expenseType)
+            )
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Legend
-        ExpenseLegend(expenseBreakdown = expenseBreakdown)
     }
-}
 
-private fun DrawScope.drawPieChart(
-    expenseData: List<ExpenseBreakdown>,
-    totalAmount: Double,
-    canvasSize: androidx.compose.ui.geometry.Size
-) {
-    val center = canvasSize.center
-    val radius = minOf(canvasSize.width, canvasSize.height) / 2 * 0.8f
-    
-    var startAngle = -90f // Start from top
-    
-    expenseData.forEach { expense ->
-        val sweepAngle = if (totalAmount > 0) {
-            ((expense.totalAmount / totalAmount) * 360).toFloat()
-        } else 0f
-        
-        val color = AnalyticsUtils.getExpenseTypeColor(expense.expenseType)
-        
-        drawArc(
-            color = color,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle,
-            useCenter = true,
-            topLeft = Offset(center.x - radius, center.y - radius),
-            size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2)
-        )
-        
-        // Draw stroke between segments
-        drawArc(
-            color = Color.White,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle,
-            useCenter = true,
-            topLeft = Offset(center.x - radius, center.y - radius),
-            size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
-            style = Stroke(width = 2.dp.toPx())
-        )
-        
-        startAngle += sweepAngle
-    }
-    
-    // Draw center circle for donut effect
-    drawCircle(
-        color = Color.White,
-        radius = radius * 0.4f,
-        center = center
+    CategoryBreakdownChart(
+        entries = entries,
+        modifier = Modifier.fillMaxWidth(),
+        valueFormatter = { value -> AnalyticsUtils.formatCurrency(value) },
+        emptyStateMessage = "No expense data available"
     )
 }
 
@@ -393,45 +332,6 @@ private fun ExpenseListItem(expense: ExpenseBreakdown) {
 }
 
 @Composable
-private fun ExpenseLegend(expenseBreakdown: List<ExpenseBreakdown>) {
-    LazyColumn(
-        modifier = Modifier.heightIn(max = 150.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(expenseBreakdown) { expense ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .background(AnalyticsUtils.getExpenseTypeColor(expense.expenseType), CircleShape)
-                    )
-                    
-                    Text(
-                        text = expense.expenseType.displayName,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                Text(
-                    text = "${AnalyticsUtils.formatPercentage(expense.percentage)} (${AnalyticsUtils.formatCurrency(expense.totalAmount)})",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun ExpenseSummary(expenseBreakdown: List<ExpenseBreakdown>) {
     val totalAmount = expenseBreakdown.sumOf { it.totalAmount }
     val totalTransactions = expenseBreakdown.sumOf { it.count }
@@ -583,7 +483,7 @@ private fun EmptyExpenseState() {
 // REFACTOR: getExpenseTypeColor moved to AnalyticsUtils.getExpenseTypeColor
 
 enum class ExpenseViewMode(val displayName: String) {
-    PIE_CHART("Pie Chart"),
+    STACKED_BAR("Stacked Bar"),
     BAR_CHART("Bar Chart"),
     LIST_VIEW("List View")
 }

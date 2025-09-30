@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.fleetmanager.ui.model.BarChartData
 import com.fleetmanager.ui.model.BarData
+import com.fleetmanager.ui.model.CategoryBreakdownEntry
 import com.fleetmanager.ui.model.PieChartData
 import com.fleetmanager.ui.model.PieSlice
 import kotlin.math.*
@@ -133,6 +135,137 @@ private fun PieChartLegend(data: PieChartData) {
                     modifier = Modifier.widthIn(min = 70.dp),
                     color = MaterialTheme.colorScheme.onSurface
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryBreakdownChart(
+    entries: List<CategoryBreakdownEntry>,
+    modifier: Modifier = Modifier,
+    valueFormatter: (Double) -> String = { value ->
+        "AED ${String.format("%.2f", value)}"
+    },
+    emptyStateMessage: String = "No data available"
+) {
+    val total = entries.sumOf { it.value }
+    if (entries.isEmpty() || total <= 0.0) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = emptyStateMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+        return
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Stacked overview bar for quick visual comparison
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                entries.forEach { entry ->
+                    val share = if (total > 0) (entry.value / total).toFloat() else 0f
+                    if (share > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .weight(share)
+                                .fillMaxHeight()
+                                .background(entry.color)
+                        )
+                    }
+                }
+            }
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            entries.forEach { entry ->
+                val share = if (total > 0) (entry.value / total).coerceIn(0.0, 1.0) else 0.0
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(CircleShape)
+                                    .background(entry.color)
+                            )
+                            Text(
+                                text = entry.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Text(
+                            text = valueFormatter(entry.value),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.widthIn(min = 80.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Text(
+                            text = "${(share * 100).roundToInt()}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.widthIn(min = 48.dp)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(share.toFloat())
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(entry.color.copy(alpha = 0.8f))
+                        )
+                    }
+                }
             }
         }
     }
