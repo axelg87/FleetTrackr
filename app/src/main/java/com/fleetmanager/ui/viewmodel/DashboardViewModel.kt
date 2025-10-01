@@ -57,6 +57,11 @@ class DashboardViewModel @Inject constructor(
 
     private var latestDashboardData: DashboardData? = null
 
+    override fun resetToInitialState() {
+        latestDashboardData = null
+        super.resetToInitialState()
+    }
+
     override fun getInitialState() = DashboardUiState()
 
     // Navigation is now handled by NavigationViewModel - no need for callbacks here
