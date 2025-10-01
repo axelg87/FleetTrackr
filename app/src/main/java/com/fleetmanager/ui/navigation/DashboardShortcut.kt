@@ -8,6 +8,7 @@ sealed class DashboardShortcut {
         object Last24Hours : TimeRange()
         object ThisWeek : TimeRange()
         object ThisMonth : TimeRange()
+        object LastMonth : TimeRange()
     }
 
     sealed class IncomeSource : DashboardShortcut() {
