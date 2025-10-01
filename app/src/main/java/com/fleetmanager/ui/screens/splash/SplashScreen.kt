@@ -9,8 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.fleetmanager.R
 import kotlinx.coroutines.delay
@@ -31,9 +32,10 @@ fun SplashScreen(
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.ic_app_logo),
+            painter = painterResource(id = R.drawable.ag_motion_logo_small),
             contentDescription = "AG Motion Logo",
-            modifier = Modifier.size(200.dp)
+            modifier = Modifier.size(200.dp),
+            contentScale = ContentScale.Fit
         )
     }
 }
