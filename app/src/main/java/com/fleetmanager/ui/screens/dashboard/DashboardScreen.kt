@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assignment
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.components.*
@@ -20,6 +22,7 @@ import com.fleetmanager.ui.navigation.DashboardShortcut
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import com.fleetmanager.ui.utils.rememberStableLambda0
 import com.fleetmanager.ui.viewmodel.DashboardViewModel
+import com.fleetmanager.ui.viewmodel.MonthFilter
 
 @Composable
 fun DashboardScreen(
@@ -46,8 +49,13 @@ fun DashboardScreen(
     ) {
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+                .fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 16.dp,
+                bottom = 160.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
         item {
@@ -144,8 +152,55 @@ fun DashboardScreen(
             ),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(end = 16.dp, bottom = 112.dp)
         )
+
+        MonthFilterChips(
+            selectedFilter = uiState.monthFilter,
+            onFilterSelected = viewModel::onMonthFilterSelected,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class) // FilterChip remains experimental in Material3.
+@Composable
+private fun MonthFilterChips(
+    selectedFilter: MonthFilter,
+    onFilterSelected: (MonthFilter) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Monthly Filter",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            MonthFilter.values().forEach { filter ->
+                FilterChip(
+                    selected = selectedFilter == filter,
+                    onClick = { onFilterSelected(filter) },
+                    label = { Text(filter.chipLabel) }
+                )
+            }
+        }
     }
 }
 

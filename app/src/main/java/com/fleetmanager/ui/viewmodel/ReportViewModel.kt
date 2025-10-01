@@ -286,6 +286,12 @@ class ReportViewModel @Inject constructor(
                     null,
                     EntryTypeFilter.ALL
                 )
+                DashboardShortcut.TimeRange.LastMonth -> Quadruple(
+                    calculateStartOfPreviousMonth(),
+                    calculateEndOfPreviousMonth(),
+                    null,
+                    EntryTypeFilter.ALL
+                )
                 DashboardShortcut.IncomeSource.Uber -> Quadruple(
                     calculateStartOfCurrentMonth(),
                     endOfToday,
@@ -528,6 +534,30 @@ class ReportViewModel @Inject constructor(
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
+        }
+        return calendar.time
+    }
+
+    private fun calculateStartOfPreviousMonth(): Date {
+        val calendar = Calendar.getInstance().apply {
+            add(Calendar.MONTH, -1)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return calendar.time
+    }
+
+    private fun calculateEndOfPreviousMonth(): Date {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            add(Calendar.MILLISECOND, -1)
         }
         return calendar.time
     }

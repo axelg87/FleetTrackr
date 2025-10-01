@@ -58,7 +58,19 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
         val thisMonthUberEarnings = thisMonthEntries.sumOf { it.uberEarnings }
         val thisMonthYangoEarnings = thisMonthEntries.sumOf { it.yangoEarnings }
         val thisMonthPrivateEarnings = thisMonthEntries.sumOf { it.privateJobsEarnings }
-        
+
+        // Last month
+        calendar.time = startOfMonth
+        calendar.add(Calendar.MONTH, -1)
+        val startOfLastMonth = calendar.time
+        val lastMonthEntries = enrichedEntries.filter { entry ->
+            entry.date >= startOfLastMonth && entry.date < startOfMonth
+        }
+        val lastMonthEarnings = lastMonthEntries.sumOf { it.totalEarnings }
+        val lastMonthUberEarnings = lastMonthEntries.sumOf { it.uberEarnings }
+        val lastMonthYangoEarnings = lastMonthEntries.sumOf { it.yangoEarnings }
+        val lastMonthPrivateEarnings = lastMonthEntries.sumOf { it.privateJobsEarnings }
+
         // This week (Monday to Sunday)
         calendar.time = now
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
@@ -95,6 +107,7 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
 
         return DashboardData(
             thisMonthEarnings = thisMonthEarnings,
+            lastMonthEarnings = lastMonthEarnings,
             thisWeekEarnings = thisWeekEarnings,
             last24hEarnings = last24hEarnings,
             activeDriversCount = activeDriversCount,
@@ -102,6 +115,9 @@ class GetDashboardDataRealtimeUseCase @Inject constructor(
             thisMonthUberEarnings = thisMonthUberEarnings,
             thisMonthYangoEarnings = thisMonthYangoEarnings,
             thisMonthPrivateEarnings = thisMonthPrivateEarnings,
+            lastMonthUberEarnings = lastMonthUberEarnings,
+            lastMonthYangoEarnings = lastMonthYangoEarnings,
+            lastMonthPrivateEarnings = lastMonthPrivateEarnings,
             thisWeekUberEarnings = thisWeekUberEarnings,
             thisWeekYangoEarnings = thisWeekYangoEarnings,
             thisWeekPrivateEarnings = thisWeekPrivateEarnings,
@@ -118,7 +134,7 @@ private fun generateDailyTrend(
     selector: (DailyEntry) -> Double
 ): List<Double> {
     val daysBack = 7
-    return (daysBack - 1 downTo 0).map { offset ->
+    return (daysBack downTo 1).map { offset ->
         val start = startOfDay(referenceDate, offset)
         val end = Date(start.time + TimeUnit.DAYS.toMillis(1))
         entries
