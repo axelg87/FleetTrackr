@@ -165,6 +165,7 @@ fun DashboardScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class) // FilterChip remains experimental in Material3.
 @Composable
 private fun MonthFilterChips(
     selectedFilter: MonthFilter,
