@@ -28,8 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.AddEntryViewModel
 import com.fleetmanager.ui.components.DriverInputComponent
-import coil.compose.AsyncImage
 import com.fleetmanager.R
+import com.fleetmanager.ui.components.FleetLoadingWheel
+import coil.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -354,10 +355,9 @@ fun AddEntryScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (uiState.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
+                    FleetLoadingWheel(
+                        indicatorSize = 20.dp,
+                        strokeWidth = 2.dp
                     )
                 } else {
                     Text(
