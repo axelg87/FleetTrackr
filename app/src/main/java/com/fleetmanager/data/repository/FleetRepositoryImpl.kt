@@ -28,6 +28,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -64,8 +67,19 @@ class FleetRepositoryImpl @Inject constructor(
     override fun getAllDailyEntries(): Flow<List<DailyEntry>> = 
         dailyEntryDao.getAllEntries().map { DailyEntryMapper.toDomainList(it) }
     
-    override fun getAllDailyEntriesRealtime(): Flow<List<DailyEntry>> = 
-        firestoreService.getDailyEntriesFlow()
+    override fun getAllDailyEntriesRealtime(): Flow<List<DailyEntry>> =
+        authService.currentUser
+            .map { it?.uid.orEmpty() }
+            .filter { it.isNotBlank() }
+            .distinctUntilChanged()
+            .flatMapLatest { userId ->
+                firestoreService.getUserProfile(userId)
+                    .map { it.role }
+                    .distinctUntilChanged()
+                    .flatMapLatest { role ->
+                        firestoreService.getDailyEntriesFlowForRole(role)
+                    }
+            }
     
     override fun getDailyEntriesByDateRange(startDate: Date, endDate: Date): Flow<List<DailyEntry>> = 
         dailyEntryDao.getEntriesByDateRange(startDate, endDate).map { DailyEntryMapper.toDomainList(it) }
