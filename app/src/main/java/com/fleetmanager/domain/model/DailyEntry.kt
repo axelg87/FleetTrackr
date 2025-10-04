@@ -13,10 +13,10 @@ import java.util.Date
 data class DailyEntry(
     @get:PropertyName("id")
     val id: String = "",
-    
+
     @get:PropertyName("userId")
     val userId: String = "",
-    
+
     @get:PropertyName("date")
     val date: Date = Date(),
 
@@ -31,66 +31,60 @@ data class DailyEntry(
 
     @get:Exclude
     val vehicle: String = "",
-    
-    @get:PropertyName("uberEarnings")
-    val uberEarnings: Double = 0.0,
-    
-    @get:PropertyName("yangoEarnings")
-    val yangoEarnings: Double = 0.0,
-    
-    @get:PropertyName("privateJobsEarnings")
-    val privateJobsEarnings: Double = 0.0,
-    
-    @get:PropertyName("careemEarnings")
-    val careemEarnings: Double = 0.0,
-    
+
+    @get:PropertyName("earnings")
+    val earnings: List<EarningEntry> = emptyList(),
+
+    @get:PropertyName("odometer")
+    val odometer: Double? = null,
+
     @get:PropertyName("notes")
     val notes: String = "",
-    
+
     @get:PropertyName("photos")
     val photoUrls: List<String> = emptyList(),
-    
+
     @get:PropertyName("isSynced")
     val isSynced: Boolean = false,
-    
+
     @get:PropertyName("createdAt")
     val createdAt: Date = Date(),
-    
+
     @get:PropertyName("updatedAt")
     val updatedAt: Date = Date()
 ) {
     val totalEarnings: Double
-        get() = uberEarnings + yangoEarnings + privateJobsEarnings + careemEarnings
+        get() = earnings.sumOf { it.totalAmount }
+
+    fun getEarningsFor(provider: String): EarningEntry? {
+        if (provider.isBlank()) return null
+        return earnings.firstOrNull { it.provider.equals(provider, ignoreCase = true) }
+    }
 
     fun isValid(): Boolean {
         return id.isNotBlank() &&
                 driverId.isNotBlank() &&
                 vehicleId.isNotBlank() &&
-                uberEarnings >= 0 &&
-                yangoEarnings >= 0 &&
-                privateJobsEarnings >= 0 &&
-                careemEarnings >= 0 &&
-                uberEarnings <= 999999.99 &&
-                yangoEarnings <= 999999.99 &&
-                privateJobsEarnings <= 999999.99 &&
-                careemEarnings <= 999999.99 &&
-                notes.length <= 5000
+                earnings.all { earning -> earning.isValid() } &&
+                notes.length <= 5000 &&
+                (odometer == null || odometer >= 0)
     }
 
     fun getValidationErrors(): List<String> {
         val errors = mutableListOf<String>()
-        
+
         if (id.isBlank()) errors.add("ID cannot be blank")
         if (driverId.isBlank()) errors.add("Driver ID cannot be blank")
         if (vehicleId.isBlank()) errors.add("Vehicle ID cannot be blank")
-        if (uberEarnings < 0) errors.add("Uber earnings cannot be negative")
-        if (yangoEarnings < 0) errors.add("Yango earnings cannot be negative")
-        if (privateJobsEarnings < 0) errors.add("Private jobs earnings cannot be negative")
-        if (careemEarnings < 0) errors.add("Careem earnings cannot be negative")
-        if (uberEarnings > 999999.99) errors.add("Uber earnings is too large")
-        if (yangoEarnings > 999999.99) errors.add("Yango earnings is too large")
-        if (privateJobsEarnings > 999999.99) errors.add("Private jobs earnings is too large")
-        if (careemEarnings > 999999.99) errors.add("Careem earnings is too large")
+
+        earnings.forEach { earning ->
+            errors.addAll(earning.getValidationErrors())
+        }
+
+        if (odometer != null && odometer < 0) {
+            errors.add("Odometer cannot be negative")
+        }
+
         if (notes.length > 5000) errors.add("Notes too long (max 5000 characters)")
 
         return errors

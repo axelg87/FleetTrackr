@@ -1,6 +1,7 @@
 package com.fleetmanager.data.local
 
 import androidx.room.TypeConverter
+import com.fleetmanager.data.dto.EarningDto
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.Date
@@ -24,6 +25,18 @@ class Converters {
     @TypeConverter
     fun toStringList(value: String): List<String> {
         val listType = object : TypeToken<List<String>>() {}.type
+        return Gson().fromJson(value, listType) ?: emptyList()
+    }
+
+    @TypeConverter
+    fun fromEarningList(value: List<EarningDto>): String {
+        return Gson().toJson(value)
+    }
+
+    @TypeConverter
+    fun toEarningList(value: String): List<EarningDto> {
+        if (value.isBlank()) return emptyList()
+        val listType = object : TypeToken<List<EarningDto>>() {}.type
         return Gson().fromJson(value, listType) ?: emptyList()
     }
 }

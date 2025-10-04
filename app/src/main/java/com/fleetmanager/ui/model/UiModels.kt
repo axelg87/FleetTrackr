@@ -2,6 +2,7 @@ package com.fleetmanager.ui.model
 
 import androidx.compose.runtime.Stable
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.EarningEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import java.util.Date
@@ -19,9 +20,8 @@ data class UiDailyEntry(
     val driverName: String,
     val vehicleId: String,
     val vehicle: String,
-    val uberEarnings: Double,
-    val yangoEarnings: Double,
-    val privateJobsEarnings: Double,
+    val earnings: List<EarningEntry>,
+    val odometer: Double?,
     val notes: String,
     val photoUrls: List<String>,
     val isSynced: Boolean,
@@ -71,9 +71,8 @@ fun DailyEntry.toUiModel(dateFormatter: java.text.SimpleDateFormat): UiDailyEntr
         driverName = driverName,
         vehicleId = vehicleId,
         vehicle = vehicle,
-        uberEarnings = uberEarnings,
-        yangoEarnings = yangoEarnings,
-        privateJobsEarnings = privateJobsEarnings,
+        earnings = earnings,
+        odometer = odometer,
         notes = notes,
         photoUrls = photoUrls,
         isSynced = isSynced,

@@ -42,51 +42,30 @@ fun DailyEntry.toReportEntries(): List<ReportEntry> {
     val driverLabel = driverName.ifBlank { driverId }
     val vehicleLabel = vehicle.ifBlank { vehicleId }
 
-    if (uberEarnings > 0) {
-        entries.add(
-            ReportEntry(
-                id = "${id}_uber",
-                type = ReportEntryType.Income("Uber"),
-                amount = uberEarnings,
-                driverName = driverLabel,
-                vehicle = vehicleLabel,
-                date = date,
-                notes = notes,
-                isIncome = true
+    earnings
+        .filter { it.totalAmount > 0 }
+        .forEach { earning ->
+            val providerLabel = earning.provider.trim().ifBlank { "Earnings" }
+            val safeProviderId = providerLabel
+                .lowercase()
+                .replace("[^a-z0-9]".toRegex(), "_")
+                .replace(Regex("_+"), "_")
+                .trim('_')
+
+            entries.add(
+                ReportEntry(
+                    id = "${id}_${safeProviderId}",
+                    type = ReportEntryType.Income(providerLabel),
+                    amount = earning.totalAmount,
+                    driverName = driverLabel,
+                    vehicle = vehicleLabel,
+                    date = date,
+                    notes = notes,
+                    isIncome = true
+                )
             )
-        )
-    }
-    
-    if (yangoEarnings > 0) {
-        entries.add(
-            ReportEntry(
-                id = "${id}_yango",
-                type = ReportEntryType.Income("Yango"),
-                amount = yangoEarnings,
-                driverName = driverLabel,
-                vehicle = vehicleLabel,
-                date = date,
-                notes = notes,
-                isIncome = true
-            )
-        )
-    }
-    
-    if (privateJobsEarnings > 0) {
-        entries.add(
-            ReportEntry(
-                id = "${id}_private",
-                type = ReportEntryType.Income("Private"),
-                amount = privateJobsEarnings,
-                driverName = driverLabel,
-                vehicle = vehicleLabel,
-                date = date,
-                notes = notes,
-                isIncome = true
-            )
-        )
-    }
-    
+        }
+
     return entries
 }
 

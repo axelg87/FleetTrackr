@@ -10,11 +10,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.R
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -153,30 +155,28 @@ private fun EntryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
+            entry.odometer?.let { odometer ->
+                Text(
+                    text = stringResource(R.string.odometer_reading, formatOdometer(odometer)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // Earnings breakdown
-            if (entry.uberEarnings > 0) {
-                EarningsRow(
-                    label = "Uber",
-                    amount = entry.uberEarnings
-                )
-            }
-            
-            if (entry.yangoEarnings > 0) {
-                EarningsRow(
-                    label = "Yango",
-                    amount = entry.yangoEarnings
-                )
-            }
-            
-            if (entry.privateJobsEarnings > 0) {
-                EarningsRow(
-                    label = "Private Jobs",
-                    amount = entry.privateJobsEarnings
-                )
-            }
+            entry.earnings
+                .filter { it.totalAmount > 0 }
+                .forEach { earning ->
+                    EarningsRow(
+                        label = earning.provider.ifBlank { "Earnings" },
+                        amount = earning.totalAmount
+                    )
+                }
             
             // Total
             Divider(modifier = Modifier.padding(vertical = 4.dp))
@@ -197,6 +197,14 @@ private fun EntryCard(
                 )
             }
         }
+    }
+}
+
+private fun formatOdometer(value: Double): String {
+    return if (value % 1.0 == 0.0) {
+        value.toLong().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
     }
 }
 

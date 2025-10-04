@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -188,31 +189,136 @@ fun AddEntryScreen(
                 }
             }
             
-            // Earnings fields
             OutlinedTextField(
-                value = uiState.uberEarnings,
-                onValueChange = viewModel::updateUberEarnings,
-                label = { Text(stringResource(R.string.uber_earnings)) },
+                value = uiState.odometer,
+                onValueChange = viewModel::updateOdometer,
+                label = { Text(stringResource(R.string.odometer)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = uiState.odometerError != null
             )
-            
-            OutlinedTextField(
-                value = uiState.yangoEarnings,
-                onValueChange = viewModel::updateYangoEarnings,
-                label = { Text(stringResource(R.string.yango_earnings)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
+
+            uiState.odometerError?.let { error ->
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.earnings),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
-            
-            OutlinedTextField(
-                value = uiState.privateJobsEarnings,
-                onValueChange = viewModel::updatePrivateJobsEarnings,
-                label = { Text(stringResource(R.string.private_jobs)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+
+            uiState.earnings.forEach { earning ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = earning.provider,
+                                onValueChange = { viewModel.updateEarningProvider(earning.id, it) },
+                                label = { Text(stringResource(R.string.provider)) },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            if (uiState.earnings.size > 1) {
+                                IconButton(onClick = { viewModel.removeEarningInput(earning.id) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.remove_provider)
+                                    )
+                                }
+                            }
+                        }
+
+                        if (earning.providerError != null) {
+                            Text(
+                                text = earning.providerError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = earning.card,
+                                onValueChange = { viewModel.updateEarningCard(earning.id, it) },
+                                label = { Text(stringResource(R.string.card_earnings)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            OutlinedTextField(
+                                value = earning.cash,
+                                onValueChange = { viewModel.updateEarningCash(earning.id, it) },
+                                label = { Text(stringResource(R.string.cash_earnings)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            OutlinedTextField(
+                                value = earning.tips,
+                                onValueChange = { viewModel.updateEarningTips(earning.id, it) },
+                                label = { Text(stringResource(R.string.tips)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = earning.tripCount,
+                                onValueChange = { viewModel.updateEarningTripCount(earning.id, it) },
+                                label = { Text(stringResource(R.string.trip_count)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            OutlinedTextField(
+                                value = earning.hoursOnline,
+                                onValueChange = { viewModel.updateEarningHoursOnline(earning.id, it) },
+                                label = { Text(stringResource(R.string.hours_online)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        earning.amountError?.let { error ->
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = viewModel::addEarningInput,
                 modifier = Modifier.fillMaxWidth()
-            )
-            
+            ) {
+                Text(stringResource(R.string.add_provider))
+            }
+
             // Notes field
             OutlinedTextField(
                 value = uiState.notes,

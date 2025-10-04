@@ -258,54 +258,47 @@ class DashboardViewModel @Inject constructor(
         dashboardData: DashboardData,
         monthFilter: MonthFilter
     ): List<StatItem> {
-        val (uberEarnings, yangoEarnings, privateEarnings) = when (monthFilter) {
-            MonthFilter.CURRENT -> Triple(
-                dashboardData.thisMonthUberEarnings,
-                dashboardData.thisMonthYangoEarnings,
-                dashboardData.thisMonthPrivateEarnings
-            )
+        val labelSuffix = monthFilter.earningsLabelSuffix
 
-            MonthFilter.LAST -> Triple(
-                dashboardData.lastMonthUberEarnings,
-                dashboardData.lastMonthYangoEarnings,
-                dashboardData.lastMonthPrivateEarnings
+        val providerItems = dashboardData.providerSnapshots.mapIndexed { index, snapshot ->
+            val amount = when (monthFilter) {
+                MonthFilter.CURRENT -> snapshot.thisMonthTotal
+                MonthFilter.LAST -> snapshot.lastMonthTotal
+            }
+
+            StatItem(
+                icon = Icons.Default.AccountBalance,
+                value = formatCurrency(amount),
+                label = "${snapshot.provider} ($labelSuffix)",
+                shortcut = DashboardShortcut.Provider(snapshot.provider),
+                trend = snapshot.trend,
+                trendColor = providerTrendColor(index)
             )
         }
 
-        val labelSuffix = monthFilter.earningsLabelSuffix
-
-        return listOf(
-            StatItem(
-                icon = Icons.Default.AccountBalance,
-                value = formatCurrency(uberEarnings),
-                label = "Uber ($labelSuffix)",
-                shortcut = DashboardShortcut.IncomeSource.Uber,
-                trend = dashboardData.uberTrend,
-                trendColor = Color(0xFF1A73E8)
-            ),
-            StatItem(
-                icon = Icons.Default.AccountBalance,
-                value = formatCurrency(yangoEarnings),
-                label = "Yango ($labelSuffix)",
-                shortcut = DashboardShortcut.IncomeSource.Yango,
-                trend = dashboardData.yangoTrend,
-                trendColor = Color(0xFFF9A825)
-            ),
-            StatItem(
-                icon = Icons.Default.AccountBalance,
-                value = formatCurrency(privateEarnings),
-                label = "Private ($labelSuffix)",
-                shortcut = DashboardShortcut.IncomeSource.Private,
-                trend = dashboardData.privateTrend,
-                trendColor = Color(0xFF8E24AA)
-            ),
-            StatItem(
-                icon = Icons.Default.Assignment,
-                value = "${dashboardData.recentEntries.size}",
-                label = "Recent Entries",
-                shortcut = DashboardShortcut.AllEntries
-            )
+        val recentEntriesItem = StatItem(
+            icon = Icons.Default.Assignment,
+            value = "${dashboardData.recentEntries.size}",
+            label = "Recent Entries",
+            shortcut = DashboardShortcut.AllEntries
         )
+
+        return if (providerItems.isEmpty()) {
+            listOf(recentEntriesItem)
+        } else {
+            providerItems + recentEntriesItem
+        }
+    }
+
+    private fun providerTrendColor(index: Int): Color {
+        val palette = listOf(
+            Color(0xFF1A73E8),
+            Color(0xFFF9A825),
+            Color(0xFF8E24AA),
+            Color(0xFF0F9D58),
+            Color(0xFFFF7043)
+        )
+        return palette[index % palette.size]
     }
 
     private fun formatCurrency(amount: Double): String {

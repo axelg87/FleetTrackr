@@ -25,6 +25,7 @@ import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.fleetmanager.R
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.EarningEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import java.text.SimpleDateFormat
@@ -211,6 +212,16 @@ fun EntryDetailContent(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                entry.odometer?.let { odometer ->
+                    Text(
+                        text = stringResource(
+                            R.string.odometer_reading,
+                            formatOdometer(odometer)
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         
@@ -229,10 +240,12 @@ fun EntryDetailContent(
                     fontWeight = FontWeight.Bold
                 )
                 
-                EarningsRow(label = "Uber", amount = entry.uberEarnings)
-                EarningsRow(label = "Yango", amount = entry.yangoEarnings)
-                EarningsRow(label = "Private Jobs", amount = entry.privateJobsEarnings)
-                
+                entry.earnings
+                    .filter { it.totalAmount > 0 }
+                    .forEach { earning ->
+                        EarningsRow(earning = earning)
+                    }
+
                 Divider()
                 
                 Row(
@@ -367,24 +380,53 @@ fun EntryDetailContent(
     }
 }
 
+private fun formatOdometer(value: Double): String {
+    return if (value % 1.0 == 0.0) {
+        value.toLong().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
+    }
+}
+
 @Composable
 fun EarningsRow(
-    label: String,
-    amount: Double
+    earning: EarningEntry
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = "AED ${String.format("%.2f", amount)}",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = earning.provider.ifBlank { "Unknown" },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = "AED ${String.format("%.2f", earning.totalAmount)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        val breakdown = buildList {
+            if (earning.cardEarnings > 0) add("Card ${String.format("%.2f", earning.cardEarnings)}")
+            if (earning.cashEarnings > 0) add("Cash ${String.format("%.2f", earning.cashEarnings)}")
+            if (earning.tips > 0) add("Tips ${String.format("%.2f", earning.tips)}")
+            if (earning.tripCount > 0) add("Trips ${earning.tripCount}")
+            if (earning.hoursOnline > 0) add("Hours ${String.format("%.1f", earning.hoursOnline)}")
+        }
+
+        if (breakdown.isNotEmpty()) {
+            Text(
+                text = breakdown.joinToString(separator = " • "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.fleetmanager.data.excel
 
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.EarningEntry
 import com.fleetmanager.domain.model.Driver
 import com.fleetmanager.domain.model.Vehicle
 import java.util.*
@@ -17,6 +18,13 @@ class CsvEntryFactory {
     fun createDailyEntry(rowData: CsvRowData, userId: String): DailyEntry {
         val currentUtcTime = Date() // Current time in UTC for audit trail
         
+        val earnings = buildList {
+            addIfPositive("Uber", rowData.uber)
+            addIfPositive("Careem", rowData.careem)
+            addIfPositive("Yango", rowData.yango)
+            addIfPositive("Private", rowData.private)
+        }
+
         return DailyEntry(
             id = UUID.randomUUID().toString(),
             userId = "PLACEHOLDER", // Will be corrected by ImportManager
@@ -25,16 +33,19 @@ class CsvEntryFactory {
             driverName = rowData.driver,
             vehicleId = rowData.vehicle.trim().lowercase(),
             vehicle = rowData.vehicle,
-            uberEarnings = rowData.uber,
-            yangoEarnings = rowData.yango,
-            privateJobsEarnings = rowData.private,
-            careemEarnings = rowData.careem,
+            earnings = earnings,
             notes = "Imported from CSV",
             photoUrls = emptyList(),
             isSynced = true,
             createdAt = currentUtcTime, // Import timestamp
             updatedAt = currentUtcTime  // Import timestamp
         )
+    }
+
+    private fun MutableList<EarningEntry>.addIfPositive(provider: String, amount: Double) {
+        if (amount > 0.0) {
+            add(EarningEntry(provider = provider, cardEarnings = amount))
+        }
     }
     
     /**

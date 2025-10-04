@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fleetmanager.domain.model.DailyEntry
+import androidx.compose.ui.res.stringResource
+import com.fleetmanager.R
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -86,6 +88,16 @@ fun DailyEntryTile(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    entry.odometer?.let { odometer ->
+                        Text(
+                            text = stringResource(
+                                R.string.odometer_reading,
+                                formatOdometer(odometer)
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -150,14 +162,26 @@ fun DailyEntryTile(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        val earningItems = entry.earnings
+            .filter { it.totalAmount > 0 }
+            .map { earning ->
+                EarningItem(
+                    label = earning.provider.ifBlank { "Other" },
+                    amount = earning.totalAmount
+                )
+            }
 
-        EarningsChips(
-            earnings = listOf(
-                EarningItem("Uber", entry.uberEarnings),
-                EarningItem("Yango", entry.yangoEarnings),
-                EarningItem("Private", entry.privateJobsEarnings)
-            )
-        )
+        if (earningItems.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            EarningsChips(earnings = earningItems)
+        }
+    }
+}
+
+private fun formatOdometer(value: Double): String {
+    return if (value % 1.0 == 0.0) {
+        value.toLong().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
     }
 }

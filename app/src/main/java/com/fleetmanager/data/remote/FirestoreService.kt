@@ -37,6 +37,7 @@ class FirestoreService @Inject constructor(
     
     companion object {
         private const val TAG = "FirestoreService"
+        private const val ENTRIES_COLLECTION = "entriesNEW"
     }
     
     private fun getCollection(collection: String) = firestore.collection(collection)
@@ -147,7 +148,7 @@ class FirestoreService @Inject constructor(
         try {
             // Add userId field to the entry
             val entryWithUserId = entry.copy(userId = targetUserId)
-            getCollection("entries")
+            getCollection(ENTRIES_COLLECTION)
                 .document(entry.id)
                 .set(entryWithUserId)
                 .await()
@@ -166,14 +167,14 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection(ENTRIES_COLLECTION)
                 .get()
                 .await()
                 .documents
                 .mapNotNull { it.toObject<DailyEntry>() }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection(ENTRIES_COLLECTION)
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
@@ -184,7 +185,7 @@ class FirestoreService @Inject constructor(
     
     fun getDailyEntriesFlow(): Flow<List<DailyEntry>> {
         val userId = authService.getCurrentUserId() ?: ""
-        return getCollection("entries")
+        return getCollection(ENTRIES_COLLECTION)
             .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
@@ -197,7 +198,7 @@ class FirestoreService @Inject constructor(
             val userId = requireAuth()
             val userRole = getCurrentUserRole()
             
-            val document = getCollection("entries")
+            val document = getCollection(ENTRIES_COLLECTION)
                 .document(entryId)
                 .get()
                 .await()
@@ -228,14 +229,14 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection(ENTRIES_COLLECTION)
                 .snapshots()
                 .map { snapshot ->
                     snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
                 }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection(ENTRIES_COLLECTION)
                 .whereEqualTo("userId", userId)
                 .snapshots()
                 .map { snapshot ->
@@ -246,7 +247,7 @@ class FirestoreService @Inject constructor(
     
     
     suspend fun deleteDailyEntry(entryId: String) {
-        getCollection("entries")
+        getCollection(ENTRIES_COLLECTION)
             .document(entryId)
             .delete()
             .await()
@@ -428,8 +429,8 @@ class FirestoreService @Inject constructor(
      * 
      * 3. FIRESTORE COLLECTION STRUCTURE:
      *    The app will automatically create these flat collections:
-     *    - entries/{entryId}
-     *      - Fields: id, userId, date, driver, vehicle, uberEarnings, yangoEarnings, privateJobsEarnings, notes, photos, createdAt, updatedAt
+     *    - entriesNEW/{entryId}
+     *      - Fields: id, userId, date, driver, vehicle, earnings[], odometer, notes, photos, createdAt, updatedAt
      *    - expenses/{expenseId}
      *      - Fields: id, userId, type, amount, date, driver, car, notes, photos, createdAt, updatedAt
      *    - drivers/{driverId}

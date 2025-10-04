@@ -1,6 +1,7 @@
 package com.fleetmanager.data.mapper
 
 import com.fleetmanager.data.dto.DailyEntryDto
+import com.fleetmanager.data.dto.EarningDto
 import com.fleetmanager.domain.model.DailyEntry
 
 /**
@@ -15,9 +16,8 @@ object DailyEntryMapper {
             date = dto.date,
             driverId = dto.driverId,
             vehicleId = dto.vehicleId,
-            uberEarnings = dto.uberEarnings,
-            yangoEarnings = dto.yangoEarnings,
-            privateJobsEarnings = dto.privateJobsEarnings,
+            earnings = dto.earnings.map { it.toDomain() },
+            odometer = dto.odometer,
             notes = dto.notes,
             photoUrls = dto.photoUrls,
             isSynced = dto.isSynced,
@@ -25,7 +25,7 @@ object DailyEntryMapper {
             updatedAt = dto.updatedAt
         )
     }
-    
+
     fun toDto(domain: DailyEntry): DailyEntryDto {
         return DailyEntryDto(
             id = domain.id,
@@ -33,12 +33,12 @@ object DailyEntryMapper {
             date = domain.date,
             driverId = domain.driverId,
             vehicleId = domain.vehicleId,
-            uberEarnings = domain.uberEarnings,
-            yangoEarnings = domain.yangoEarnings,
-            privateJobsEarnings = domain.privateJobsEarnings,
+            earnings = domain.earnings.map { EarningDto.fromDomain(it) },
+            odometer = domain.odometer,
             notes = domain.notes,
             photoUrls = domain.photoUrls,
             isSynced = domain.isSynced,
+            totalEarnings = domain.totalEarnings,
             createdAt = domain.createdAt,
             updatedAt = domain.updatedAt
         )
