@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -23,8 +24,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
+import kotlin.math.PI
 import kotlin.math.sin
-import kotlin.math.toRadians
 
 /**
  * Fleet branded loading wheel used for inline progress indicators.
@@ -97,7 +98,7 @@ fun FleetLoadingWheel(
 
         if (sweep > 0f) {
             val radius = (size.minDimension / 2f).coerceAtLeast(0f) - stroke.width / 2f
-            val endAngle = toRadians((-90f + sweep).toDouble())
+            val endAngle = (-90.0 + sweep.toDouble()) * PI / 180.0
             val dotCenter = Offset(
                 x = center.x + cos(endAngle).toFloat() * radius,
                 y = center.y + sin(endAngle).toFloat() * radius
