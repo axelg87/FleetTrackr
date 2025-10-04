@@ -2,6 +2,7 @@ package com.fleetmanager.data.remote
 
 import android.content.Context
 import android.util.Log
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.snapshots
 import com.google.firebase.firestore.ktx.toObject
@@ -14,6 +15,8 @@ import com.fleetmanager.domain.model.ExpenseTypeItem
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.data.dto.UserDto
+import com.fleetmanager.data.remote.model.RemoteDailyEntry
+import com.fleetmanager.data.remote.model.RemoteEarning
 import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -24,6 +27,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,6 +42,7 @@ class FirestoreService @Inject constructor(
     
     companion object {
         private const val TAG = "FirestoreService"
+        private const val DAILY_ENTRIES_COLLECTION = "entriesNEW"
     }
     
     private fun getCollection(collection: String) = firestore.collection(collection)
@@ -147,9 +153,10 @@ class FirestoreService @Inject constructor(
         try {
             // Add userId field to the entry
             val entryWithUserId = entry.copy(userId = targetUserId)
-            getCollection("entries")
+            val remoteEntry = entryWithUserId.toRemoteEntry()
+            getCollection(DAILY_ENTRIES_COLLECTION)
                 .document(entry.id)
-                .set(entryWithUserId)
+                .set(remoteEntry)
                 .await()
             Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
         } catch (e: Exception) {
@@ -166,43 +173,43 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection(DAILY_ENTRIES_COLLECTION)
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<DailyEntry>() }
+                .mapNotNull { it.toDailyEntry() }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection(DAILY_ENTRIES_COLLECTION)
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<DailyEntry>() }
+                .mapNotNull { it.toDailyEntry() }
         }
     }
-    
+
     fun getDailyEntriesFlow(): Flow<List<DailyEntry>> {
         val userId = authService.getCurrentUserId() ?: ""
-        return getCollection("entries")
+        return getCollection(DAILY_ENTRIES_COLLECTION)
             .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
-                snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                snapshot.documents.mapNotNull { it.toDailyEntry() }
             }
     }
-    
+
     suspend fun getDailyEntryById(entryId: String): DailyEntry? {
         return try {
             val userId = requireAuth()
             val userRole = getCurrentUserRole()
             
-            val document = getCollection("entries")
+            val document = getCollection(DAILY_ENTRIES_COLLECTION)
                 .document(entryId)
                 .get()
                 .await()
-            
-            val entry = document.toObject<DailyEntry>()
+
+            val entry = document.toDailyEntry()
             
             // Check if user has permission to view this entry
             if (entry != null) {
@@ -228,25 +235,25 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection(DAILY_ENTRIES_COLLECTION)
                 .snapshots()
                 .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                    snapshot.documents.mapNotNull { it.toDailyEntry() }
                 }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection(DAILY_ENTRIES_COLLECTION)
                 .whereEqualTo("userId", userId)
                 .snapshots()
                 .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                    snapshot.documents.mapNotNull { it.toDailyEntry() }
                 }
         }
     }
-    
-    
+
+
     suspend fun deleteDailyEntry(entryId: String) {
-        getCollection("entries")
+        getCollection(DAILY_ENTRIES_COLLECTION)
             .document(entryId)
             .delete()
             .await()
@@ -329,6 +336,70 @@ class FirestoreService @Inject constructor(
             throw e
         }
     }
+
+    private fun DocumentSnapshot.toDailyEntry(): DailyEntry? {
+        return if (contains("earnings")) {
+            toObject<RemoteDailyEntry>()?.toDomainDailyEntry()
+        } else {
+            toObject<DailyEntry>()
+        }
+    }
+
+    private fun RemoteDailyEntry.toDomainDailyEntry(): DailyEntry {
+        val earningsByProvider = earnings.associateBy { normalizeProviderName(it.provider) }
+
+        fun earningsTotalFor(provider: String): Double {
+            return earningsByProvider[normalizeProviderName(provider)]?.total ?: 0.0
+        }
+
+        val resolvedDate = date ?: Date()
+        val resolvedCreatedAt = createdAt ?: resolvedDate
+        val resolvedUpdatedAt = updatedAt ?: resolvedCreatedAt
+
+        return DailyEntry(
+            id = id,
+            userId = userId,
+            date = resolvedDate,
+            driverId = driverId,
+            vehicleId = vehicleId,
+            uberEarnings = earningsTotalFor("Uber"),
+            careemEarnings = earningsTotalFor("Careem"),
+            privateJobsEarnings = earningsTotalFor("Private"),
+            yangoEarnings = earningsTotalFor("Yango"),
+            notes = notes,
+            photoUrls = photos,
+            isSynced = isSynced,
+            createdAt = resolvedCreatedAt,
+            updatedAt = resolvedUpdatedAt
+        )
+    }
+
+    private fun DailyEntry.toRemoteEntry(): RemoteDailyEntry {
+        val remoteEarnings = listOf(
+            RemoteEarning(provider = "Uber", cardEarnings = uberEarnings),
+            RemoteEarning(provider = "Careem", cardEarnings = careemEarnings),
+            RemoteEarning(provider = "Private", cardEarnings = privateJobsEarnings),
+            RemoteEarning(provider = "Yango", cardEarnings = yangoEarnings)
+        )
+
+        return RemoteDailyEntry(
+            id = id,
+            userId = userId,
+            date = date,
+            driverId = driverId,
+            vehicleId = vehicleId,
+            earnings = remoteEarnings,
+            notes = notes,
+            photos = photoUrls,
+            isSynced = isSynced,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+    }
+
+    private fun normalizeProviderName(provider: String): String {
+        return provider.trim().lowercase(Locale.ROOT)
+    }
     
     // Vehicles
     suspend fun saveVehicle(vehicle: Vehicle) {
@@ -407,7 +478,7 @@ class FirestoreService @Inject constructor(
      *    service cloud.firestore {
      *      match /databases/{database}/documents {
      *        // Flat collections with userId filtering
-     *        match /entries/{entryId} {
+     *        match /entriesNEW/{entryId} {
      *          allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
      *        }
      *        
@@ -428,7 +499,7 @@ class FirestoreService @Inject constructor(
      * 
      * 3. FIRESTORE COLLECTION STRUCTURE:
      *    The app will automatically create these flat collections:
-     *    - entries/{entryId}
+     *    - entriesNEW/{entryId}
      *      - Fields: id, userId, date, driver, vehicle, uberEarnings, yangoEarnings, privateJobsEarnings, notes, photos, createdAt, updatedAt
      *    - expenses/{expenseId}
      *      - Fields: id, userId, type, amount, date, driver, car, notes, photos, createdAt, updatedAt

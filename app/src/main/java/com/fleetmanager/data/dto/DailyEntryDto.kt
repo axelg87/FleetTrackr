@@ -18,6 +18,7 @@ data class DailyEntryDto(
     val vehicleId: String = "",
     val uberEarnings: Double,
     val yangoEarnings: Double,
+    val careemEarnings: Double = 0.0,
     val privateJobsEarnings: Double,
     val notes: String,
     val photoUrl: String? = null,
