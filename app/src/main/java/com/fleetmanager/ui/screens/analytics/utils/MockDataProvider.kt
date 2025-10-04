@@ -1,6 +1,7 @@
 package com.fleetmanager.ui.screens.analytics.utils
 
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.EarningEntry
 import com.fleetmanager.domain.model.Expense
 import com.fleetmanager.domain.model.ExpenseType
 import com.fleetmanager.ui.screens.analytics.model.*
@@ -101,6 +102,14 @@ object MockDataProvider {
         val vehicle = vehicleNames.random()
         val dateAsDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant())
 
+        val earnings = buildList {
+            generateRandomEarning("Uber", 0.3)?.let { add(it) }
+            generateRandomEarning("Careem", 0.4)?.let { add(it) }
+            generateRandomEarning("Private", 0.6)?.let { add(it) }
+        }.ifEmpty {
+            listOf(generateRandomEarning("Uber", probability = 1.0)!!)
+        }
+
         return DailyEntry(
             id = UUID.randomUUID().toString(),
             userId = "mock_user",
@@ -109,13 +118,31 @@ object MockDataProvider {
             driverName = driver,
             vehicleId = vehicle.lowercase().replace(" ", "_").replace("'", ""),
             vehicle = vehicle,
-            uberEarnings = if (Random.nextDouble() > 0.3) Random.nextDouble() * 200 + 50 else 0.0,
-            yangoEarnings = if (Random.nextDouble() > 0.4) Random.nextDouble() * 150 + 30 else 0.0,
-            privateJobsEarnings = if (Random.nextDouble() > 0.6) Random.nextDouble() * 100 + 20 else 0.0,
+            earnings = earnings,
             notes = "Mock entry for $date",
             isSynced = true,
             createdAt = dateAsDate,
             updatedAt = dateAsDate
+        )
+    }
+
+    private fun generateRandomEarning(provider: String, probability: Double): EarningEntry? {
+        if (Random.nextDouble() > probability) {
+            return null
+        }
+
+        val base = Random.nextDouble() * 200 + 50
+        val cashPortion = base * Random.nextDouble(0.0, 0.3)
+        val tips = base * Random.nextDouble(0.0, 0.1)
+        val card = base - cashPortion
+
+        return EarningEntry(
+            provider = provider,
+            cardEarnings = card,
+            cashEarnings = cashPortion,
+            tips = tips,
+            tripCount = Random.nextInt(1, 12),
+            hoursOnline = Random.nextDouble(2.0, 10.0)
         )
     }
 

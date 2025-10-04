@@ -16,15 +16,15 @@ data class DailyEntryDto(
     val date: Date,
     val driverId: String = "",
     val vehicleId: String = "",
-    val uberEarnings: Double,
-    val yangoEarnings: Double,
-    val privateJobsEarnings: Double,
+    val earnings: List<EarningDto> = emptyList(),
+    val odometer: Double? = null,
     val notes: String,
     val photoUrl: String? = null,
     val localPhotoPath: String? = null,
     val photoUrls: List<String> = emptyList(),
     val localPhotoPaths: List<String> = emptyList(),
     val isSynced: Boolean = false,
+    val totalEarnings: Double = 0.0,
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
 )

@@ -11,11 +11,7 @@ sealed class DashboardShortcut {
         object LastMonth : TimeRange()
     }
 
-    sealed class IncomeSource : DashboardShortcut() {
-        object Uber : IncomeSource()
-        object Yango : IncomeSource()
-        object Private : IncomeSource()
-    }
+    data class Provider(val name: String) : DashboardShortcut()
 
     object AllEntries : DashboardShortcut()
 }

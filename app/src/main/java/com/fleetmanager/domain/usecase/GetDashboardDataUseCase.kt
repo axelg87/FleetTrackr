@@ -10,6 +10,14 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
+data class ProviderEarningsSnapshot(
+    val provider: String,
+    val thisMonthTotal: Double,
+    val lastMonthTotal: Double,
+    val thisWeekTotal: Double,
+    val trend: List<Double> = emptyList()
+)
+
 data class DashboardData(
     val thisMonthEarnings: Double,
     val lastMonthEarnings: Double,
@@ -17,21 +25,7 @@ data class DashboardData(
     val last24hEarnings: Double,
     val activeDriversCount: Int,
     val recentEntries: List<DailyEntry>,
-    // Earnings by source for this month
-    val thisMonthUberEarnings: Double,
-    val thisMonthYangoEarnings: Double,
-    val thisMonthPrivateEarnings: Double,
-    // Earnings by source for last month
-    val lastMonthUberEarnings: Double,
-    val lastMonthYangoEarnings: Double,
-    val lastMonthPrivateEarnings: Double,
-    // Earnings by source for this week
-    val thisWeekUberEarnings: Double,
-    val thisWeekYangoEarnings: Double,
-    val thisWeekPrivateEarnings: Double,
-    val uberTrend: List<Double> = emptyList(),
-    val yangoTrend: List<Double> = emptyList(),
-    val privateTrend: List<Double> = emptyList()
+    val providerSnapshots: List<ProviderEarningsSnapshot>
 )
 
 /**
@@ -79,9 +73,10 @@ class GetDashboardDataUseCase @Inject constructor(
         val startOfMonth = calendar.time
         val thisMonthEntries = enrichedEntries.filter { it.date >= startOfMonth }
         val thisMonthEarnings = thisMonthEntries.sumOf { it.totalEarnings }
-        val thisMonthUberEarnings = thisMonthEntries.sumOf { it.uberEarnings }
-        val thisMonthYangoEarnings = thisMonthEntries.sumOf { it.yangoEarnings }
-        val thisMonthPrivateEarnings = thisMonthEntries.sumOf { it.privateJobsEarnings }
+        val providerDisplayNames = resolveProviderDisplayNames(enrichedEntries)
+        val providerKeys = providerDisplayNames.keys
+
+        val thisMonthTotals = aggregateTotalsByProvider(thisMonthEntries)
 
         // Last month
         calendar.time = startOfMonth
@@ -91,9 +86,7 @@ class GetDashboardDataUseCase @Inject constructor(
             entry.date >= startOfLastMonth && entry.date < startOfMonth
         }
         val lastMonthEarnings = lastMonthEntries.sumOf { it.totalEarnings }
-        val lastMonthUberEarnings = lastMonthEntries.sumOf { it.uberEarnings }
-        val lastMonthYangoEarnings = lastMonthEntries.sumOf { it.yangoEarnings }
-        val lastMonthPrivateEarnings = lastMonthEntries.sumOf { it.privateJobsEarnings }
+        val lastMonthTotals = aggregateTotalsByProvider(lastMonthEntries)
 
         // This week (Monday to Sunday)
         calendar.time = now
@@ -107,9 +100,7 @@ class GetDashboardDataUseCase @Inject constructor(
         val startOfWeek = calendar.time
         val thisWeekEntries = enrichedEntries.filter { it.date >= startOfWeek }
         val thisWeekEarnings = thisWeekEntries.sumOf { it.totalEarnings }
-        val thisWeekUberEarnings = thisWeekEntries.sumOf { it.uberEarnings }
-        val thisWeekYangoEarnings = thisWeekEntries.sumOf { it.yangoEarnings }
-        val thisWeekPrivateEarnings = thisWeekEntries.sumOf { it.privateJobsEarnings }
+        val thisWeekTotals = aggregateTotalsByProvider(thisWeekEntries)
         
         // Last 24 hours
         val last24Hours = Date(now.time - TimeUnit.HOURS.toMillis(24))
@@ -125,9 +116,18 @@ class GetDashboardDataUseCase @Inject constructor(
             .sortedByDescending { it.date }
             .take(5)
 
-        val uberTrend = generateDailyTrend(enrichedEntries, now) { it.uberEarnings }
-        val yangoTrend = generateDailyTrend(enrichedEntries, now) { it.yangoEarnings }
-        val privateTrend = generateDailyTrend(enrichedEntries, now) { it.privateJobsEarnings }
+        val providerTrends = generateDailyTrends(enrichedEntries, now, providerKeys)
+
+        val providerSnapshots = providerKeys.map { providerKey ->
+            val displayName = providerDisplayNames[providerKey] ?: providerKey
+            ProviderEarningsSnapshot(
+                provider = displayName,
+                thisMonthTotal = thisMonthTotals[providerKey] ?: 0.0,
+                lastMonthTotal = lastMonthTotals[providerKey] ?: 0.0,
+                thisWeekTotal = thisWeekTotals[providerKey] ?: 0.0,
+                trend = providerTrends[providerKey] ?: emptyList()
+            )
+        }.sortedByDescending { it.thisMonthTotal }
 
         return DashboardData(
             thisMonthEarnings = thisMonthEarnings,
@@ -136,44 +136,7 @@ class GetDashboardDataUseCase @Inject constructor(
             last24hEarnings = last24hEarnings,
             activeDriversCount = activeDriversCount,
             recentEntries = recentEntries,
-            thisMonthUberEarnings = thisMonthUberEarnings,
-            thisMonthYangoEarnings = thisMonthYangoEarnings,
-            thisMonthPrivateEarnings = thisMonthPrivateEarnings,
-            lastMonthUberEarnings = lastMonthUberEarnings,
-            lastMonthYangoEarnings = lastMonthYangoEarnings,
-            lastMonthPrivateEarnings = lastMonthPrivateEarnings,
-            thisWeekUberEarnings = thisWeekUberEarnings,
-            thisWeekYangoEarnings = thisWeekYangoEarnings,
-            thisWeekPrivateEarnings = thisWeekPrivateEarnings,
-            uberTrend = uberTrend,
-            yangoTrend = yangoTrend,
-            privateTrend = privateTrend
+            providerSnapshots = providerSnapshots
         )
     }
-}
-
-private fun generateDailyTrend(
-    entries: List<DailyEntry>,
-    referenceDate: Date,
-    selector: (DailyEntry) -> Double
-): List<Double> {
-    val daysBack = 7
-    return (daysBack downTo 1).map { offset ->
-        val start = startOfDay(referenceDate, offset)
-        val end = Date(start.time + TimeUnit.DAYS.toMillis(1))
-        entries
-            .filter { it.date >= start && it.date < end }
-            .sumOf(selector)
-    }
-}
-
-private fun startOfDay(referenceDate: Date, daysAgo: Int): Date {
-    val calendar = Calendar.getInstance()
-    calendar.time = referenceDate
-    calendar.add(Calendar.DAY_OF_YEAR, -daysAgo)
-    calendar.set(Calendar.HOUR_OF_DAY, 0)
-    calendar.set(Calendar.MINUTE, 0)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-    return calendar.time
 }

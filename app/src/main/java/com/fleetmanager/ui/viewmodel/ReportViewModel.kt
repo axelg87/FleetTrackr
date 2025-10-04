@@ -292,22 +292,10 @@ class ReportViewModel @Inject constructor(
                     null,
                     EntryTypeFilter.ALL
                 )
-                DashboardShortcut.IncomeSource.Uber -> Quadruple(
+                is DashboardShortcut.Provider -> Quadruple(
                     calculateStartOfCurrentMonth(),
                     endOfToday,
-                    "Uber",
-                    EntryTypeFilter.INCOME_ONLY
-                )
-                DashboardShortcut.IncomeSource.Yango -> Quadruple(
-                    calculateStartOfCurrentMonth(),
-                    endOfToday,
-                    "Yango",
-                    EntryTypeFilter.INCOME_ONLY
-                )
-                DashboardShortcut.IncomeSource.Private -> Quadruple(
-                    calculateStartOfCurrentMonth(),
-                    endOfToday,
-                    "Private",
+                    shortcut.name,
                     EntryTypeFilter.INCOME_ONLY
                 )
             }

@@ -3,6 +3,7 @@ package com.fleetmanager.ui.viewmodel
 import android.net.Uri
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.domain.model.EarningEntry
 import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
@@ -19,6 +20,25 @@ import java.util.*
 import javax.inject.Inject
 import java.util.Calendar
 
+data class EarningInputState(
+    val id: String = UUID.randomUUID().toString(),
+    val provider: String = "",
+    val card: String = "",
+    val cash: String = "",
+    val tips: String = "",
+    val tripCount: String = "",
+    val hoursOnline: String = "",
+    val providerError: String? = null,
+    val amountError: String? = null
+) {
+    fun totalAmount(): Double {
+        val cardValue = card.toDoubleOrNull() ?: 0.0
+        val cashValue = cash.toDoubleOrNull() ?: 0.0
+        val tipsValue = tips.toDoubleOrNull() ?: 0.0
+        return cardValue + cashValue + tipsValue
+    }
+}
+
 data class AddEntryUiState(
     val drivers: List<Driver> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
@@ -27,9 +47,8 @@ data class AddEntryUiState(
     val driverInput: String = "",
     val vehicleInput: String = "",
     val date: Date,
-    val uberEarnings: String = "",
-    val yangoEarnings: String = "",
-    val privateJobsEarnings: String = "",
+    val earnings: List<EarningInputState> = listOf(EarningInputState()),
+    val odometer: String = "",
     val notes: String = "",
     val photoUri: Uri? = null,
     val photoUris: List<Uri> = emptyList(),
@@ -40,10 +59,8 @@ data class AddEntryUiState(
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val errorMessage: String? = null,
-    val uberEarningsError: String? = null,
-    val yangoEarningsError: String? = null,
-    val privateJobsEarningsError: String? = null,
     val notesError: String? = null,
+    val odometerError: String? = null,
     val userRole: UserRole? = null,
     val currentUserProfile: UserDto? = null,
     val entryId: String? = null,
@@ -54,18 +71,13 @@ data class AddEntryUiState(
     val canSave: Boolean
         get() = driverInput.isNotBlank() &&
                 vehicleInput.isNotBlank() &&
-                uberEarningsError == null &&
-                yangoEarningsError == null &&
-                privateJobsEarningsError == null &&
                 notesError == null &&
-                (uberEarnings.isNotBlank() || yangoEarnings.isNotBlank() || privateJobsEarnings.isNotBlank())
-    
+                odometerError == null &&
+                earnings.any { it.providerError == null && it.amountError == null && it.provider.isNotBlank() && it.totalAmount() > 0.0 }
+
     val hasValidationErrors: Boolean
-        get() = uberEarningsError != null || 
-                yangoEarningsError != null || 
-                privateJobsEarningsError != null || 
-                notesError != null
-    
+        get() = notesError != null || odometerError != null || earnings.any { it.providerError != null || it.amountError != null }
+
     // Driver names from Firestore only
     val allDriverNames: List<String>
         get() = drivers.map { it.name }.sorted()
@@ -100,7 +112,7 @@ class AddEntryViewModel @Inject constructor(
     private fun getDefaultDate(): Date {
         val now = Calendar.getInstance()
         val currentHour = now.get(Calendar.HOUR_OF_DAY)
-        
+
         return if (currentHour < 14) { // Before 2:00 PM (14:00)
             // Use yesterday's date
             now.add(Calendar.DAY_OF_MONTH, -1)
@@ -212,51 +224,143 @@ class AddEntryViewModel @Inject constructor(
     }
     
     fun updateVehicleInput(input: String) {
-        updateState { 
+        updateState {
             it.copy(
                 vehicleInput = input,
                 selectedVehicle = it.vehicles.find { vehicle -> vehicle.displayName == input }
-            ) 
+            )
         }
     }
-    
-    fun updateUberEarnings(value: String) {
+
+    fun addEarningInput() {
+        updateEarnings { it + EarningInputState() }
+    }
+
+    fun removeEarningInput(id: String) {
+        updateEarnings { current ->
+            val updated = current.filterNot { it.id == id }
+            if (updated.isEmpty()) listOf(EarningInputState()) else updated
+        }
+    }
+
+    fun updateEarningProvider(id: String, value: String) {
+        val sanitized = validator.sanitizeText(value)
+        updateEarnings { list ->
+            list.map { earning ->
+                if (earning.id == id) earning.copy(provider = sanitized) else earning
+            }
+        }
+    }
+
+    fun updateEarningCard(id: String, value: String) {
         val sanitized = validator.sanitizeNumericInput(value)
-        val error = validator.validateEarnings(sanitized, "Uber earnings").getErrorMessage()
-        updateState { 
-            it.copy(
-                uberEarnings = sanitized,
-                uberEarningsError = error
-            ) 
+        updateEarnings { list ->
+            list.map { earning ->
+                if (earning.id == id) earning.copy(card = sanitized) else earning
+            }
         }
     }
-    
-    fun updateYangoEarnings(value: String) {
+
+    fun updateEarningCash(id: String, value: String) {
         val sanitized = validator.sanitizeNumericInput(value)
-        val error = validator.validateEarnings(sanitized, "Yango earnings").getErrorMessage()
-        updateState { 
-            it.copy(
-                yangoEarnings = sanitized,
-                yangoEarningsError = error
-            ) 
+        updateEarnings { list ->
+            list.map { earning ->
+                if (earning.id == id) earning.copy(cash = sanitized) else earning
+            }
         }
     }
-    
-    fun updatePrivateJobsEarnings(value: String) {
+
+    fun updateEarningTips(id: String, value: String) {
         val sanitized = validator.sanitizeNumericInput(value)
-        val error = validator.validateEarnings(sanitized, "Private jobs earnings").getErrorMessage()
-        updateState { 
-            it.copy(
-                privateJobsEarnings = sanitized,
-                privateJobsEarningsError = error
-            ) 
+        updateEarnings { list ->
+            list.map { earning ->
+                if (earning.id == id) earning.copy(tips = sanitized) else earning
+            }
         }
     }
-    
+
+    fun updateEarningTripCount(id: String, value: String) {
+        val sanitized = value.filter { it.isDigit() }
+        updateEarnings { list ->
+            list.map { earning ->
+                if (earning.id == id) earning.copy(tripCount = sanitized) else earning
+            }
+        }
+    }
+
+    fun updateEarningHoursOnline(id: String, value: String) {
+        val sanitized = validator.sanitizeNumericInput(value)
+        updateEarnings { list ->
+            list.map { earning ->
+                if (earning.id == id) earning.copy(hoursOnline = sanitized) else earning
+            }
+        }
+    }
+
+    fun updateOdometer(value: String) {
+        val sanitized = validator.sanitizeNumericInput(value)
+        val error = validator.validateNonNegativeAmount(sanitized.toDoubleOrNull(), "Odometer", required = false).getErrorMessage()
+        updateState {
+            it.copy(
+                odometer = sanitized,
+                odometerError = error
+            )
+        }
+    }
+
+    private fun updateEarnings(transform: (List<EarningInputState>) -> List<EarningInputState>) {
+        updateState { currentState ->
+            val transformed = transform(currentState.earnings)
+            currentState.copy(earnings = validateEarnings(transformed))
+        }
+    }
+
+    private fun validateEarnings(inputs: List<EarningInputState>): List<EarningInputState> {
+        val providerCounts = inputs
+            .mapNotNull { input -> input.provider.trim().takeIf { it.isNotBlank() }?.lowercase(Locale.getDefault()) }
+            .groupingBy { it }
+            .eachCount()
+
+        return inputs.map { input ->
+            val provider = validator.sanitizeText(input.provider)
+            val normalized = provider.trim().lowercase(Locale.getDefault())
+            val requiresProvider = input.totalAmount() > 0.0
+            val providerError = when {
+                requiresProvider && provider.isBlank() -> "Provider is required"
+                provider.isNotBlank() && (providerCounts[normalized] ?: 0) > 1 -> "Duplicate provider"
+                else -> null
+            }
+
+            val amountError = sequenceOf(
+                validator.validateNonNegativeAmount(input.card.toDoubleOrNull(), "Card earnings", required = false),
+                validator.validateNonNegativeAmount(input.cash.toDoubleOrNull(), "Cash earnings", required = false),
+                validator.validateNonNegativeAmount(input.tips.toDoubleOrNull(), "Tips", required = false),
+                validator.validateNonNegativeAmount(input.hoursOnline.toDoubleOrNull(), "Hours online", required = false)
+            ).firstOrNull { it.isError }?.getErrorMessage()
+                ?: validateTripCount(input.tripCount)
+
+            input.copy(
+                provider = provider,
+                providerError = providerError,
+                amountError = amountError
+            )
+        }
+    }
+
+    private fun validateTripCount(value: String): String? {
+        if (value.isBlank()) return null
+        val parsed = value.toIntOrNull()
+        return when {
+            parsed == null -> "Trip count must be a whole number"
+            parsed < 0 -> "Trip count cannot be negative"
+            else -> null
+        }
+    }
+
     fun updateNotes(value: String) {
         val sanitized = validator.sanitizeText(value)
         val error = validator.validateNotes(sanitized).getErrorMessage()
-        updateState { 
+        updateState {
             it.copy(
                 notes = sanitized,
                 notesError = error
@@ -391,9 +495,27 @@ class AddEntryViewModel @Inject constructor(
                 driverName = currentState.driverInput,
                 vehicleId = vehicleId,
                 vehicle = currentState.vehicleInput,
-                uberEarnings = currentState.uberEarnings.toDoubleOrNull() ?: 0.0,
-                yangoEarnings = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0,
-                privateJobsEarnings = currentState.privateJobsEarnings.toDoubleOrNull() ?: 0.0,
+                earnings = currentState.earnings
+                    .mapNotNull { input ->
+                        val provider = input.provider.trim()
+                        val card = input.card.toDoubleOrNull() ?: 0.0
+                        val cash = input.cash.toDoubleOrNull() ?: 0.0
+                        val tips = input.tips.toDoubleOrNull() ?: 0.0
+                        val total = card + cash + tips
+                        if (provider.isBlank() || total <= 0.0) {
+                            null
+                        } else {
+                            EarningEntry(
+                                provider = provider,
+                                cardEarnings = card,
+                                cashEarnings = cash,
+                                tips = tips,
+                                tripCount = input.tripCount.toIntOrNull() ?: 0,
+                                hoursOnline = input.hoursOnline.toDoubleOrNull() ?: 0.0
+                            )
+                        }
+                    },
+                odometer = currentState.odometer.toDoubleOrNull(),
                 notes = currentState.notes,
                 photoUrls = currentState.existingPhotoUrls,
                 createdAt = createdAt,
@@ -431,6 +553,19 @@ class AddEntryViewModel @Inject constructor(
                 .firstOrNull()
                 ?.let { entry ->
                     updateState { state ->
+                        val earningsInputs = entry.earnings.takeIf { it.isNotEmpty() }
+                            ?.map { earning ->
+                                EarningInputState(
+                                    provider = earning.provider,
+                                    card = formatDouble(earning.cardEarnings),
+                                    cash = formatDouble(earning.cashEarnings),
+                                    tips = formatDouble(earning.tips),
+                                    tripCount = earning.tripCount.takeIf { it > 0 }?.toString() ?: "",
+                                    hoursOnline = formatDouble(earning.hoursOnline)
+                                )
+                            }
+                            ?: listOf(EarningInputState())
+
                         state.copy(
                             entryId = entry.id,
                             userId = entry.userId,
@@ -438,9 +573,9 @@ class AddEntryViewModel @Inject constructor(
                             date = entry.date,
                             driverInput = entry.driverName,
                             vehicleInput = entry.vehicle,
-                            uberEarnings = entry.uberEarnings.takeIf { it != 0.0 }?.toString() ?: "",
-                            yangoEarnings = entry.yangoEarnings.takeIf { it != 0.0 }?.toString() ?: "",
-                            privateJobsEarnings = entry.privateJobsEarnings.takeIf { it != 0.0 }?.toString() ?: "",
+                            earnings = validateEarnings(earningsInputs),
+                            odometer = entry.odometer?.let { formatDouble(it) } ?: "",
+                            odometerError = null,
                             notes = entry.notes,
                             existingPhotoUrls = entry.photoUrls,
                             createdAt = entry.createdAt,
@@ -451,6 +586,15 @@ class AddEntryViewModel @Inject constructor(
                 } ?: updateState {
                 it.copy(errorMessage = "Entry not found")
             }
+        }
+    }
+
+    private fun formatDouble(value: Double): String {
+        if (value == 0.0) return ""
+        return if (value % 1.0 == 0.0) {
+            value.toLong().toString()
+        } else {
+            String.format(Locale.US, "%.2f", value)
         }
     }
 }
