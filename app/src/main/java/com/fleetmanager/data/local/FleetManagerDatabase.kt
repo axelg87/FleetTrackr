@@ -3,11 +3,13 @@ package com.fleetmanager.data.local
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.migration.Migration
 import com.fleetmanager.data.local.dao.DailyEntryDao
 import com.fleetmanager.data.local.dao.DriverDao
 import com.fleetmanager.data.local.dao.VehicleDao
@@ -45,7 +47,6 @@ abstract class FleetManagerDatabase : RoomDatabase() {
                     DATABASE_NAME
                 )
                     .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
-                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
@@ -54,8 +55,8 @@ abstract class FleetManagerDatabase : RoomDatabase() {
     }
 }
 
-private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
-    override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("ALTER TABLE expenses ADD COLUMN driverId TEXT NOT NULL DEFAULT ''")
         database.execSQL(
             "UPDATE expenses SET driverId = CASE " +
@@ -66,7 +67,7 @@ private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
     }
 }
 
-private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+private val MIGRATION_6_7 = object : Migration(6, 7) {
     private val gson = Gson()
 
     override fun migrate(database: SupportSQLiteDatabase) {
@@ -128,78 +129,78 @@ private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
                     put("updatedAt", cursor.getLongOrDefault("updatedAt"))
                 }
 
-                database.insert("daily_entries_new", SupportSQLiteDatabase.CONFLICT_REPLACE, values)
+                database.insert("daily_entries_new", SQLiteDatabase.CONFLICT_REPLACE, values)
             }
         }
 
         database.execSQL("DROP TABLE daily_entries")
         database.execSQL("ALTER TABLE daily_entries_new RENAME TO daily_entries")
     }
-
-    private fun buildLegacyEarnings(cursor: Cursor): List<LegacyEarning> {
-        val earnings = mutableListOf<LegacyEarning>()
-
-        fun addIfPresent(provider: String, value: Double) {
-            if (value != 0.0) {
-                earnings.add(
-                    LegacyEarning(
-                        provider = provider,
-                        cardEarnings = value
-                    )
-                )
-            }
-        }
-
-        addIfPresent("Uber", cursor.getDoubleOrDefault("uberEarnings"))
-        addIfPresent("Careem", cursor.getDoubleOrDefault("careemEarnings"))
-        addIfPresent("Yango", cursor.getDoubleOrDefault("yangoEarnings"))
-        addIfPresent("Private", cursor.getDoubleOrDefault("privateJobsEarnings"))
-
-        return earnings
-    }
-
-    private fun Cursor.getStringOrDefault(column: String, default: String = ""): String {
-        val index = getColumnIndex(column)
-        if (index == -1 || isNull(index)) return default
-        return getString(index)
-    }
-
-    private fun Cursor.getStringOrNull(column: String): String? {
-        val index = getColumnIndex(column)
-        if (index == -1 || isNull(index)) return null
-        return getString(index)
-    }
-
-    private fun Cursor.getLongOrDefault(column: String, default: Long = 0L): Long {
-        val index = getColumnIndex(column)
-        if (index == -1 || isNull(index)) return default
-        return getLong(index)
-    }
-
-    private fun Cursor.getIntOrDefault(column: String, default: Int = 0): Int {
-        val index = getColumnIndex(column)
-        if (index == -1 || isNull(index)) return default
-        return getInt(index)
-    }
-
-    private fun Cursor.getDoubleOrDefault(column: String, default: Double = 0.0): Double {
-        val index = getColumnIndex(column)
-        if (index == -1 || isNull(index)) return default
-        return getDouble(index)
-    }
-
-    private fun Cursor.getDoubleOrNull(column: String): Double? {
-        val index = getColumnIndex(column)
-        if (index == -1 || isNull(index)) return null
-        return getDouble(index)
-    }
-
-    private data class LegacyEarning(
-        val provider: String,
-        val cardEarnings: Double,
-        val cashEarnings: Double = 0.0,
-        val tips: Double = 0.0,
-        val tripCount: Int = 0,
-        val hoursOnline: Double = 0.0
-    )
 }
+
+private fun buildLegacyEarnings(cursor: Cursor): List<LegacyEarning> {
+    val earnings = mutableListOf<LegacyEarning>()
+
+    fun addIfPresent(provider: String, value: Double) {
+        if (value != 0.0) {
+            earnings.add(
+                LegacyEarning(
+                    provider = provider,
+                    cardEarnings = value
+                )
+            )
+        }
+    }
+
+    addIfPresent("Uber", cursor.getDoubleOrDefault("uberEarnings"))
+    addIfPresent("Careem", cursor.getDoubleOrDefault("careemEarnings"))
+    addIfPresent("Yango", cursor.getDoubleOrDefault("yangoEarnings"))
+    addIfPresent("Private", cursor.getDoubleOrDefault("privateJobsEarnings"))
+
+    return earnings
+}
+
+private fun Cursor.getStringOrDefault(column: String, default: String = ""): String {
+    val index = getColumnIndex(column)
+    if (index == -1 || isNull(index)) return default
+    return getString(index)
+}
+
+private fun Cursor.getStringOrNull(column: String): String? {
+    val index = getColumnIndex(column)
+    if (index == -1 || isNull(index)) return null
+    return getString(index)
+}
+
+private fun Cursor.getLongOrDefault(column: String, default: Long = 0L): Long {
+    val index = getColumnIndex(column)
+    if (index == -1 || isNull(index)) return default
+    return getLong(index)
+}
+
+private fun Cursor.getIntOrDefault(column: String, default: Int = 0): Int {
+    val index = getColumnIndex(column)
+    if (index == -1 || isNull(index)) return default
+    return getInt(index)
+}
+
+private fun Cursor.getDoubleOrDefault(column: String, default: Double = 0.0): Double {
+    val index = getColumnIndex(column)
+    if (index == -1 || isNull(index)) return default
+    return getDouble(index)
+}
+
+private fun Cursor.getDoubleOrNull(column: String): Double? {
+    val index = getColumnIndex(column)
+    if (index == -1 || isNull(index)) return null
+    return getDouble(index)
+}
+
+private data class LegacyEarning(
+    val provider: String,
+    val cardEarnings: Double,
+    val cashEarnings: Double = 0.0,
+    val tips: Double = 0.0,
+    val tripCount: Int = 0,
+    val hoursOnline: Double = 0.0
+)
