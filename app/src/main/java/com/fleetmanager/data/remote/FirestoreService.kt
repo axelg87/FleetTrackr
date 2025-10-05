@@ -339,11 +339,20 @@ class FirestoreService @Inject constructor(
     }
 
     private fun DocumentSnapshot.toDailyEntry(): DailyEntry? {
-        return if (contains("earnings")) {
-            toObject<RemoteDailyEntry>()?.toDomainDailyEntry()
-        } else {
-            toObject<DailyEntry>()
+        val earningsField = get("earnings")
+        if (earningsField is List<*> || contains("earnings")) {
+            val remoteEntry = runCatching { toObject<RemoteDailyEntry>() }
+                .onFailure { error ->
+                    Log.w(TAG, "Failed to parse new earnings schema for entry ${id}", error)
+                }
+                .getOrNull()
+
+            if (remoteEntry != null) {
+                return remoteEntry.toDomainDailyEntry()
+            }
         }
+
+        return toObject<DailyEntry>()
     }
 
     private fun RemoteDailyEntry.toDomainDailyEntry(): DailyEntry {
