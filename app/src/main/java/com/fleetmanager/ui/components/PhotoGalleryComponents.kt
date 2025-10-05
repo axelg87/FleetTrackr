@@ -42,11 +42,17 @@ fun PhotoGalleryGrid(
     
     if (photoUrls.isEmpty()) return
     
+    // Calculate the number of rows needed
+    val rows = (photoUrls.size + columns - 1) / columns
+    // Calculate total height: (thumbnail height + spacing) * rows - last spacing
+    val gridHeight = (120.dp + 8.dp) * rows - 8.dp
+    
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
-        modifier = modifier,
+        modifier = modifier.height(gridHeight),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        userScrollEnabled = false  // Disable scrolling since parent is scrollable
     ) {
         items(photoUrls.withIndex().toList()) { (index, url) ->
             PhotoThumbnail(
@@ -82,7 +88,7 @@ fun PhotoThumbnail(
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1f)
+            .size(120.dp)  // Fixed size to match grid calculation
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
