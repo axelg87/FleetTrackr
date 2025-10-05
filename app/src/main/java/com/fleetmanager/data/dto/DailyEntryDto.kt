@@ -7,6 +7,7 @@ import java.util.Date
 /**
  * Data Transfer Object for DailyEntry.
  * Used for Room database operations.
+ * Stores providers as a JSON string for simplicity.
  */
 @Entity(tableName = "daily_entries")
 data class DailyEntryDto(
@@ -16,9 +17,7 @@ data class DailyEntryDto(
     val date: Date,
     val driverId: String = "",
     val vehicleId: String = "",
-    val uberEarnings: Double,
-    val yangoEarnings: Double,
-    val privateJobsEarnings: Double,
+    val providersJson: String, // JSON representation of List<ProviderEarning>
     val notes: String,
     val photoUrl: String? = null,
     val localPhotoPath: String? = null,

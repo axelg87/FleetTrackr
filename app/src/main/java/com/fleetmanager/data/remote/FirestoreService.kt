@@ -145,11 +145,32 @@ class FirestoreService @Inject constructor(
         val targetUserId = entry.userId.takeIf { it.isNotBlank() } ?: currentUserId
         Log.d(TAG, "Saving daily entry to Firestore for user $targetUserId: ${entry.id}")
         try {
-            // Add userId field to the entry
-            val entryWithUserId = entry.copy(userId = targetUserId)
-            getCollection("entries")
+            // Convert to map with providers
+            val data = hashMapOf<String, Any?>(
+                "id" to entry.id,
+                "userId" to targetUserId,
+                "driverId" to entry.driverId,
+                "vehicleId" to entry.vehicleId,
+                "date" to entry.date,
+                "providers" to entry.providers.map { provider ->
+                    hashMapOf<String, Any?>(
+                        "type" to provider.type.name,
+                        "amount" to provider.amount,
+                        "currency" to provider.currency,
+                        "tripsCount" to provider.tripsCount,
+                        "meta" to provider.meta
+                    )
+                },
+                "notes" to entry.notes,
+                "photos" to entry.photoUrls,
+                "isSynced" to entry.isSynced,
+                "createdAt" to entry.createdAt,
+                "updatedAt" to entry.updatedAt
+            )
+            
+            getCollection("entriesNEW")
                 .document(entry.id)
-                .set(entryWithUserId)
+                .set(data)
                 .await()
             Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
         } catch (e: Exception) {
@@ -166,29 +187,29 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection("entriesNEW")
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<DailyEntry>() }
+                .mapNotNull { parseDailyEntryFromDocument(it) }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection("entriesNEW")
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<DailyEntry>() }
+                .mapNotNull { parseDailyEntryFromDocument(it) }
         }
     }
     
     fun getDailyEntriesFlow(): Flow<List<DailyEntry>> {
         val userId = authService.getCurrentUserId() ?: ""
-        return getCollection("entries")
+        return getCollection("entriesNEW")
             .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
-                snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                snapshot.documents.mapNotNull { parseDailyEntryFromDocument(it) }
             }
     }
     
@@ -197,12 +218,12 @@ class FirestoreService @Inject constructor(
             val userId = requireAuth()
             val userRole = getCurrentUserRole()
             
-            val document = getCollection("entries")
+            val document = getCollection("entriesNEW")
                 .document(entryId)
                 .get()
                 .await()
             
-            val entry = document.toObject<DailyEntry>()
+            val entry = parseDailyEntryFromDocument(document)
             
             // Check if user has permission to view this entry
             if (entry != null) {
@@ -228,25 +249,25 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection("entriesNEW")
                 .snapshots()
                 .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                    snapshot.documents.mapNotNull { parseDailyEntryFromDocument(it) }
                 }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection("entriesNEW")
                 .whereEqualTo("userId", userId)
                 .snapshots()
                 .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                    snapshot.documents.mapNotNull { parseDailyEntryFromDocument(it) }
                 }
         }
     }
     
     
     suspend fun deleteDailyEntry(entryId: String) {
-        getCollection("entries")
+        getCollection("entriesNEW")
             .document(entryId)
             .delete()
             .await()
@@ -921,4 +942,143 @@ private fun Expense.normalizeDriverAssociation(defaultDriverId: String? = null):
         driverId = resolvedDriverId,
         userId = resolvedUserId
     )
+}
+
+/**
+ * Parse DailyEntry from Firestore DocumentSnapshot
+ * Handles both new provider-based format and legacy flat format for backward compatibility
+ */
+private fun parseDailyEntryFromDocument(document: com.google.firebase.firestore.DocumentSnapshot): DailyEntry? {
+    if (!document.exists()) return null
+    
+    return try {
+        val id = document.getString("id") ?: document.id
+        val userId = document.getString("userId") ?: ""
+        val driverId = document.getString("driverId") ?: ""
+        val vehicleId = document.getString("vehicleId") ?: ""
+        val notes = document.getString("notes") ?: ""
+        val isSynced = document.getBoolean("isSynced") ?: true
+        
+        // Parse date
+        val date = document.getDate("date") ?: java.util.Date()
+        val createdAt = document.getDate("createdAt") ?: java.util.Date()
+        val updatedAt = document.getDate("updatedAt") ?: java.util.Date()
+        
+        // Parse photos
+        @Suppress("UNCHECKED_CAST")
+        val photoUrls = (document.get("photos") as? List<String>) ?: emptyList()
+        
+        // Parse providers (new format)
+        val providers = parseProvidersFromFirestore(document)
+        
+        DailyEntry(
+            id = id,
+            userId = userId,
+            driverId = driverId,
+            vehicleId = vehicleId,
+            providers = providers,
+            notes = notes,
+            photoUrls = photoUrls,
+            isSynced = isSynced,
+            date = date,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+    } catch (e: Exception) {
+        Log.e("FirestoreService", "Failed to parse DailyEntry from document ${document.id}: ${e.message}", e)
+        null
+    }
+}
+
+/**
+ * Parse providers list from Firestore document
+ * Handles both new provider format and legacy flat earnings format
+ */
+@Suppress("UNCHECKED_CAST")
+private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.DocumentSnapshot): List<com.fleetmanager.domain.model.ProviderEarning> {
+    val providers = mutableListOf<com.fleetmanager.domain.model.ProviderEarning>()
+    
+    // Try to read new format (providers array)
+    val providersData = document.get("providers") as? List<Map<String, Any?>>
+    
+    if (providersData != null && providersData.isNotEmpty()) {
+        // New format - parse providers array
+        providersData.forEach { providerMap ->
+            try {
+                val typeString = (providerMap["type"] as? String)?.uppercase() ?: "OTHER"
+                val type = try {
+                    com.fleetmanager.domain.model.ProviderType.valueOf(typeString)
+                } catch (e: Exception) {
+                    com.fleetmanager.domain.model.ProviderType.OTHER
+                }
+                
+                val amount = (providerMap["amount"] as? Number)?.toDouble() ?: 0.0
+                val currency = (providerMap["currency"] as? String) ?: "AED"
+                val tripsCount = (providerMap["tripsCount"] as? Number)?.toInt()
+                val meta = providerMap["meta"] as? Map<String, Any?>
+                
+                if (amount > 0) {
+                    providers.add(
+                        com.fleetmanager.domain.model.ProviderEarning(
+                            type = type,
+                            amount = amount,
+                            currency = currency,
+                            tripsCount = tripsCount,
+                            meta = meta
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("FirestoreService", "Failed to parse provider: ${e.message}")
+            }
+        }
+    } else {
+        // Legacy format - parse flat earnings fields for backward compatibility
+        val uberEarnings = (document.get("uberEarnings") as? Number)?.toDouble() ?: 0.0
+        val careemEarnings = (document.get("careemEarnings") as? Number)?.toDouble() ?: 0.0
+        val yangoEarnings = (document.get("yangoEarnings") as? Number)?.toDouble() ?: 0.0
+        val privateJobsEarnings = (document.get("privateJobsEarnings") as? Number)?.toDouble() ?: 0.0
+        
+        if (uberEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.UBER,
+                    amount = uberEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+        
+        if (careemEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.CAREEM,
+                    amount = careemEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+        
+        if (yangoEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.YANGO,
+                    amount = yangoEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+        
+        if (privateJobsEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.PRIVATE,
+                    amount = privateJobsEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+    }
+    
+    return providers
 }

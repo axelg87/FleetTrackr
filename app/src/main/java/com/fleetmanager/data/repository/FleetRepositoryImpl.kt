@@ -187,7 +187,8 @@ class FleetRepositoryImpl @Inject constructor(
     }
     
     override suspend fun getTotalEarningsForPeriod(startDate: Date, endDate: Date): Double {
-        return dailyEntryDao.getTotalEarningsForPeriod(startDate, endDate)
+        val entries = dailyEntryDao.getEntriesForPeriod(startDate, endDate)
+        return DailyEntryMapper.toDomainList(entries).sumOf { it.totalEarnings }
     }
     
     // Drivers

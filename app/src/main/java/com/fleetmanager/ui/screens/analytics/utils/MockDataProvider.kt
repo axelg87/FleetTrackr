@@ -101,6 +101,42 @@ object MockDataProvider {
         val vehicle = vehicleNames.random()
         val dateAsDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant())
 
+        // Build providers list with random earnings
+        val providers = buildList {
+            val uberAmount = if (Random.nextDouble() > 0.3) Random.nextDouble() * 200 + 50 else 0.0
+            if (uberAmount > 0) {
+                add(
+                    com.fleetmanager.domain.model.ProviderEarning(
+                        type = com.fleetmanager.domain.model.ProviderType.UBER,
+                        amount = uberAmount,
+                        currency = "AED"
+                    )
+                )
+            }
+            
+            val yangoAmount = if (Random.nextDouble() > 0.4) Random.nextDouble() * 150 + 30 else 0.0
+            if (yangoAmount > 0) {
+                add(
+                    com.fleetmanager.domain.model.ProviderEarning(
+                        type = com.fleetmanager.domain.model.ProviderType.YANGO,
+                        amount = yangoAmount,
+                        currency = "AED"
+                    )
+                )
+            }
+            
+            val privateAmount = if (Random.nextDouble() > 0.6) Random.nextDouble() * 100 + 20 else 0.0
+            if (privateAmount > 0) {
+                add(
+                    com.fleetmanager.domain.model.ProviderEarning(
+                        type = com.fleetmanager.domain.model.ProviderType.PRIVATE,
+                        amount = privateAmount,
+                        currency = "AED"
+                    )
+                )
+            }
+        }
+
         return DailyEntry(
             id = UUID.randomUUID().toString(),
             userId = "mock_user",
@@ -109,9 +145,7 @@ object MockDataProvider {
             driverName = driver,
             vehicleId = vehicle.lowercase().replace(" ", "_").replace("'", ""),
             vehicle = vehicle,
-            uberEarnings = if (Random.nextDouble() > 0.3) Random.nextDouble() * 200 + 50 else 0.0,
-            yangoEarnings = if (Random.nextDouble() > 0.4) Random.nextDouble() * 150 + 30 else 0.0,
-            privateJobsEarnings = if (Random.nextDouble() > 0.6) Random.nextDouble() * 100 + 20 else 0.0,
+            providers = providers,
             notes = "Mock entry for $date",
             isSynced = true,
             createdAt = dateAsDate,

@@ -16,7 +16,7 @@ import com.fleetmanager.data.dto.ExpenseDto
 
 @Database(
     entities = [DailyEntryDto::class, DriverDto::class, VehicleDto::class, ExpenseDto::class],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -40,7 +40,7 @@ abstract class FleetManagerDatabase : RoomDatabase() {
                     FleetManagerDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(MIGRATION_5_6)
+                    .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
@@ -59,5 +59,77 @@ private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
                 "WHEN TRIM(userId) <> '' THEN userId " +
                 "ELSE '' END"
         )
+    }
+}
+
+private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+    override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+        // Migration from flat earnings to provider-based model
+        
+        // 1. Add the new providersJson column
+        database.execSQL("ALTER TABLE daily_entries ADD COLUMN providersJson TEXT NOT NULL DEFAULT '[]'")
+        
+        // 2. Migrate existing data: Convert flat earnings to JSON providers format
+        // This uses a combination of JSON building with SQLite's json functions (if available)
+        // or constructs the JSON manually as a fallback
+        database.execSQL("""
+            UPDATE daily_entries 
+            SET providersJson = 
+                '[' ||
+                CASE WHEN uberEarnings > 0 THEN 
+                    '{"type":"UBER","amount":' || uberEarnings || ',"currency":"AED"}' 
+                ELSE '' END ||
+                CASE WHEN uberEarnings > 0 AND (yangoEarnings > 0 OR privateJobsEarnings > 0) THEN ',' ELSE '' END ||
+                CASE WHEN yangoEarnings > 0 THEN 
+                    '{"type":"YANGO","amount":' || yangoEarnings || ',"currency":"AED"}' 
+                ELSE '' END ||
+                CASE WHEN yangoEarnings > 0 AND privateJobsEarnings > 0 THEN ',' ELSE '' END ||
+                CASE WHEN privateJobsEarnings > 0 THEN 
+                    '{"type":"PRIVATE","amount":' || privateJobsEarnings || ',"currency":"AED"}' 
+                ELSE '' END ||
+                ']'
+            WHERE providersJson = '[]'
+        """.trimIndent())
+        
+        // 3. Create a new table with the updated schema (without flat earnings columns)
+        database.execSQL("""
+            CREATE TABLE IF NOT EXISTS daily_entries_new (
+                id TEXT PRIMARY KEY NOT NULL,
+                userId TEXT NOT NULL DEFAULT '',
+                date INTEGER NOT NULL,
+                driverId TEXT NOT NULL DEFAULT '',
+                vehicleId TEXT NOT NULL DEFAULT '',
+                providersJson TEXT NOT NULL,
+                notes TEXT NOT NULL,
+                photoUrl TEXT,
+                localPhotoPath TEXT,
+                photoUrls TEXT NOT NULL,
+                localPhotoPaths TEXT NOT NULL,
+                isSynced INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL
+            )
+        """.trimIndent())
+        
+        // 4. Copy data from old table to new table
+        database.execSQL("""
+            INSERT INTO daily_entries_new (
+                id, userId, date, driverId, vehicleId, providersJson, 
+                notes, photoUrl, localPhotoPath, photoUrls, localPhotoPaths, 
+                isSynced, createdAt, updatedAt
+            )
+            SELECT 
+                id, userId, date, driverId, vehicleId, providersJson,
+                notes, photoUrl, localPhotoPath, photoUrls, localPhotoPaths,
+                isSynced, createdAt, updatedAt
+            FROM daily_entries
+        """.trimIndent())
+        
+        // 5. Drop old table and rename new table
+        database.execSQL("DROP TABLE daily_entries")
+        database.execSQL("ALTER TABLE daily_entries_new RENAME TO daily_entries")
+        
+        // 6. Recreate any indices if they existed (add if needed)
+        // Example: database.execSQL("CREATE INDEX index_daily_entries_date ON daily_entries(date)")
     }
 }
