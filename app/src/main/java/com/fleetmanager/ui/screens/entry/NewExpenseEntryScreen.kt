@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.AddExpenseViewModel
 import com.fleetmanager.ui.components.DriverInputComponent
+import com.fleetmanager.ui.components.PhotoGalleryGrid
 import coil.compose.AsyncImage
 import com.fleetmanager.domain.model.ExpenseType
 import java.text.SimpleDateFormat
@@ -308,25 +309,15 @@ fun NewExpenseEntryScreen(
                     }
 
                     if (uiState.existingPhotoUrls.isNotEmpty()) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        Text(
+                            text = "Existing Photos (tap to view)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        PhotoGalleryGrid(
+                            photoUrls = uiState.existingPhotoUrls,
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(uiState.existingPhotoUrls) { url ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                ) {
-                                    AsyncImage(
-                                        model = url,
-                                        contentDescription = "Existing photo",
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(8.dp))
-                                    )
-                                }
-                            }
-                        }
+                        )
                     }
                     
                     // Photo selection button

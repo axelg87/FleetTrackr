@@ -1,11 +1,10 @@
 package com.fleetmanager.ui.screens.entry
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -15,18 +14,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.EntryDetailViewModel
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.fleetmanager.R
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.ui.components.PhotoGalleryGrid
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -88,14 +86,29 @@ fun EntryDetailScreen(
             }
             
             uiState.entry != null -> {
-                EntryDetailContent(
-                    entry = uiState.entry!!,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState())
-                )
+                // Safe null check - only render content when entry is definitely loaded
+                val entry = uiState.entry
+                if (entry != null) {
+                    Log.d("EntryDetailScreen", "Rendering entry detail for ID: ${entry.id}")
+                    EntryDetailContent(
+                        entry = entry,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState())
+                    )
+                } else {
+                    // Fallback to loading state if entry is somehow null
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
             
             uiState.errorMessage != null -> {
@@ -279,7 +292,12 @@ fun EntryDetailContent(
         }
         
         // Photos Card
+        // Safely extract and filter photo URLs, removing any null or blank entries
         val allPhotos = entry.photoUrls
+            .filter { it.isNotBlank() }
+        
+        // Debug logging for photo gallery state
+        Log.d("EntryDetailScreen", "Photo gallery - Entry ID: ${entry.id}, Photo count: ${allPhotos.size}")
         
         if (allPhotos.isNotEmpty()) {
             Card(
@@ -296,32 +314,14 @@ fun EntryDetailContent(
                         fontWeight = FontWeight.Bold
                     )
                     
-                    if (allPhotos.size == 1) {
-                        // Single photo - display large
-                        AsyncImage(
-                            model = allPhotos.first(),
-                            contentDescription = "Entry photo",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                    } else {
-                        // Multiple photos - display in a scrollable row
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    // Display photos in a grid with fullscreen viewer
+                    // Double-check before rendering to prevent crashes
+                    if (allPhotos.isNotEmpty()) {
+                        Log.d("EntryDetailScreen", "Rendering PhotoGalleryGrid with ${allPhotos.size} photos")
+                        PhotoGalleryGrid(
+                            photoUrls = allPhotos,
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(allPhotos) { photoPath ->
-                                AsyncImage(
-                                    model = photoPath,
-                                    contentDescription = "Entry photo",
-                                    modifier = Modifier
-                                        .size(150.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                )
-                            }
-                        }
+                        )
                     }
                 }
             }
