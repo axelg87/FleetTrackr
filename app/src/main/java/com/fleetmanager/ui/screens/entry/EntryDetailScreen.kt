@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -15,18 +13,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.EntryDetailViewModel
 import com.fleetmanager.ui.utils.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.fleetmanager.R
 import com.fleetmanager.domain.model.DailyEntry
 import com.fleetmanager.domain.model.UserRole
 import com.fleetmanager.domain.model.PermissionManager
+import com.fleetmanager.ui.components.PhotoGalleryGrid
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -296,33 +293,11 @@ fun EntryDetailContent(
                         fontWeight = FontWeight.Bold
                     )
                     
-                    if (allPhotos.size == 1) {
-                        // Single photo - display large
-                        AsyncImage(
-                            model = allPhotos.first(),
-                            contentDescription = "Entry photo",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                    } else {
-                        // Multiple photos - display in a scrollable row
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(allPhotos) { photoPath ->
-                                AsyncImage(
-                                    model = photoPath,
-                                    contentDescription = "Entry photo",
-                                    modifier = Modifier
-                                        .size(150.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                )
-                            }
-                        }
-                    }
+                    // Display photos in a grid with fullscreen viewer
+                    PhotoGalleryGrid(
+                        photoUrls = allPhotos,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
