@@ -163,14 +163,15 @@ class FirestoreService @Inject constructor(
                         com.fleetmanager.domain.model.ProviderType.PRIVATE -> "Private"
                         com.fleetmanager.domain.model.ProviderType.OTHER -> "Other"
                     }
-                    
+
                     hashMapOf<String, Any?>(
-                        "provider" to providerName,      // Use "provider" not "type"
-                        "card" to provider.amount,        // Use "card" not "amount"
-                        "cash" to 0.0,                    // Include cash (even if zero)
-                        "tips" to 0.0,                    // Include tips (even if zero)
-                        "trips" to (provider.tripsCount ?: 0),  // Include trips
-                        "hoursOnline" to 0.0              // Include hoursOnline (even if zero)
+                        "provider" to providerName,
+                        "card" to provider.cardAmount,
+                        "cash" to provider.cashAmount,
+                        "tips" to provider.tipsAmount,
+                        "trips" to (provider.tripsCount ?: 0),
+                        "hoursOnline" to (provider.hoursOnline ?: 0.0),
+                        "amount" to provider.totalAmount
                     )
                 },
                 "notes" to entry.notes,
@@ -180,7 +181,7 @@ class FirestoreService @Inject constructor(
                 "updatedAt" to entry.updatedAt,
                 "valid" to true,                          // Add validation fields
                 "validationErrors" to emptyList<String>(),
-                "odometer" to null                        // Add odometer field (null)
+                "odometer" to entry.odometer
             )
             
             getCollection(FirestoreCollections.ENTRIES)
@@ -973,6 +974,7 @@ private fun parseDailyEntryFromDocument(document: com.google.firebase.firestore.
         val vehicleId = document.getString("vehicleId") ?: ""
         val notes = document.getString("notes") ?: ""
         val isSynced = document.getBoolean("isSynced") ?: true
+        val odometer = document.getDouble("odometer")
         
         // Parse date
         val date = document.getDate("date") ?: java.util.Date()
@@ -994,6 +996,7 @@ private fun parseDailyEntryFromDocument(document: com.google.firebase.firestore.
             providers = providers,
             notes = notes,
             photoUrls = photoUrls,
+            odometer = odometer,
             isSynced = isSynced,
             date = date,
             createdAt = createdAt,
@@ -1033,21 +1036,34 @@ private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.
                 }
                 
                 // Amount is in "card" field (not "amount")
-                val cardAmount = (earningMap["card"] as? Number)?.toDouble() ?: 0.0
-                val cashAmount = (earningMap["cash"] as? Number)?.toDouble() ?: 0.0
-                val tips = (earningMap["tips"] as? Number)?.toDouble() ?: 0.0
-                
-                // Total amount = card + cash + tips
+                val storedCard = (earningMap["card"] as? Number)?.toDouble() ?: 0.0
+                val storedCash = (earningMap["cash"] as? Number)?.toDouble() ?: 0.0
+                val storedTips = (earningMap["tips"] as? Number)?.toDouble() ?: 0.0
+                val storedAmount = (earningMap["amount"] as? Number)?.toDouble()
+                val hoursOnline = (earningMap["hoursOnline"] as? Number)?.toDouble()
+
+                val cardAmount = when {
+                    storedCard > 0.0 -> storedCard
+                    storedCard == 0.0 && storedCash == 0.0 && storedTips == 0.0 && (storedAmount ?: 0.0) > 0.0 ->
+                        storedAmount ?: 0.0
+                    else -> storedCard
+                }
+                val cashAmount = storedCash
+                val tips = storedTips
+
                 val totalAmount = cardAmount + cashAmount + tips
-                
-                // Get trips count
+
                 val tripsCount = (earningMap["trips"] as? Number)?.toInt()
-                
+
                 if (totalAmount > 0) {
                     providers.add(
                         com.fleetmanager.domain.model.ProviderEarning(
                             type = type,
                             amount = totalAmount,
+                            cardAmount = cardAmount,
+                            cashAmount = cashAmount,
+                            tipsAmount = tips,
+                            hoursOnline = hoursOnline,
                             currency = "AED",
                             tripsCount = tripsCount,
                             meta = null
@@ -1071,6 +1087,7 @@ private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.
                 com.fleetmanager.domain.model.ProviderEarning(
                     type = com.fleetmanager.domain.model.ProviderType.UBER,
                     amount = uberEarnings,
+                    cardAmount = uberEarnings,
                     currency = "AED"
                 )
             )
@@ -1081,6 +1098,7 @@ private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.
                 com.fleetmanager.domain.model.ProviderEarning(
                     type = com.fleetmanager.domain.model.ProviderType.CAREEM,
                     amount = careemEarnings,
+                    cardAmount = careemEarnings,
                     currency = "AED"
                 )
             )
@@ -1091,6 +1109,7 @@ private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.
                 com.fleetmanager.domain.model.ProviderEarning(
                     type = com.fleetmanager.domain.model.ProviderType.YANGO,
                     amount = yangoEarnings,
+                    cardAmount = yangoEarnings,
                     currency = "AED"
                 )
             )
@@ -1101,6 +1120,7 @@ private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.
                 com.fleetmanager.domain.model.ProviderEarning(
                     type = com.fleetmanager.domain.model.ProviderType.PRIVATE,
                     amount = privateJobsEarnings,
+                    cardAmount = privateJobsEarnings,
                     currency = "AED"
                 )
             )
