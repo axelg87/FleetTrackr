@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import com.fleetmanager.data.remote.FirestoreCollections
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -53,7 +54,7 @@ class FirestoreService @Inject constructor(
     
     // Get user profile from Firestore
     fun getUserProfile(userId: String): Flow<UserDto> {
-        return getCollection("users")
+        return getCollection(FirestoreCollections.USERS)
             .document(userId)
             .snapshots()
             .map { document ->
@@ -88,7 +89,7 @@ class FirestoreService @Inject constructor(
     suspend fun getCurrentUserRole(): UserRole {
         val userId = authService.getCurrentUserId() ?: return UserRole.DRIVER
         return try {
-            val userDoc = getCollection("users").document(userId).get().await()
+            val userDoc = getCollection(FirestoreCollections.USERS).document(userId).get().await()
             val roleString = userDoc.getString("role") ?: "DRIVER"
             UserRole.valueOf(roleString.uppercase())
         } catch (e: Exception) {
@@ -109,7 +110,7 @@ class FirestoreService @Inject constructor(
         Log.d(TAG, "Checking user document for: $userId")
         
         try {
-            val userDoc = getCollection("users").document(userId).get().await()
+            val userDoc = getCollection(FirestoreCollections.USERS).document(userId).get().await()
             
             if (!userDoc.exists()) {
                 Log.d(TAG, "Creating new user document for: $userId")
@@ -122,7 +123,7 @@ class FirestoreService @Inject constructor(
                     "createdAt" to com.google.firebase.Timestamp.now()
                 )
                 
-                getCollection("users")
+                getCollection(FirestoreCollections.USERS)
                     .document(userId)
                     .set(userData)
                     .await()
@@ -168,7 +169,7 @@ class FirestoreService @Inject constructor(
                 "updatedAt" to entry.updatedAt
             )
             
-            getCollection("entriesNEW")
+            getCollection(FirestoreCollections.ENTRIES)
                 .document(entry.id)
                 .set(data)
                 .await()
@@ -187,14 +188,14 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entriesNEW")
+            getCollection(FirestoreCollections.ENTRIES)
                 .get()
                 .await()
                 .documents
                 .mapNotNull { parseDailyEntryFromDocument(it) }
         } else {
             // Drivers can only see their own entries
-            getCollection("entriesNEW")
+            getCollection(FirestoreCollections.ENTRIES)
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
@@ -249,14 +250,14 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entriesNEW")
+            getCollection(FirestoreCollections.ENTRIES)
                 .snapshots()
                 .map { snapshot ->
                     snapshot.documents.mapNotNull { parseDailyEntryFromDocument(it) }
                 }
         } else {
             // Drivers can only see their own entries
-            getCollection("entriesNEW")
+            getCollection(FirestoreCollections.ENTRIES)
                 .whereEqualTo("userId", userId)
                 .snapshots()
                 .map { snapshot ->
@@ -282,7 +283,7 @@ class FirestoreService @Inject constructor(
                 ?: currentUserId
             val driverWithOwner = driver.copy(userId = ownerId)
 
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
                 .document(driver.id)
                 .set(driverWithOwner)
                 .await()
@@ -300,9 +301,9 @@ class FirestoreService @Inject constructor(
         val userRole = getCurrentUserRole()
 
         val query = if (PermissionManager.canViewAllDriverData(userRole)) {
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
         } else {
-            getCollection("drivers").whereEqualTo("userId", userId)
+            getCollection(FirestoreCollections.DRIVERS).whereEqualTo("userId", userId)
         }
 
         return query
@@ -317,9 +318,9 @@ class FirestoreService @Inject constructor(
         val userRole = getCurrentUserRole()
 
         val query = if (PermissionManager.canViewAllDriverData(userRole)) {
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
         } else {
-            getCollection("drivers").whereEqualTo("userId", userId)
+            getCollection(FirestoreCollections.DRIVERS).whereEqualTo("userId", userId)
         }
 
         emitAll(
@@ -338,7 +339,7 @@ class FirestoreService @Inject constructor(
 
     suspend fun deleteDriver(driverId: String) {
         try {
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
                 .document(driverId)
                 .delete()
                 .await()
@@ -360,7 +361,7 @@ class FirestoreService @Inject constructor(
                 ?: currentUserId
             val vehicleWithOwner = vehicle.copy(userId = ownerId)
 
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .document(vehicle.id)
                 .set(vehicleWithOwner)
                 .await()
@@ -378,9 +379,9 @@ class FirestoreService @Inject constructor(
         val userRole = getCurrentUserRole()
 
         val query = if (PermissionManager.canViewAllVehicleData(userRole)) {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
         } else {
-            getCollection("vehicles").whereEqualTo("userId", userId)
+            getCollection(FirestoreCollections.VEHICLES).whereEqualTo("userId", userId)
         }
 
         return query
@@ -392,7 +393,7 @@ class FirestoreService @Inject constructor(
 
     suspend fun deleteVehicle(vehicleId: String) {
         try {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .document(vehicleId)
                 .delete()
                 .await()
@@ -498,7 +499,7 @@ class FirestoreService @Inject constructor(
         )
         Log.d(TAG, "Saving expense to Firestore for driver $resolvedDriverId: ${expense.id}")
         try {
-            getCollection("expenses")
+            getCollection(FirestoreCollections.EXPENSES)
                 .document(expense.id)
                 .set(normalizedExpense)
                 .await()
@@ -517,20 +518,20 @@ class FirestoreService @Inject constructor(
 
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
-            getCollection("expenses")
+            getCollection(FirestoreCollections.EXPENSES)
                 .get()
                 .await()
                 .documents
                 .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation() }
         } else {
-            val driverExpenses = getCollection("expenses")
+            val driverExpenses = getCollection(FirestoreCollections.EXPENSES)
                 .whereEqualTo("driverId", userId)
                 .get()
                 .await()
                 .documents
                 .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation(userId) }
 
-            val legacyExpenses = getCollection("expenses")
+            val legacyExpenses = getCollection(FirestoreCollections.EXPENSES)
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
@@ -547,11 +548,11 @@ class FirestoreService @Inject constructor(
     fun getExpensesFlow(): Flow<List<Expense>> {
         val userId = authService.getCurrentUserId() ?: return flowOf(emptyList())
 
-        val driverFlow = getCollection("expenses")
+        val driverFlow = getCollection(FirestoreCollections.EXPENSES)
             .whereEqualTo("driverId", userId)
             .snapshots()
 
-        val legacyFlow = getCollection("expenses")
+        val legacyFlow = getCollection(FirestoreCollections.EXPENSES)
             .whereEqualTo("userId", userId)
             .snapshots()
 
@@ -569,7 +570,7 @@ class FirestoreService @Inject constructor(
             val userId = requireAuth()
             val userRole = getCurrentUserRole()
 
-            val document = getCollection("expenses")
+            val document = getCollection(FirestoreCollections.EXPENSES)
                 .document(expenseId)
                 .get()
                 .await()
@@ -599,7 +600,7 @@ class FirestoreService @Inject constructor(
 
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
-            getCollection("expenses")
+            getCollection(FirestoreCollections.EXPENSES)
                 .snapshots()
                 .map { snapshot ->
                     snapshot.documents
@@ -609,11 +610,11 @@ class FirestoreService @Inject constructor(
             if (userId.isBlank()) {
                 flowOf(emptyList())
             } else {
-                val driverFlow = getCollection("expenses")
+                val driverFlow = getCollection(FirestoreCollections.EXPENSES)
                     .whereEqualTo("driverId", userId)
                     .snapshots()
 
-                val legacyFlow = getCollection("expenses")
+                val legacyFlow = getCollection(FirestoreCollections.EXPENSES)
                     .whereEqualTo("userId", userId)
                     .snapshots()
 
@@ -630,7 +631,7 @@ class FirestoreService @Inject constructor(
     
     
     suspend fun deleteExpense(expenseId: String) {
-        getCollection("expenses")
+        getCollection(FirestoreCollections.EXPENSES)
             .document(expenseId)
             .delete()
             .await()
@@ -641,7 +642,7 @@ class FirestoreService @Inject constructor(
     // Vehicles Collection (Global - shared across all users)
     suspend fun saveVehicleToCollection(vehicle: Vehicle) {
         try {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .document(vehicle.id)
                 .set(vehicle)
                 .await()
@@ -656,7 +657,7 @@ class FirestoreService @Inject constructor(
     
     suspend fun getVehiclesFromCollection(): List<Vehicle> {
         return try {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .whereEqualTo("isActive", true)
                 .get()
                 .await()
@@ -669,7 +670,7 @@ class FirestoreService @Inject constructor(
     }
     
     fun getVehiclesFromCollectionFlow(): Flow<List<Vehicle>> {
-        return getCollection("vehicles")
+        return getCollection(FirestoreCollections.VEHICLES)
             .whereEqualTo("isActive", true)
             .snapshots()
             .map { snapshot ->
@@ -680,7 +681,7 @@ class FirestoreService @Inject constructor(
     // Expense Types Collection (Global - shared across all users)
     suspend fun saveExpenseType(expenseType: ExpenseTypeItem) {
         try {
-            getCollection("expenseTypes")
+            getCollection(FirestoreCollections.EXPENSE_TYPES)
                 .document(expenseType.id)
                 .set(expenseType)
                 .await()
@@ -695,7 +696,7 @@ class FirestoreService @Inject constructor(
     
     suspend fun getExpenseTypes(): List<ExpenseTypeItem> {
         return try {
-            getCollection("expenseTypes")
+            getCollection(FirestoreCollections.EXPENSE_TYPES)
                 .whereEqualTo("isActive", true)
                 .get()
                 .await()
@@ -719,7 +720,7 @@ class FirestoreService @Inject constructor(
     // Users Collection - Get drivers for reports
     suspend fun getDriverUsers(): List<UserDto> {
         return try {
-            getCollection("users")
+            getCollection(FirestoreCollections.USERS)
                 .whereEqualTo("role", UserRole.DRIVER.name)
                 .get()
                 .await()
@@ -743,7 +744,7 @@ class FirestoreService @Inject constructor(
     }
     
     fun getDriverUsersFlow(): Flow<List<UserDto>> {
-        return getCollection("users")
+        return getCollection(FirestoreCollections.USERS)
             .whereEqualTo("role", UserRole.DRIVER.name)
             .snapshots()
             .map { snapshot ->
@@ -778,7 +779,7 @@ class FirestoreService @Inject constructor(
             "createdAt" to com.google.firebase.Timestamp.now()
         )
         
-        getCollection("users")
+        getCollection(FirestoreCollections.USERS)
             .document(driverId)
             .set(userData)
             .await()

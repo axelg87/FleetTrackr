@@ -70,24 +70,37 @@ private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
         database.execSQL("ALTER TABLE daily_entries ADD COLUMN providersJson TEXT NOT NULL DEFAULT '[]'")
         
         // 2. Migrate existing data: Convert flat earnings to JSON providers format
-        // This uses a combination of JSON building with SQLite's json functions (if available)
-        // or constructs the JSON manually as a fallback
+        // Handles all 4 legacy providers: UBER, CAREEM, YANGO, PRIVATE
         database.execSQL("""
             UPDATE daily_entries 
-            SET providersJson = 
-                '[' ||
-                CASE WHEN uberEarnings > 0 THEN 
-                    '{"type":"UBER","amount":' || uberEarnings || ',"currency":"AED"}' 
-                ELSE '' END ||
-                CASE WHEN uberEarnings > 0 AND (yangoEarnings > 0 OR privateJobsEarnings > 0) THEN ',' ELSE '' END ||
-                CASE WHEN yangoEarnings > 0 THEN 
-                    '{"type":"YANGO","amount":' || yangoEarnings || ',"currency":"AED"}' 
-                ELSE '' END ||
-                CASE WHEN yangoEarnings > 0 AND privateJobsEarnings > 0 THEN ',' ELSE '' END ||
-                CASE WHEN privateJobsEarnings > 0 THEN 
-                    '{"type":"PRIVATE","amount":' || privateJobsEarnings || ',"currency":"AED"}' 
-                ELSE '' END ||
+            SET providersJson = (
+                SELECT '[' || 
+                    GROUP_CONCAT(provider_json) || 
                 ']'
+                FROM (
+                    SELECT '{"type":"UBER","amount":' || uberEarnings || ',"currency":"AED"}' as provider_json
+                    FROM daily_entries AS inner_table
+                    WHERE inner_table.id = daily_entries.id AND uberEarnings > 0
+                    
+                    UNION ALL
+                    
+                    SELECT '{"type":"CAREEM","amount":' || careemEarnings || ',"currency":"AED"}' as provider_json
+                    FROM daily_entries AS inner_table
+                    WHERE inner_table.id = daily_entries.id AND careemEarnings > 0
+                    
+                    UNION ALL
+                    
+                    SELECT '{"type":"YANGO","amount":' || yangoEarnings || ',"currency":"AED"}' as provider_json
+                    FROM daily_entries AS inner_table
+                    WHERE inner_table.id = daily_entries.id AND yangoEarnings > 0
+                    
+                    UNION ALL
+                    
+                    SELECT '{"type":"PRIVATE","amount":' || privateJobsEarnings || ',"currency":"AED"}' as provider_json
+                    FROM daily_entries AS inner_table
+                    WHERE inner_table.id = daily_entries.id AND privateJobsEarnings > 0
+                ) AS providers_table
+            )
             WHERE providersJson = '[]'
         """.trimIndent())
         
