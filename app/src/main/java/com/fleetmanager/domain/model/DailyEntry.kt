@@ -43,7 +43,9 @@ data class DailyEntry(
     
     @get:PropertyName("careemEarnings")
     val careemEarnings: Double = 0.0,
-    
+
+    val earningsBreakdown: List<EarningBreakdown> = emptyList(),
+
     @get:PropertyName("notes")
     val notes: String = "",
     
@@ -60,7 +62,11 @@ data class DailyEntry(
     val updatedAt: Date = Date()
 ) {
     val totalEarnings: Double
-        get() = uberEarnings + yangoEarnings + privateJobsEarnings + careemEarnings
+        get() = if (earningsBreakdown.isNotEmpty()) {
+            earningsBreakdown.sumOf { it.total }
+        } else {
+            uberEarnings + yangoEarnings + privateJobsEarnings + careemEarnings
+        }
 
     fun isValid(): Boolean {
         return id.isNotBlank() &&
@@ -74,7 +80,14 @@ data class DailyEntry(
                 yangoEarnings <= 999999.99 &&
                 privateJobsEarnings <= 999999.99 &&
                 careemEarnings <= 999999.99 &&
-                notes.length <= 5000
+                notes.length <= 5000 &&
+                earningsBreakdown.none {
+                    it.cardEarnings < 0 ||
+                        it.cashEarnings < 0 ||
+                        it.tips < 0 ||
+                        it.tripCount < 0 ||
+                        it.hoursOnline < 0
+                }
     }
 
     fun getValidationErrors(): List<String> {
@@ -92,6 +105,14 @@ data class DailyEntry(
         if (privateJobsEarnings > 999999.99) errors.add("Private jobs earnings is too large")
         if (careemEarnings > 999999.99) errors.add("Careem earnings is too large")
         if (notes.length > 5000) errors.add("Notes too long (max 5000 characters)")
+
+        earningsBreakdown.forEach { breakdown ->
+            if (breakdown.cardEarnings < 0) errors.add("${breakdown.provider} card earnings cannot be negative")
+            if (breakdown.cashEarnings < 0) errors.add("${breakdown.provider} cash earnings cannot be negative")
+            if (breakdown.tips < 0) errors.add("${breakdown.provider} tips cannot be negative")
+            if (breakdown.tripCount < 0) errors.add("${breakdown.provider} trip count cannot be negative")
+            if (breakdown.hoursOnline < 0) errors.add("${breakdown.provider} hours online cannot be negative")
+        }
 
         return errors
     }

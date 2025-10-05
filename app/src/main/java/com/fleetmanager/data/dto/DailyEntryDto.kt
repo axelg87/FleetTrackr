@@ -20,6 +20,7 @@ data class DailyEntryDto(
     val yangoEarnings: Double,
     val careemEarnings: Double = 0.0,
     val privateJobsEarnings: Double,
+    val earningsBreakdown: List<EarningBreakdownDto> = emptyList(),
     val notes: String,
     val photoUrl: String? = null,
     val localPhotoPath: String? = null,

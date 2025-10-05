@@ -17,6 +17,7 @@ import com.fleetmanager.domain.model.PermissionManager
 import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.data.remote.model.RemoteDailyEntry
 import com.fleetmanager.data.remote.model.RemoteEarning
+import com.fleetmanager.domain.model.EarningBreakdown
 import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -346,10 +347,13 @@ class FirestoreService @Inject constructor(
     }
 
     private fun RemoteDailyEntry.toDomainDailyEntry(): DailyEntry {
-        val earningsByProvider = earnings.associateBy { normalizeProviderName(it.provider) }
+        val breakdown = earnings.map { it.toDomainEarning() }
+        val totalsByProvider = breakdown
+            .groupBy { normalizeProviderName(it.provider) }
+            .mapValues { (_, values) -> values.sumOf { earning -> earning.total } }
 
         fun earningsTotalFor(provider: String): Double {
-            return earningsByProvider[normalizeProviderName(provider)]?.total ?: 0.0
+            return totalsByProvider[normalizeProviderName(provider)] ?: 0.0
         }
 
         val resolvedDate = date ?: Date()
@@ -366,6 +370,7 @@ class FirestoreService @Inject constructor(
             careemEarnings = earningsTotalFor("Careem"),
             privateJobsEarnings = earningsTotalFor("Private"),
             yangoEarnings = earningsTotalFor("Yango"),
+            earningsBreakdown = breakdown,
             notes = notes,
             photoUrls = photos,
             isSynced = isSynced,
@@ -375,12 +380,16 @@ class FirestoreService @Inject constructor(
     }
 
     private fun DailyEntry.toRemoteEntry(): RemoteDailyEntry {
-        val remoteEarnings = listOf(
-            RemoteEarning(provider = "Uber", cardEarnings = uberEarnings),
-            RemoteEarning(provider = "Careem", cardEarnings = careemEarnings),
-            RemoteEarning(provider = "Private", cardEarnings = privateJobsEarnings),
-            RemoteEarning(provider = "Yango", cardEarnings = yangoEarnings)
-        )
+        val remoteEarnings = if (earningsBreakdown.isNotEmpty()) {
+            earningsBreakdown.map { it.toRemoteEarning() }
+        } else {
+            listOf(
+                RemoteEarning(provider = "Uber", cardEarnings = uberEarnings),
+                RemoteEarning(provider = "Careem", cardEarnings = careemEarnings),
+                RemoteEarning(provider = "Private", cardEarnings = privateJobsEarnings),
+                RemoteEarning(provider = "Yango", cardEarnings = yangoEarnings)
+            )
+        }
 
         return RemoteDailyEntry(
             id = id,
@@ -398,7 +407,36 @@ class FirestoreService @Inject constructor(
     }
 
     private fun normalizeProviderName(provider: String): String {
-        return provider.trim().lowercase(Locale.ROOT)
+        val normalized = provider.trim().lowercase(Locale.ROOT)
+        return when {
+            normalized.startsWith("uber") -> "uber"
+            normalized.startsWith("careem") -> "careem"
+            normalized.startsWith("private") -> "private"
+            normalized.startsWith("yango") -> "yango"
+            else -> normalized
+        }
+    }
+
+    private fun RemoteEarning.toDomainEarning(): EarningBreakdown {
+        return EarningBreakdown(
+            provider = provider,
+            cardEarnings = cardEarnings,
+            cashEarnings = cashEarnings,
+            tips = tips,
+            tripCount = tripCount,
+            hoursOnline = hoursOnline
+        )
+    }
+
+    private fun EarningBreakdown.toRemoteEarning(): RemoteEarning {
+        return RemoteEarning(
+            provider = provider,
+            cardEarnings = cardEarnings,
+            cashEarnings = cashEarnings,
+            tips = tips,
+            tripCount = tripCount,
+            hoursOnline = hoursOnline
+        )
     }
     
     // Vehicles

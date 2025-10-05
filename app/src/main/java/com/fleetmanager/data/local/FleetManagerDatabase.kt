@@ -16,7 +16,7 @@ import com.fleetmanager.data.dto.ExpenseDto
 
 @Database(
     entities = [DailyEntryDto::class, DriverDto::class, VehicleDto::class, ExpenseDto::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -40,7 +40,7 @@ abstract class FleetManagerDatabase : RoomDatabase() {
                     FleetManagerDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(MIGRATION_5_6)
+                    .addMigrations(MIGRATION_5_6, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
@@ -58,6 +58,14 @@ private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
                 "WHEN TRIM(driverId) <> '' THEN driverId " +
                 "WHEN TRIM(userId) <> '' THEN userId " +
                 "ELSE '' END"
+        )
+    }
+}
+
+private val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
+    override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE daily_entries ADD COLUMN earningsBreakdown TEXT NOT NULL DEFAULT '[]'"
         )
     }
 }

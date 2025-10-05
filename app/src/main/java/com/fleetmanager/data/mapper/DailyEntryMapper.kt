@@ -1,7 +1,9 @@
 package com.fleetmanager.data.mapper
 
 import com.fleetmanager.data.dto.DailyEntryDto
+import com.fleetmanager.data.dto.EarningBreakdownDto
 import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.EarningBreakdown
 
 /**
  * Mapper to convert between DailyEntry domain model and DailyEntryDto.
@@ -19,6 +21,7 @@ object DailyEntryMapper {
             yangoEarnings = dto.yangoEarnings,
             careemEarnings = dto.careemEarnings,
             privateJobsEarnings = dto.privateJobsEarnings,
+            earningsBreakdown = dto.earningsBreakdown.map { it.toDomain() },
             notes = dto.notes,
             photoUrls = dto.photoUrls,
             isSynced = dto.isSynced,
@@ -38,6 +41,7 @@ object DailyEntryMapper {
             yangoEarnings = domain.yangoEarnings,
             careemEarnings = domain.careemEarnings,
             privateJobsEarnings = domain.privateJobsEarnings,
+            earningsBreakdown = domain.earningsBreakdown.map { it.toDto() },
             notes = domain.notes,
             photoUrls = domain.photoUrls,
             isSynced = domain.isSynced,
@@ -53,4 +57,26 @@ object DailyEntryMapper {
     fun toDtoList(domainList: List<DailyEntry>): List<DailyEntryDto> {
         return domainList.map { toDto(it) }
     }
+}
+
+private fun EarningBreakdownDto.toDomain(): EarningBreakdown {
+    return EarningBreakdown(
+        provider = provider,
+        cardEarnings = cardEarnings,
+        cashEarnings = cashEarnings,
+        tips = tips,
+        tripCount = tripCount,
+        hoursOnline = hoursOnline
+    )
+}
+
+private fun EarningBreakdown.toDto(): EarningBreakdownDto {
+    return EarningBreakdownDto(
+        provider = provider,
+        cardEarnings = cardEarnings,
+        cashEarnings = cashEarnings,
+        tips = tips,
+        tripCount = tripCount,
+        hoursOnline = hoursOnline
+    )
 }
