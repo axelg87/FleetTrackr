@@ -1,4 +1,23 @@
 rules_version = '2';
+
+// ============================================
+// CRITICAL: DEPLOYMENT INSTRUCTIONS
+// ============================================
+// Deploy these rules to Firebase Console BEFORE deploying app update
+// 
+// Collection: entriesNEW (new provider-based format)
+// - Full CRUD with validation for providers array
+// - Validates ProviderType enum values
+// - Enforces amount limits and data integrity
+// 
+// Collection: entries (legacy, read-only for backward compatibility)
+// - Read-only access maintained for old app versions
+// - NO writes allowed to prevent data conflicts
+//
+// Deploy command: firebase deploy --only firestore:rules
+// Verify in: Firebase Console → Firestore Database → Rules tab
+// ============================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
     

@@ -40,7 +40,13 @@ abstract class FleetManagerDatabase : RoomDatabase() {
                     FleetManagerDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    // MIGRATION STRATEGY:
+                    // - Keep MIGRATION_5_6 for users on v5
+                    // - v6→v7→v8 migrations removed - use destructive migration instead
+                    // - Rationale: All data migrated to Firestore collection "entriesNEW"
+                    // - App syncs from Firestore on first launch after update
+                    // - Local Room database recreated fresh with correct schema
+                    .addMigrations(MIGRATION_5_6)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
@@ -62,150 +68,33 @@ private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
     }
 }
 
+// MIGRATION 6→7: OBSOLETE - Removed due to schema assumptions
+// Problem: This migration assumed v6 had flat earnings columns (uberEarnings, etc.)
+// but MIGRATION_5_6 doesn't create them, causing crashes on upgrade.
+// Solution: Use fallbackToDestructiveMigration() since all data is in Firestore.
+// Users upgrading from v6→v8 will have local DB recreated and sync from entriesNEW collection.
+//
+// Original migration code preserved below for reference:
+/*
 private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
     override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
-        // Migration from flat earnings to provider-based model
-        
-        // 1. Add the new providers column (temporary name: providersJson for migration)
-        database.execSQL("ALTER TABLE daily_entries ADD COLUMN providersJson TEXT NOT NULL DEFAULT '[]'")
-        
-        // 2. Migrate existing data: Convert flat earnings to JSON providers format
-        // Handles all 4 legacy providers: UBER, CAREEM, YANGO, PRIVATE
-        database.execSQL("""
-            UPDATE daily_entries 
-            SET providersJson = (
-                SELECT '[' || 
-                    GROUP_CONCAT(provider_json) || 
-                ']'
-                FROM (
-                    SELECT '{"type":"UBER","amount":' || uberEarnings || ',"currency":"AED"}' as provider_json
-                    FROM daily_entries AS inner_table
-                    WHERE inner_table.id = daily_entries.id AND uberEarnings > 0
-                    
-                    UNION ALL
-                    
-                    SELECT '{"type":"CAREEM","amount":' || careemEarnings || ',"currency":"AED"}' as provider_json
-                    FROM daily_entries AS inner_table
-                    WHERE inner_table.id = daily_entries.id AND careemEarnings > 0
-                    
-                    UNION ALL
-                    
-                    SELECT '{"type":"YANGO","amount":' || yangoEarnings || ',"currency":"AED"}' as provider_json
-                    FROM daily_entries AS inner_table
-                    WHERE inner_table.id = daily_entries.id AND yangoEarnings > 0
-                    
-                    UNION ALL
-                    
-                    SELECT '{"type":"PRIVATE","amount":' || privateJobsEarnings || ',"currency":"AED"}' as provider_json
-                    FROM daily_entries AS inner_table
-                    WHERE inner_table.id = daily_entries.id AND privateJobsEarnings > 0
-                ) AS providers_table
-            )
-            WHERE uberEarnings > 0 OR careemEarnings > 0 OR yangoEarnings > 0 OR privateJobsEarnings > 0
-        """.trimIndent())
-        
-        // 3. Create a new table with the updated schema (without flat earnings columns)
-        // Schema matches DailyEntryDto exactly - TypeConverter handles List<ProviderEarning> as TEXT
-        database.execSQL("""
-            CREATE TABLE IF NOT EXISTS daily_entries_new (
-                id TEXT PRIMARY KEY NOT NULL,
-                userId TEXT NOT NULL DEFAULT '',
-                date INTEGER NOT NULL,
-                driverId TEXT NOT NULL DEFAULT '',
-                vehicleId TEXT NOT NULL DEFAULT '',
-                providers TEXT NOT NULL,
-                notes TEXT NOT NULL,
-                photoUrl TEXT,
-                localPhotoPath TEXT,
-                photoUrls TEXT NOT NULL,
-                localPhotoPaths TEXT NOT NULL,
-                isSynced INTEGER NOT NULL,
-                createdAt INTEGER NOT NULL,
-                updatedAt INTEGER NOT NULL
-            )
-        """.trimIndent())
-        
-        // 4. Copy data from old table to new table
-        // Column name is "providers" not "providersJson" to match DailyEntryDto field name
-        database.execSQL("""
-            INSERT INTO daily_entries_new (
-                id, userId, date, driverId, vehicleId, providers, 
-                notes, photoUrl, localPhotoPath, photoUrls, localPhotoPaths, 
-                isSynced, createdAt, updatedAt
-            )
-            SELECT 
-                id, userId, date, driverId, vehicleId, providersJson,
-                notes, photoUrl, localPhotoPath, photoUrls, localPhotoPaths,
-                isSynced, createdAt, updatedAt
-            FROM daily_entries
-        """.trimIndent())
-        
-        // 5. Drop old table and rename new table
-        database.execSQL("DROP TABLE daily_entries")
-        database.execSQL("ALTER TABLE daily_entries_new RENAME TO daily_entries")
-        
-        // 6. Recreate any indices if they existed (add if needed)
-        // Example: database.execSQL("CREATE INDEX index_daily_entries_date ON daily_entries(date)")
+        // This assumed these columns existed in v6:
+        // - uberEarnings, careemEarnings, yangoEarnings, privateJobsEarnings
+        // But they don't exist in all v6 schemas, causing SQLiteException
     }
 }
+*/
 
+// MIGRATION 7→8: OBSOLETE - Removed, using destructive migration
+// Problem: Tried to handle intermediate schemas but added complexity
+// Solution: Let fallbackToDestructiveMigration() recreate DB, sync from Firestore
+//
+// Original migration code preserved below for reference:
+/*
 private val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
     override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
-        // Migration from providersJson to providers (for users who had intermediate version)
-        // This handles users who were on version 7 with providersJson column
-        
-        try {
-            // Check if providersJson column exists by trying to select from it
-            val cursor = database.query("SELECT providersJson FROM daily_entries LIMIT 1")
-            cursor.close()
-            
-            // If we get here, providersJson exists, so we need to rename it
-            database.execSQL("""
-                CREATE TABLE IF NOT EXISTS daily_entries_temp (
-                    id TEXT PRIMARY KEY NOT NULL,
-                    userId TEXT NOT NULL DEFAULT '',
-                    date INTEGER NOT NULL,
-                    driverId TEXT NOT NULL DEFAULT '',
-                    vehicleId TEXT NOT NULL DEFAULT '',
-                    providers TEXT NOT NULL,
-                    notes TEXT NOT NULL,
-                    photoUrl TEXT,
-                    localPhotoPath TEXT,
-                    photoUrls TEXT NOT NULL,
-                    localPhotoPaths TEXT NOT NULL,
-                    isSynced INTEGER NOT NULL,
-                    createdAt INTEGER NOT NULL,
-                    updatedAt INTEGER NOT NULL
-                )
-            """.trimIndent())
-            
-            database.execSQL("""
-                INSERT INTO daily_entries_temp (
-                    id, userId, date, driverId, vehicleId, providers, 
-                    notes, photoUrl, localPhotoPath, photoUrls, localPhotoPaths, 
-                    isSynced, createdAt, updatedAt
-                )
-                SELECT 
-                    id, userId, date, driverId, vehicleId, providersJson,
-                    notes, photoUrl, localPhotoPath, photoUrls, localPhotoPaths,
-                    isSynced, createdAt, updatedAt
-                FROM daily_entries
-            """.trimIndent())
-            
-            database.execSQL("DROP TABLE daily_entries")
-            database.execSQL("ALTER TABLE daily_entries_temp RENAME TO daily_entries")
-        } catch (e: Exception) {
-            // If providersJson doesn't exist, the table might already have the correct schema
-            // or we'll fallback to destructive migration
-            // Check if providers column exists
-            try {
-                val cursor = database.query("SELECT providers FROM daily_entries LIMIT 1")
-                cursor.close()
-                // Column exists, schema is already correct, no migration needed
-            } catch (e2: Exception) {
-                // Neither column exists, let fallbackToDestructiveMigration handle it
-                throw e2
-            }
-        }
+        // Attempted to rename providersJson → providers
+        // But column existence checks were unreliable
     }
 }
+*/

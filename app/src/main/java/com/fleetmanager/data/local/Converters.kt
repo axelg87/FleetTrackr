@@ -1,5 +1,6 @@
 package com.fleetmanager.data.local
 
+import android.util.Log
 import androidx.room.TypeConverter
 import com.fleetmanager.domain.model.ProviderEarning
 import com.fleetmanager.domain.model.ProviderType
@@ -10,6 +11,9 @@ import org.json.JSONObject
 import java.util.Date
 
 class Converters {
+    companion object {
+        private const val TAG = "RoomConverters"
+    }
     @TypeConverter
     fun fromTimestamp(value: Long?): Date? {
         return value?.let { Date(it) }
@@ -54,8 +58,11 @@ class Converters {
                     )
                 )
             }
+            Log.d(TAG, "fromProvidersJson: Successfully parsed ${providers.size} providers")
             providers
         } catch (e: Exception) {
+            Log.e(TAG, "fromProvidersJson: Failed to parse JSON. Input: '$json'", e)
+            Log.e(TAG, "fromProvidersJson: Error was: ${e.javaClass.simpleName} - ${e.message}")
             emptyList()
         }
     }
@@ -66,16 +73,26 @@ class Converters {
         
         return try {
             val jsonArray = JSONArray()
+            var successCount = 0
             providers.forEach { provider ->
-                val obj = JSONObject()
-                obj.put("type", provider.type.name)
-                obj.put("amount", provider.amount)
-                obj.put("currency", provider.currency)
-                provider.tripsCount?.let { obj.put("tripsCount", it) }
-                jsonArray.put(obj)
+                try {
+                    val obj = JSONObject()
+                    obj.put("type", provider.type.name)
+                    obj.put("amount", provider.amount)
+                    obj.put("currency", provider.currency)
+                    provider.tripsCount?.let { obj.put("tripsCount", it) }
+                    jsonArray.put(obj)
+                    successCount++
+                } catch (e: Exception) {
+                    Log.w(TAG, "toProvidersJson: Failed to serialize provider ${provider.type}: ${e.message}")
+                }
             }
-            jsonArray.toString()
+            val result = jsonArray.toString()
+            Log.d(TAG, "toProvidersJson: Serialized $successCount/${providers.size} providers")
+            result
         } catch (e: Exception) {
+            Log.e(TAG, "toProvidersJson: Failed to serialize ${providers.size} providers", e)
+            Log.e(TAG, "toProvidersJson: Error was: ${e.javaClass.simpleName} - ${e.message}")
             "[]"
         }
     }
