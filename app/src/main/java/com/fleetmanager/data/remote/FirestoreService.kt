@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.fleetmanager.ui.utils.ToastHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import com.fleetmanager.data.remote.FirestoreCollections
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -53,7 +54,7 @@ class FirestoreService @Inject constructor(
     
     // Get user profile from Firestore
     fun getUserProfile(userId: String): Flow<UserDto> {
-        return getCollection("users")
+        return getCollection(FirestoreCollections.USERS)
             .document(userId)
             .snapshots()
             .map { document ->
@@ -88,7 +89,7 @@ class FirestoreService @Inject constructor(
     suspend fun getCurrentUserRole(): UserRole {
         val userId = authService.getCurrentUserId() ?: return UserRole.DRIVER
         return try {
-            val userDoc = getCollection("users").document(userId).get().await()
+            val userDoc = getCollection(FirestoreCollections.USERS).document(userId).get().await()
             val roleString = userDoc.getString("role") ?: "DRIVER"
             UserRole.valueOf(roleString.uppercase())
         } catch (e: Exception) {
@@ -109,7 +110,7 @@ class FirestoreService @Inject constructor(
         Log.d(TAG, "Checking user document for: $userId")
         
         try {
-            val userDoc = getCollection("users").document(userId).get().await()
+            val userDoc = getCollection(FirestoreCollections.USERS).document(userId).get().await()
             
             if (!userDoc.exists()) {
                 Log.d(TAG, "Creating new user document for: $userId")
@@ -122,7 +123,7 @@ class FirestoreService @Inject constructor(
                     "createdAt" to com.google.firebase.Timestamp.now()
                 )
                 
-                getCollection("users")
+                getCollection(FirestoreCollections.USERS)
                     .document(userId)
                     .set(userData)
                     .await()
@@ -145,11 +146,46 @@ class FirestoreService @Inject constructor(
         val targetUserId = entry.userId.takeIf { it.isNotBlank() } ?: currentUserId
         Log.d(TAG, "Saving daily entry to Firestore for user $targetUserId: ${entry.id}")
         try {
-            // Add userId field to the entry
-            val entryWithUserId = entry.copy(userId = targetUserId)
-            getCollection("entries")
+            // Convert to map with "earnings" array (matches migrated Firestore format)
+            val data = hashMapOf<String, Any?>(
+                "id" to entry.id,
+                "userId" to targetUserId,
+                "driverId" to entry.driverId,
+                "vehicleId" to entry.vehicleId,
+                "date" to entry.date,
+                // Write to "earnings" array (not "providers")
+                "earnings" to entry.providers.map { provider ->
+                    // Map ProviderType enum to provider name string
+                    val providerName = when (provider.type) {
+                        com.fleetmanager.domain.model.ProviderType.UBER -> "Uber"
+                        com.fleetmanager.domain.model.ProviderType.CAREEM -> "Careem"
+                        com.fleetmanager.domain.model.ProviderType.YANGO -> "Yango"
+                        com.fleetmanager.domain.model.ProviderType.PRIVATE -> "Private"
+                        com.fleetmanager.domain.model.ProviderType.OTHER -> "Other"
+                    }
+                    
+                    hashMapOf<String, Any?>(
+                        "provider" to providerName,      // Use "provider" not "type"
+                        "card" to provider.amount,        // Use "card" not "amount"
+                        "cash" to 0.0,                    // Include cash (even if zero)
+                        "tips" to 0.0,                    // Include tips (even if zero)
+                        "trips" to (provider.tripsCount ?: 0),  // Include trips
+                        "hoursOnline" to 0.0              // Include hoursOnline (even if zero)
+                    )
+                },
+                "notes" to entry.notes,
+                "photos" to entry.photoUrls,
+                "isSynced" to entry.isSynced,
+                "createdAt" to entry.createdAt,
+                "updatedAt" to entry.updatedAt,
+                "valid" to true,                          // Add validation fields
+                "validationErrors" to emptyList<String>(),
+                "odometer" to null                        // Add odometer field (null)
+            )
+            
+            getCollection(FirestoreCollections.ENTRIES)
                 .document(entry.id)
-                .set(entryWithUserId)
+                .set(data)
                 .await()
             Log.d(TAG, "Successfully saved daily entry to Firestore: ${entry.id}")
         } catch (e: Exception) {
@@ -166,29 +202,29 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection(FirestoreCollections.ENTRIES)
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<DailyEntry>() }
+                .mapNotNull { parseDailyEntryFromDocument(it) }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection(FirestoreCollections.ENTRIES)
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject<DailyEntry>() }
+                .mapNotNull { parseDailyEntryFromDocument(it) }
         }
     }
     
     fun getDailyEntriesFlow(): Flow<List<DailyEntry>> {
         val userId = authService.getCurrentUserId() ?: ""
-        return getCollection("entries")
+        return getCollection("entriesNEW")
             .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
-                snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                snapshot.documents.mapNotNull { parseDailyEntryFromDocument(it) }
             }
     }
     
@@ -197,12 +233,12 @@ class FirestoreService @Inject constructor(
             val userId = requireAuth()
             val userRole = getCurrentUserRole()
             
-            val document = getCollection("entries")
+            val document = getCollection("entriesNEW")
                 .document(entryId)
                 .get()
                 .await()
             
-            val entry = document.toObject<DailyEntry>()
+            val entry = parseDailyEntryFromDocument(document)
             
             // Check if user has permission to view this entry
             if (entry != null) {
@@ -228,25 +264,25 @@ class FirestoreService @Inject constructor(
         
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all entries
-            getCollection("entries")
+            getCollection(FirestoreCollections.ENTRIES)
                 .snapshots()
                 .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                    snapshot.documents.mapNotNull { parseDailyEntryFromDocument(it) }
                 }
         } else {
             // Drivers can only see their own entries
-            getCollection("entries")
+            getCollection(FirestoreCollections.ENTRIES)
                 .whereEqualTo("userId", userId)
                 .snapshots()
                 .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toObject<DailyEntry>() }
+                    snapshot.documents.mapNotNull { parseDailyEntryFromDocument(it) }
                 }
         }
     }
     
     
     suspend fun deleteDailyEntry(entryId: String) {
-        getCollection("entries")
+        getCollection("entriesNEW")
             .document(entryId)
             .delete()
             .await()
@@ -261,7 +297,7 @@ class FirestoreService @Inject constructor(
                 ?: currentUserId
             val driverWithOwner = driver.copy(userId = ownerId)
 
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
                 .document(driver.id)
                 .set(driverWithOwner)
                 .await()
@@ -279,9 +315,9 @@ class FirestoreService @Inject constructor(
         val userRole = getCurrentUserRole()
 
         val query = if (PermissionManager.canViewAllDriverData(userRole)) {
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
         } else {
-            getCollection("drivers").whereEqualTo("userId", userId)
+            getCollection(FirestoreCollections.DRIVERS).whereEqualTo("userId", userId)
         }
 
         return query
@@ -296,9 +332,9 @@ class FirestoreService @Inject constructor(
         val userRole = getCurrentUserRole()
 
         val query = if (PermissionManager.canViewAllDriverData(userRole)) {
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
         } else {
-            getCollection("drivers").whereEqualTo("userId", userId)
+            getCollection(FirestoreCollections.DRIVERS).whereEqualTo("userId", userId)
         }
 
         emitAll(
@@ -317,7 +353,7 @@ class FirestoreService @Inject constructor(
 
     suspend fun deleteDriver(driverId: String) {
         try {
-            getCollection("drivers")
+            getCollection(FirestoreCollections.DRIVERS)
                 .document(driverId)
                 .delete()
                 .await()
@@ -339,7 +375,7 @@ class FirestoreService @Inject constructor(
                 ?: currentUserId
             val vehicleWithOwner = vehicle.copy(userId = ownerId)
 
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .document(vehicle.id)
                 .set(vehicleWithOwner)
                 .await()
@@ -357,9 +393,9 @@ class FirestoreService @Inject constructor(
         val userRole = getCurrentUserRole()
 
         val query = if (PermissionManager.canViewAllVehicleData(userRole)) {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
         } else {
-            getCollection("vehicles").whereEqualTo("userId", userId)
+            getCollection(FirestoreCollections.VEHICLES).whereEqualTo("userId", userId)
         }
 
         return query
@@ -371,7 +407,7 @@ class FirestoreService @Inject constructor(
 
     suspend fun deleteVehicle(vehicleId: String) {
         try {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .document(vehicleId)
                 .delete()
                 .await()
@@ -477,7 +513,7 @@ class FirestoreService @Inject constructor(
         )
         Log.d(TAG, "Saving expense to Firestore for driver $resolvedDriverId: ${expense.id}")
         try {
-            getCollection("expenses")
+            getCollection(FirestoreCollections.EXPENSES)
                 .document(expense.id)
                 .set(normalizedExpense)
                 .await()
@@ -496,20 +532,20 @@ class FirestoreService @Inject constructor(
 
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
-            getCollection("expenses")
+            getCollection(FirestoreCollections.EXPENSES)
                 .get()
                 .await()
                 .documents
                 .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation() }
         } else {
-            val driverExpenses = getCollection("expenses")
+            val driverExpenses = getCollection(FirestoreCollections.EXPENSES)
                 .whereEqualTo("driverId", userId)
                 .get()
                 .await()
                 .documents
                 .mapNotNull { it.toObject<Expense>()?.normalizeDriverAssociation(userId) }
 
-            val legacyExpenses = getCollection("expenses")
+            val legacyExpenses = getCollection(FirestoreCollections.EXPENSES)
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
@@ -526,11 +562,11 @@ class FirestoreService @Inject constructor(
     fun getExpensesFlow(): Flow<List<Expense>> {
         val userId = authService.getCurrentUserId() ?: return flowOf(emptyList())
 
-        val driverFlow = getCollection("expenses")
+        val driverFlow = getCollection(FirestoreCollections.EXPENSES)
             .whereEqualTo("driverId", userId)
             .snapshots()
 
-        val legacyFlow = getCollection("expenses")
+        val legacyFlow = getCollection(FirestoreCollections.EXPENSES)
             .whereEqualTo("userId", userId)
             .snapshots()
 
@@ -548,7 +584,7 @@ class FirestoreService @Inject constructor(
             val userId = requireAuth()
             val userRole = getCurrentUserRole()
 
-            val document = getCollection("expenses")
+            val document = getCollection(FirestoreCollections.EXPENSES)
                 .document(expenseId)
                 .get()
                 .await()
@@ -578,7 +614,7 @@ class FirestoreService @Inject constructor(
 
         return if (PermissionManager.canViewAll(userRole)) {
             // Managers and Admins can see all expenses
-            getCollection("expenses")
+            getCollection(FirestoreCollections.EXPENSES)
                 .snapshots()
                 .map { snapshot ->
                     snapshot.documents
@@ -588,11 +624,11 @@ class FirestoreService @Inject constructor(
             if (userId.isBlank()) {
                 flowOf(emptyList())
             } else {
-                val driverFlow = getCollection("expenses")
+                val driverFlow = getCollection(FirestoreCollections.EXPENSES)
                     .whereEqualTo("driverId", userId)
                     .snapshots()
 
-                val legacyFlow = getCollection("expenses")
+                val legacyFlow = getCollection(FirestoreCollections.EXPENSES)
                     .whereEqualTo("userId", userId)
                     .snapshots()
 
@@ -609,7 +645,7 @@ class FirestoreService @Inject constructor(
     
     
     suspend fun deleteExpense(expenseId: String) {
-        getCollection("expenses")
+        getCollection(FirestoreCollections.EXPENSES)
             .document(expenseId)
             .delete()
             .await()
@@ -620,7 +656,7 @@ class FirestoreService @Inject constructor(
     // Vehicles Collection (Global - shared across all users)
     suspend fun saveVehicleToCollection(vehicle: Vehicle) {
         try {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .document(vehicle.id)
                 .set(vehicle)
                 .await()
@@ -635,7 +671,7 @@ class FirestoreService @Inject constructor(
     
     suspend fun getVehiclesFromCollection(): List<Vehicle> {
         return try {
-            getCollection("vehicles")
+            getCollection(FirestoreCollections.VEHICLES)
                 .whereEqualTo("isActive", true)
                 .get()
                 .await()
@@ -648,7 +684,7 @@ class FirestoreService @Inject constructor(
     }
     
     fun getVehiclesFromCollectionFlow(): Flow<List<Vehicle>> {
-        return getCollection("vehicles")
+        return getCollection(FirestoreCollections.VEHICLES)
             .whereEqualTo("isActive", true)
             .snapshots()
             .map { snapshot ->
@@ -659,7 +695,7 @@ class FirestoreService @Inject constructor(
     // Expense Types Collection (Global - shared across all users)
     suspend fun saveExpenseType(expenseType: ExpenseTypeItem) {
         try {
-            getCollection("expenseTypes")
+            getCollection(FirestoreCollections.EXPENSE_TYPES)
                 .document(expenseType.id)
                 .set(expenseType)
                 .await()
@@ -674,7 +710,7 @@ class FirestoreService @Inject constructor(
     
     suspend fun getExpenseTypes(): List<ExpenseTypeItem> {
         return try {
-            getCollection("expenseTypes")
+            getCollection(FirestoreCollections.EXPENSE_TYPES)
                 .whereEqualTo("isActive", true)
                 .get()
                 .await()
@@ -698,7 +734,7 @@ class FirestoreService @Inject constructor(
     // Users Collection - Get drivers for reports
     suspend fun getDriverUsers(): List<UserDto> {
         return try {
-            getCollection("users")
+            getCollection(FirestoreCollections.USERS)
                 .whereEqualTo("role", UserRole.DRIVER.name)
                 .get()
                 .await()
@@ -722,7 +758,7 @@ class FirestoreService @Inject constructor(
     }
     
     fun getDriverUsersFlow(): Flow<List<UserDto>> {
-        return getCollection("users")
+        return getCollection(FirestoreCollections.USERS)
             .whereEqualTo("role", UserRole.DRIVER.name)
             .snapshots()
             .map { snapshot ->
@@ -757,7 +793,7 @@ class FirestoreService @Inject constructor(
             "createdAt" to com.google.firebase.Timestamp.now()
         )
         
-        getCollection("users")
+        getCollection(FirestoreCollections.USERS)
             .document(driverId)
             .set(userData)
             .await()
@@ -921,4 +957,155 @@ private fun Expense.normalizeDriverAssociation(defaultDriverId: String? = null):
         driverId = resolvedDriverId,
         userId = resolvedUserId
     )
+}
+
+/**
+ * Parse DailyEntry from Firestore DocumentSnapshot
+ * Handles both new provider-based format and legacy flat format for backward compatibility
+ */
+private fun parseDailyEntryFromDocument(document: com.google.firebase.firestore.DocumentSnapshot): DailyEntry? {
+    if (!document.exists()) return null
+    
+    return try {
+        val id = document.getString("id") ?: document.id
+        val userId = document.getString("userId") ?: ""
+        val driverId = document.getString("driverId") ?: ""
+        val vehicleId = document.getString("vehicleId") ?: ""
+        val notes = document.getString("notes") ?: ""
+        val isSynced = document.getBoolean("isSynced") ?: true
+        
+        // Parse date
+        val date = document.getDate("date") ?: java.util.Date()
+        val createdAt = document.getDate("createdAt") ?: java.util.Date()
+        val updatedAt = document.getDate("updatedAt") ?: java.util.Date()
+        
+        // Parse photos
+        @Suppress("UNCHECKED_CAST")
+        val photoUrls = (document.get("photos") as? List<String>) ?: emptyList()
+        
+        // Parse providers (new format)
+        val providers = parseProvidersFromFirestore(document)
+        
+        DailyEntry(
+            id = id,
+            userId = userId,
+            driverId = driverId,
+            vehicleId = vehicleId,
+            providers = providers,
+            notes = notes,
+            photoUrls = photoUrls,
+            isSynced = isSynced,
+            date = date,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+    } catch (e: Exception) {
+        Log.e("FirestoreService", "Failed to parse DailyEntry from document ${document.id}: ${e.message}", e)
+        null
+    }
+}
+
+/**
+ * Parse providers list from Firestore document
+ * Handles both new provider format and legacy flat earnings format
+ */
+@Suppress("UNCHECKED_CAST")
+private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.DocumentSnapshot): List<com.fleetmanager.domain.model.ProviderEarning> {
+    val providers = mutableListOf<com.fleetmanager.domain.model.ProviderEarning>()
+    
+    // Read from "earnings" array (actual Firestore format after migration)
+    val earningsData = document.get("earnings") as? List<Map<String, Any?>>
+    
+    if (earningsData != null && earningsData.isNotEmpty()) {
+        // Parse earnings array format
+        earningsData.forEach { earningMap ->
+            try {
+                // Provider name is in "provider" field (e.g., "Uber", "Careem", "Yango", "Private")
+                val providerName = (earningMap["provider"] as? String) ?: ""
+                
+                // Map provider name to ProviderType enum
+                val type = when (providerName.uppercase()) {
+                    "UBER" -> com.fleetmanager.domain.model.ProviderType.UBER
+                    "CAREEM" -> com.fleetmanager.domain.model.ProviderType.CAREEM
+                    "YANGO" -> com.fleetmanager.domain.model.ProviderType.YANGO
+                    "PRIVATE" -> com.fleetmanager.domain.model.ProviderType.PRIVATE
+                    else -> com.fleetmanager.domain.model.ProviderType.OTHER
+                }
+                
+                // Amount is in "card" field (not "amount")
+                val cardAmount = (earningMap["card"] as? Number)?.toDouble() ?: 0.0
+                val cashAmount = (earningMap["cash"] as? Number)?.toDouble() ?: 0.0
+                val tips = (earningMap["tips"] as? Number)?.toDouble() ?: 0.0
+                
+                // Total amount = card + cash + tips
+                val totalAmount = cardAmount + cashAmount + tips
+                
+                // Get trips count
+                val tripsCount = (earningMap["trips"] as? Number)?.toInt()
+                
+                if (totalAmount > 0) {
+                    providers.add(
+                        com.fleetmanager.domain.model.ProviderEarning(
+                            type = type,
+                            amount = totalAmount,
+                            currency = "AED",
+                            tripsCount = tripsCount,
+                            meta = null
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("FirestoreService", "Failed to parse earning: ${e.message}")
+            }
+        }
+    } else {
+        // Legacy format - parse flat earnings fields for backward compatibility
+        // This handles very old data that might still have flat fields
+        val uberEarnings = (document.get("uberEarnings") as? Number)?.toDouble() ?: 0.0
+        val careemEarnings = (document.get("careemEarnings") as? Number)?.toDouble() ?: 0.0
+        val yangoEarnings = (document.get("yangoEarnings") as? Number)?.toDouble() ?: 0.0
+        val privateJobsEarnings = (document.get("privateJobsEarnings") as? Number)?.toDouble() ?: 0.0
+        
+        if (uberEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.UBER,
+                    amount = uberEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+        
+        if (careemEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.CAREEM,
+                    amount = careemEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+        
+        if (yangoEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.YANGO,
+                    amount = yangoEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+        
+        if (privateJobsEarnings > 0) {
+            providers.add(
+                com.fleetmanager.domain.model.ProviderEarning(
+                    type = com.fleetmanager.domain.model.ProviderType.PRIVATE,
+                    amount = privateJobsEarnings,
+                    currency = "AED"
+                )
+            )
+        }
+    }
+    
+    return providers
 }

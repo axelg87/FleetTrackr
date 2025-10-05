@@ -38,6 +38,8 @@ interface DailyEntryDao {
     @Query("UPDATE daily_entries SET isSynced = 1 WHERE id = :id")
     suspend fun markAsSynced(id: String)
     
-    @Query("SELECT SUM(uberEarnings + yangoEarnings + privateJobsEarnings) FROM daily_entries WHERE date BETWEEN :startDate AND :endDate")
-    suspend fun getTotalEarningsForPeriod(startDate: Date, endDate: Date): Double
+    // Note: Total earnings calculation now requires parsing providersJson
+    // This is handled in the repository layer
+    @Query("SELECT * FROM daily_entries WHERE date BETWEEN :startDate AND :endDate")
+    suspend fun getEntriesForPeriod(startDate: Date, endDate: Date): List<DailyEntryDto>
 }

@@ -5,6 +5,7 @@ import com.fleetmanager.domain.model.DailyEntry
 
 /**
  * Mapper to convert between DailyEntry domain model and DailyEntryDto.
+ * Room handles List<ProviderEarning> conversion via TypeConverter automatically.
  */
 object DailyEntryMapper {
     
@@ -15,9 +16,7 @@ object DailyEntryMapper {
             date = dto.date,
             driverId = dto.driverId,
             vehicleId = dto.vehicleId,
-            uberEarnings = dto.uberEarnings,
-            yangoEarnings = dto.yangoEarnings,
-            privateJobsEarnings = dto.privateJobsEarnings,
+            providers = dto.providers,
             notes = dto.notes,
             photoUrls = dto.photoUrls,
             isSynced = dto.isSynced,
@@ -33,9 +32,7 @@ object DailyEntryMapper {
             date = domain.date,
             driverId = domain.driverId,
             vehicleId = domain.vehicleId,
-            uberEarnings = domain.uberEarnings,
-            yangoEarnings = domain.yangoEarnings,
-            privateJobsEarnings = domain.privateJobsEarnings,
+            providers = domain.providers,
             notes = domain.notes,
             photoUrls = domain.photoUrls,
             isSynced = domain.isSynced,

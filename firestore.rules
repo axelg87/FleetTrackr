@@ -1,0 +1,219 @@
+rules_version = '2';
+
+// ============================================
+// CRITICAL: DEPLOYMENT INSTRUCTIONS
+// ============================================
+// Deploy these rules to Firebase Console BEFORE deploying app update
+// 
+// Collection: entriesNEW (earnings-based format)
+// - Uses "earnings" array with provider-specific objects
+// - Each earning has: provider, card, cash, tips, trips, hoursOnline
+// - Provider names: "Uber", "Careem", "Yango", "Private", "Other"
+// - Full CRUD with validation for earnings array structure
+// - Enforces amount limits and data integrity
+// 
+// Collection: entries (legacy, read-only for backward compatibility)
+// - Read-only access maintained for old app versions
+// - NO writes allowed to prevent data conflicts
+//
+// Deploy command: firebase deploy --only firestore:rules
+// Verify in: Firebase Console → Firestore Database → Rules tab
+// ============================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'ADMIN';
+    }
+    
+    function isManager() {
+      return isSignedIn() && (getUserRole() == 'MANAGER' || getUserRole() == 'ADMIN');
+    }
+    
+    // Validate provider name (actual Firestore format uses string names, not enum)
+    function isValidProviderName(providerName) {
+      return providerName in ['Uber', 'Careem', 'Yango', 'Private', 'Other'];
+    }
+    
+    // Validate earning object structure (actual Firestore format)
+    function isValidEarning(earning) {
+      return earning.keys().hasAll(['provider', 'card', 'cash', 'tips', 'trips', 'hoursOnline'])
+        && isValidProviderName(earning.provider)
+        && earning.card is number
+        && earning.card >= 0
+        && earning.card <= 999999.99
+        && earning.cash is number
+        && earning.cash >= 0
+        && earning.tips is number
+        && earning.tips >= 0
+        && earning.trips is int
+        && earning.trips >= 0
+        && earning.hoursOnline is number
+        && earning.hoursOnline >= 0;
+    }
+    
+    // Validate earnings array (actual Firestore format uses "earnings" not "providers")
+    function hasValidEarnings(data) {
+      return data.earnings is list
+        && data.earnings.size() >= 0
+        && data.earnings.size() <= 20  // Max 20 earnings per entry
+        && (data.earnings.size() == 0 || data.earnings.hasAll([isValidEarning]));
+    }
+    
+    // Validate complete daily entry structure (actual Firestore format)
+    function isValidDailyEntry(data) {
+      return data.keys().hasAll(['id', 'userId', 'driverId', 'vehicleId', 'date', 'earnings', 'notes', 'photos', 'isSynced'])
+        && data.id is string
+        && data.userId is string
+        && data.driverId is string
+        && data.vehicleId is string
+        && data.date is timestamp
+        && hasValidEarnings(data)
+        && data.notes is string
+        && data.notes.size() <= 5000
+        && data.photos is list
+        && data.photos.size() <= 20
+        && data.isSynced is bool
+        && data.valid is bool
+        && data.validationErrors is list;
+    }
+    
+    // ============================================
+    // DAILY ENTRIES (NEW COLLECTION: entriesNEW)
+    // ============================================
+    match /entriesNEW/{entryId} {
+      // Read: User can read their own entries, or if they're a manager/admin
+      allow read: if isSignedIn() 
+        && (isOwner(resource.data.userId) || isManager());
+      
+      // Create: User must be authenticated and must be the owner
+      allow create: if isSignedIn()
+        && isOwner(request.resource.data.userId)
+        && isValidDailyEntry(request.resource.data)
+        && request.resource.data.id == entryId;  // ID must match document ID
+      
+      // Update: User must be the owner or an admin
+      allow update: if isSignedIn()
+        && (isOwner(resource.data.userId) || isAdmin())
+        && isValidDailyEntry(request.resource.data)
+        && request.resource.data.id == resource.data.id  // Cannot change ID
+        && request.resource.data.userId == resource.data.userId;  // Cannot change owner
+      
+      // Delete: User must be the owner or an admin
+      allow delete: if isSignedIn()
+        && (isOwner(resource.data.userId) || isAdmin());
+    }
+    
+    // ============================================
+    // EXPENSES
+    // ============================================
+    match /expenses/{expenseId} {
+      allow read: if isSignedIn() 
+        && (isOwner(resource.data.userId) 
+            || isOwner(resource.data.driverId) 
+            || isManager());
+      
+      allow create: if isSignedIn()
+        && (isOwner(request.resource.data.userId) 
+            || isOwner(request.resource.data.driverId));
+      
+      allow update: if isSignedIn()
+        && (isOwner(resource.data.userId) 
+            || isOwner(resource.data.driverId) 
+            || isAdmin());
+      
+      allow delete: if isSignedIn()
+        && (isOwner(resource.data.userId) 
+            || isOwner(resource.data.driverId) 
+            || isAdmin());
+    }
+    
+    // ============================================
+    // DRIVERS
+    // ============================================
+    match /drivers/{driverId} {
+      allow read: if isSignedIn()
+        && (isOwner(resource.data.userId) || isManager());
+      
+      allow create: if isSignedIn()
+        && (isOwner(request.resource.data.userId) || isManager());
+      
+      allow update: if isSignedIn()
+        && (isOwner(resource.data.userId) || isAdmin());
+      
+      allow delete: if isSignedIn() && isAdmin();
+    }
+    
+    // ============================================
+    // VEHICLES
+    // ============================================
+    match /vehicles/{vehicleId} {
+      allow read: if isSignedIn();  // All authenticated users can read vehicles
+      
+      allow create: if isSignedIn() && isManager();
+      
+      allow update: if isSignedIn() && isManager();
+      
+      allow delete: if isSignedIn() && isAdmin();
+    }
+    
+    // ============================================
+    // USERS
+    // ============================================
+    match /users/{userId} {
+      allow read: if isSignedIn() 
+        && (isOwner(userId) || isManager());
+      
+      allow create: if isSignedIn() 
+        && isOwner(userId);
+      
+      allow update: if isSignedIn()
+        && (isOwner(userId) || isAdmin());
+      
+      allow delete: if isSignedIn() && isAdmin();
+    }
+    
+    // ============================================
+    // EXPENSE TYPES
+    // ============================================
+    match /expenseTypes/{typeId} {
+      allow read: if isSignedIn();
+      
+      allow create, update, delete: if isSignedIn() && isAdmin();
+    }
+    
+    // ============================================
+    // FCM TOKENS
+    // ============================================
+    match /fcm_tokens/{tokenId} {
+      allow read, write: if isSignedIn() && isOwner(tokenId);
+    }
+    
+    // ============================================
+    // LEGACY COLLECTION (OLD: entries)
+    // Keep for backward compatibility during migration
+    // ============================================
+    match /entries/{entryId} {
+      // Read-only access for backward compatibility
+      allow read: if isSignedIn() 
+        && (isOwner(resource.data.userId) || isManager());
+      
+      // No writes to legacy collection
+      allow write: if false;
+    }
+  }
+}

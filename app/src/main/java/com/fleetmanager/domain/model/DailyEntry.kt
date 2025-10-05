@@ -5,10 +5,56 @@ import com.google.firebase.firestore.PropertyName
 import java.util.Date
 
 /**
+ * Enum representing different earning provider types
+ */
+enum class ProviderType {
+    UBER,
+    CAREEM,
+    YANGO,
+    PRIVATE,
+    OTHER;
+    
+    companion object {
+        fun fromString(value: String?): ProviderType {
+            return try {
+                valueOf(value?.uppercase() ?: "OTHER")
+            } catch (e: Exception) {
+                OTHER
+            }
+        }
+    }
+}
+
+/**
+ * Represents earnings from a single provider
+ * Firestore-compatible data class
+ */
+data class ProviderEarning(
+    @get:PropertyName("type")
+    val type: ProviderType = ProviderType.OTHER,
+    
+    @get:PropertyName("amount")
+    val amount: Double = 0.0,
+    
+    @get:PropertyName("currency")
+    val currency: String = "AED",
+    
+    @get:PropertyName("tripsCount")
+    val tripsCount: Int? = null,
+    
+    @get:PropertyName("meta")
+    val meta: Map<String, Any?>? = null
+) {
+    // No-arg constructor for Firestore
+    constructor() : this(ProviderType.OTHER, 0.0, "AED", null, null)
+}
+
+/**
  * Domain model for daily entry.
  * This represents the business entity without any framework dependencies.
  * 
  * Firebase Firestore compatible with proper field mapping.
+ * New provider-based model.
  */
 data class DailyEntry(
     @get:PropertyName("id")
@@ -32,17 +78,8 @@ data class DailyEntry(
     @get:Exclude
     val vehicle: String = "",
     
-    @get:PropertyName("uberEarnings")
-    val uberEarnings: Double = 0.0,
-    
-    @get:PropertyName("yangoEarnings")
-    val yangoEarnings: Double = 0.0,
-    
-    @get:PropertyName("privateJobsEarnings")
-    val privateJobsEarnings: Double = 0.0,
-    
-    @get:PropertyName("careemEarnings")
-    val careemEarnings: Double = 0.0,
+    @get:PropertyName("providers")
+    val providers: List<ProviderEarning> = emptyList(),
     
     @get:PropertyName("notes")
     val notes: String = "",
@@ -59,21 +96,54 @@ data class DailyEntry(
     @get:PropertyName("updatedAt")
     val updatedAt: Date = Date()
 ) {
+    /**
+     * Calculate total earnings from all providers
+     */
     val totalEarnings: Double
-        get() = uberEarnings + yangoEarnings + privateJobsEarnings + careemEarnings
+        get() = providers.sumOf { it.amount }
+
+    /**
+     * Get earnings amount for specific provider type(s)
+     */
+    fun amountFor(vararg types: ProviderType): Double {
+        return providers
+            .filter { it.type in types }
+            .sumOf { it.amount }
+    }
+
+    /**
+     * Backward compatibility: Uber earnings
+     */
+    @get:Exclude
+    val uberEarnings: Double
+        get() = amountFor(ProviderType.UBER)
+
+    /**
+     * Backward compatibility: Careem earnings
+     */
+    @get:Exclude
+    val careemEarnings: Double
+        get() = amountFor(ProviderType.CAREEM)
+
+    /**
+     * Backward compatibility: Yango earnings
+     */
+    @get:Exclude
+    val yangoEarnings: Double
+        get() = amountFor(ProviderType.YANGO)
+
+    /**
+     * Backward compatibility: Private jobs earnings
+     */
+    @get:Exclude
+    val privateJobsEarnings: Double
+        get() = amountFor(ProviderType.PRIVATE)
 
     fun isValid(): Boolean {
         return id.isNotBlank() &&
                 driverId.isNotBlank() &&
                 vehicleId.isNotBlank() &&
-                uberEarnings >= 0 &&
-                yangoEarnings >= 0 &&
-                privateJobsEarnings >= 0 &&
-                careemEarnings >= 0 &&
-                uberEarnings <= 999999.99 &&
-                yangoEarnings <= 999999.99 &&
-                privateJobsEarnings <= 999999.99 &&
-                careemEarnings <= 999999.99 &&
+                providers.all { it.amount >= 0 && it.amount <= 999999.99 } &&
                 notes.length <= 5000
     }
 
@@ -83,14 +153,16 @@ data class DailyEntry(
         if (id.isBlank()) errors.add("ID cannot be blank")
         if (driverId.isBlank()) errors.add("Driver ID cannot be blank")
         if (vehicleId.isBlank()) errors.add("Vehicle ID cannot be blank")
-        if (uberEarnings < 0) errors.add("Uber earnings cannot be negative")
-        if (yangoEarnings < 0) errors.add("Yango earnings cannot be negative")
-        if (privateJobsEarnings < 0) errors.add("Private jobs earnings cannot be negative")
-        if (careemEarnings < 0) errors.add("Careem earnings cannot be negative")
-        if (uberEarnings > 999999.99) errors.add("Uber earnings is too large")
-        if (yangoEarnings > 999999.99) errors.add("Yango earnings is too large")
-        if (privateJobsEarnings > 999999.99) errors.add("Private jobs earnings is too large")
-        if (careemEarnings > 999999.99) errors.add("Careem earnings is too large")
+        
+        providers.forEach { provider ->
+            if (provider.amount < 0) {
+                errors.add("${provider.type.name} earnings cannot be negative")
+            }
+            if (provider.amount > 999999.99) {
+                errors.add("${provider.type.name} earnings is too large")
+            }
+        }
+        
         if (notes.length > 5000) errors.add("Notes too long (max 5000 characters)")
 
         return errors

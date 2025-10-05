@@ -17,6 +17,49 @@ class CsvEntryFactory {
     fun createDailyEntry(rowData: CsvRowData, userId: String): DailyEntry {
         val currentUtcTime = Date() // Current time in UTC for audit trail
         
+        // Build providers list from CSV data
+        val providers = buildList {
+            if (rowData.uber > 0) {
+                add(
+                    com.fleetmanager.domain.model.ProviderEarning(
+                        type = com.fleetmanager.domain.model.ProviderType.UBER,
+                        amount = rowData.uber,
+                        currency = "AED"
+                    )
+                )
+            }
+            
+            if (rowData.careem > 0) {
+                add(
+                    com.fleetmanager.domain.model.ProviderEarning(
+                        type = com.fleetmanager.domain.model.ProviderType.CAREEM,
+                        amount = rowData.careem,
+                        currency = "AED"
+                    )
+                )
+            }
+            
+            if (rowData.yango > 0) {
+                add(
+                    com.fleetmanager.domain.model.ProviderEarning(
+                        type = com.fleetmanager.domain.model.ProviderType.YANGO,
+                        amount = rowData.yango,
+                        currency = "AED"
+                    )
+                )
+            }
+            
+            if (rowData.private > 0) {
+                add(
+                    com.fleetmanager.domain.model.ProviderEarning(
+                        type = com.fleetmanager.domain.model.ProviderType.PRIVATE,
+                        amount = rowData.private,
+                        currency = "AED"
+                    )
+                )
+            }
+        }
+        
         return DailyEntry(
             id = UUID.randomUUID().toString(),
             userId = "PLACEHOLDER", // Will be corrected by ImportManager
@@ -25,10 +68,7 @@ class CsvEntryFactory {
             driverName = rowData.driver,
             vehicleId = rowData.vehicle.trim().lowercase(),
             vehicle = rowData.vehicle,
-            uberEarnings = rowData.uber,
-            yangoEarnings = rowData.yango,
-            privateJobsEarnings = rowData.private,
-            careemEarnings = rowData.careem,
+            providers = providers,
             notes = "Imported from CSV",
             photoUrls = emptyList(),
             isSynced = true,

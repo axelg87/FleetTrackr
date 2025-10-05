@@ -383,6 +383,42 @@ class AddEntryViewModel @Inject constructor(
             val entryIdToUse = currentState.entryId ?: UUID.randomUUID().toString()
             val createdAt = currentState.createdAt ?: now
 
+            // Build providers list from UI state
+            val providers = buildList {
+                val uberAmount = currentState.uberEarnings.toDoubleOrNull() ?: 0.0
+                if (uberAmount > 0) {
+                    add(
+                        com.fleetmanager.domain.model.ProviderEarning(
+                            type = com.fleetmanager.domain.model.ProviderType.UBER,
+                            amount = uberAmount,
+                            currency = "AED"
+                        )
+                    )
+                }
+                
+                val yangoAmount = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0
+                if (yangoAmount > 0) {
+                    add(
+                        com.fleetmanager.domain.model.ProviderEarning(
+                            type = com.fleetmanager.domain.model.ProviderType.YANGO,
+                            amount = yangoAmount,
+                            currency = "AED"
+                        )
+                    )
+                }
+                
+                val privateAmount = currentState.privateJobsEarnings.toDoubleOrNull() ?: 0.0
+                if (privateAmount > 0) {
+                    add(
+                        com.fleetmanager.domain.model.ProviderEarning(
+                            type = com.fleetmanager.domain.model.ProviderType.PRIVATE,
+                            amount = privateAmount,
+                            currency = "AED"
+                        )
+                    )
+                }
+            }
+            
             val entry = DailyEntry(
                 id = entryIdToUse,
                 userId = currentState.userId,
@@ -391,9 +427,7 @@ class AddEntryViewModel @Inject constructor(
                 driverName = currentState.driverInput,
                 vehicleId = vehicleId,
                 vehicle = currentState.vehicleInput,
-                uberEarnings = currentState.uberEarnings.toDoubleOrNull() ?: 0.0,
-                yangoEarnings = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0,
-                privateJobsEarnings = currentState.privateJobsEarnings.toDoubleOrNull() ?: 0.0,
+                providers = providers,
                 notes = currentState.notes,
                 photoUrls = currentState.existingPhotoUrls,
                 createdAt = createdAt,
