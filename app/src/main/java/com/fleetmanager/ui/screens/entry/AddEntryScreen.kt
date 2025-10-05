@@ -24,9 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fleetmanager.ui.viewmodel.AddEntryViewModel
+import com.fleetmanager.ui.viewmodel.IncomeProvider
+import com.fleetmanager.ui.viewmodel.ProviderDetailField
+import com.fleetmanager.ui.viewmodel.ProviderBreakdownUiState
 import com.fleetmanager.ui.components.DriverInputComponent
 import coil.compose.AsyncImage
 import com.fleetmanager.R
@@ -188,28 +192,67 @@ fun AddEntryScreen(
                 }
             }
             
-            // Earnings fields
+            Text(
+                text = stringResource(R.string.trip_metrics),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
             OutlinedTextField(
-                value = uiState.uberEarnings,
-                onValueChange = viewModel::updateUberEarnings,
-                label = { Text(stringResource(R.string.uber_earnings)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                value = uiState.odometer,
+                onValueChange = viewModel::updateOdometer,
+                label = { Text(stringResource(R.string.odometer)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                isError = uiState.odometerError != null,
+                supportingText = {
+                    uiState.odometerError?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
-            
-            OutlinedTextField(
-                value = uiState.yangoEarnings,
-                onValueChange = viewModel::updateYangoEarnings,
-                label = { Text(stringResource(R.string.yango_earnings)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+
+            ProviderIncomeSection(
+                title = stringResource(R.string.uber),
+                totalLabel = stringResource(R.string.uber_earnings),
+                totalValue = uiState.uberEarnings,
+                totalError = uiState.uberEarningsError,
+                onTotalChange = viewModel::updateUberEarnings,
+                breakdown = uiState.uberBreakdown,
+                onDetailChange = { field, value ->
+                    viewModel.updateProviderDetail(IncomeProvider.UBER, field, value)
+                },
                 modifier = Modifier.fillMaxWidth()
             )
-            
-            OutlinedTextField(
-                value = uiState.privateJobsEarnings,
-                onValueChange = viewModel::updatePrivateJobsEarnings,
-                label = { Text(stringResource(R.string.private_jobs)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+
+            ProviderIncomeSection(
+                title = stringResource(R.string.yango),
+                totalLabel = stringResource(R.string.yango_earnings),
+                totalValue = uiState.yangoEarnings,
+                totalError = uiState.yangoEarningsError,
+                onTotalChange = viewModel::updateYangoEarnings,
+                breakdown = uiState.yangoBreakdown,
+                onDetailChange = { field, value ->
+                    viewModel.updateProviderDetail(IncomeProvider.YANGO, field, value)
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            ProviderIncomeSection(
+                title = stringResource(R.string.private_jobs),
+                totalLabel = stringResource(R.string.private_jobs),
+                totalValue = uiState.privateJobsEarnings,
+                totalError = uiState.privateJobsEarningsError,
+                onTotalChange = viewModel::updatePrivateJobsEarnings,
+                breakdown = uiState.privateJobsBreakdown,
+                onDetailChange = { field, value ->
+                    viewModel.updateProviderDetail(IncomeProvider.PRIVATE, field, value)
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             
@@ -369,6 +412,137 @@ fun AddEntryScreen(
             
             // Add some bottom padding
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun ProviderIncomeSection(
+    title: String,
+    totalLabel: String,
+    totalValue: String,
+    totalError: String?,
+    onTotalChange: (String) -> Unit,
+    breakdown: ProviderBreakdownUiState,
+    onDetailChange: (ProviderDetailField, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            OutlinedTextField(
+                value = totalValue,
+                onValueChange = onTotalChange,
+                label = { Text(totalLabel) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                isError = totalError != null,
+                supportingText = {
+                    totalError?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.income_breakdown),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = breakdown.hoursOnline,
+                    onValueChange = { onDetailChange(ProviderDetailField.HOURS_ONLINE, it) },
+                    label = { Text(stringResource(R.string.hours_online)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    isError = breakdown.hoursError != null,
+                    supportingText = {
+                        breakdown.hoursError?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = breakdown.cashEarnings,
+                    onValueChange = { onDetailChange(ProviderDetailField.CASH, it) },
+                    label = { Text(stringResource(R.string.cash_earnings)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    isError = breakdown.cashError != null,
+                    supportingText = {
+                        breakdown.cashError?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = breakdown.cardEarnings,
+                    onValueChange = { onDetailChange(ProviderDetailField.CARD, it) },
+                    label = { Text(stringResource(R.string.card_earnings)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    isError = breakdown.cardError != null,
+                    supportingText = {
+                        breakdown.cardError?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = breakdown.tips,
+                    onValueChange = { onDetailChange(ProviderDetailField.TIPS, it) },
+                    label = { Text(stringResource(R.string.tips)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    isError = breakdown.tipsError != null,
+                    supportingText = {
+                        breakdown.tipsError?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }

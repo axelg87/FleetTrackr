@@ -13,6 +13,15 @@
     <string name="uber_earnings">Uber Earnings</string>
     <string name="yango_earnings">Yango Earnings</string>
     <string name="private_jobs">Private Jobs</string>
+    <string name="uber">Uber</string>
+    <string name="yango">Yango</string>
+    <string name="trip_metrics">Trip Metrics</string>
+    <string name="odometer">Odometer</string>
+    <string name="hours_online">Hours Online</string>
+    <string name="cash_earnings">Cash Earnings</string>
+    <string name="card_earnings">Card Earnings</string>
+    <string name="tips">Tips</string>
+    <string name="income_breakdown">Income Breakdown</string>
     <string name="notes">Notes</string>
     <string name="date">Date</string>
     <string name="save">Save</string>

@@ -17,7 +17,35 @@ import kotlinx.coroutines.flow.*
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import java.math.BigDecimal
 import java.util.Calendar
+
+enum class IncomeProvider {
+    UBER,
+    YANGO,
+    PRIVATE
+}
+
+enum class ProviderDetailField {
+    HOURS_ONLINE,
+    CASH,
+    CARD,
+    TIPS
+}
+
+data class ProviderBreakdownUiState(
+    val hoursOnline: String = "",
+    val cashEarnings: String = "",
+    val cardEarnings: String = "",
+    val tips: String = "",
+    val hoursError: String? = null,
+    val cashError: String? = null,
+    val cardError: String? = null,
+    val tipsError: String? = null
+) {
+    val hasErrors: Boolean
+        get() = listOfNotNull(hoursError, cashError, cardError, tipsError).isNotEmpty()
+}
 
 data class AddEntryUiState(
     val drivers: List<Driver> = emptyList(),
@@ -26,10 +54,15 @@ data class AddEntryUiState(
     val selectedVehicle: Vehicle? = null,
     val driverInput: String = "",
     val vehicleInput: String = "",
+    val odometer: String = "",
+    val odometerError: String? = null,
     val date: Date,
     val uberEarnings: String = "",
     val yangoEarnings: String = "",
     val privateJobsEarnings: String = "",
+    val uberBreakdown: ProviderBreakdownUiState = ProviderBreakdownUiState(),
+    val yangoBreakdown: ProviderBreakdownUiState = ProviderBreakdownUiState(),
+    val privateJobsBreakdown: ProviderBreakdownUiState = ProviderBreakdownUiState(),
     val notes: String = "",
     val photoUri: Uri? = null,
     val photoUris: List<Uri> = emptyList(),
@@ -54,17 +87,21 @@ data class AddEntryUiState(
     val canSave: Boolean
         get() = driverInput.isNotBlank() &&
                 vehicleInput.isNotBlank() &&
+                odometerError == null &&
                 uberEarningsError == null &&
                 yangoEarningsError == null &&
                 privateJobsEarningsError == null &&
                 notesError == null &&
+                listOf(uberBreakdown, yangoBreakdown, privateJobsBreakdown).all { !it.hasErrors } &&
                 (uberEarnings.isNotBlank() || yangoEarnings.isNotBlank() || privateJobsEarnings.isNotBlank())
-    
+
     val hasValidationErrors: Boolean
-        get() = uberEarningsError != null || 
-                yangoEarningsError != null || 
-                privateJobsEarningsError != null || 
-                notesError != null
+        get() = uberEarningsError != null ||
+                yangoEarningsError != null ||
+                privateJobsEarningsError != null ||
+                notesError != null ||
+                odometerError != null ||
+                listOf(uberBreakdown, yangoBreakdown, privateJobsBreakdown).any { it.hasErrors }
     
     // Driver names from Firestore only
     val allDriverNames: List<String>
@@ -212,18 +249,29 @@ class AddEntryViewModel @Inject constructor(
     }
     
     fun updateVehicleInput(input: String) {
-        updateState { 
+        updateState {
             it.copy(
                 vehicleInput = input,
                 selectedVehicle = it.vehicles.find { vehicle -> vehicle.displayName == input }
-            ) 
+            )
         }
     }
-    
+
+    fun updateOdometer(value: String) {
+        val sanitized = value.filter { it.isDigit() }
+        val error = validator.validateOptionalNonNegativeInt(value, "Odometer").getErrorMessage()
+        updateState {
+            it.copy(
+                odometer = sanitized,
+                odometerError = error
+            )
+        }
+    }
+
     fun updateUberEarnings(value: String) {
         val sanitized = validator.sanitizeNumericInput(value)
         val error = validator.validateEarnings(sanitized, "Uber earnings").getErrorMessage()
-        updateState { 
+        updateState {
             it.copy(
                 uberEarnings = sanitized,
                 uberEarningsError = error
@@ -274,6 +322,71 @@ class AddEntryViewModel @Inject constructor(
             currentUris.addAll(uris)
             currentState.copy(photoUris = currentUris)
         }
+    }
+
+    fun updateProviderDetail(provider: IncomeProvider, field: ProviderDetailField, value: String) {
+        val sanitized = validator.sanitizeNumericInput(value)
+        val error = validator.validateOptionalAmount(value, providerFieldName(provider, field)).getErrorMessage()
+        updateProviderBreakdown(provider) { breakdown ->
+            when (field) {
+                ProviderDetailField.HOURS_ONLINE -> breakdown.copy(hoursOnline = sanitized, hoursError = error)
+                ProviderDetailField.CASH -> breakdown.copy(cashEarnings = sanitized, cashError = error)
+                ProviderDetailField.CARD -> breakdown.copy(cardEarnings = sanitized, cardError = error)
+                ProviderDetailField.TIPS -> breakdown.copy(tips = sanitized, tipsError = error)
+            }
+        }
+    }
+
+    private fun updateProviderBreakdown(
+        provider: IncomeProvider,
+        transform: (ProviderBreakdownUiState) -> ProviderBreakdownUiState
+    ) {
+        updateState { state ->
+            when (provider) {
+                IncomeProvider.UBER -> state.copy(uberBreakdown = transform(state.uberBreakdown))
+                IncomeProvider.YANGO -> state.copy(yangoBreakdown = transform(state.yangoBreakdown))
+                IncomeProvider.PRIVATE -> state.copy(privateJobsBreakdown = transform(state.privateJobsBreakdown))
+            }
+        }
+    }
+
+    private fun providerFieldName(provider: IncomeProvider, field: ProviderDetailField): String {
+        val providerName = when (provider) {
+            IncomeProvider.UBER -> "Uber"
+            IncomeProvider.YANGO -> "Yango"
+            IncomeProvider.PRIVATE -> "Private jobs"
+        }
+
+        val suffix = when (field) {
+            ProviderDetailField.HOURS_ONLINE -> "hours online"
+            ProviderDetailField.CASH -> "cash earnings"
+            ProviderDetailField.CARD -> "card earnings"
+            ProviderDetailField.TIPS -> "tips"
+        }
+
+        return "$providerName $suffix"
+    }
+
+    private fun buildProviderBreakdown(
+        hoursOnline: Double,
+        cash: Double,
+        card: Double,
+        tips: Double
+    ): ProviderBreakdownUiState {
+        return ProviderBreakdownUiState(
+            hoursOnline = formatDoubleInput(hoursOnline),
+            cashEarnings = formatDoubleInput(cash),
+            cardEarnings = formatDoubleInput(card),
+            tips = formatDoubleInput(tips)
+        )
+    }
+
+    private fun formatDoubleInput(value: Double): String {
+        if (value == 0.0) {
+            return ""
+        }
+
+        return BigDecimal(value).stripTrailingZeros().toPlainString()
     }
 
     fun removePhotoUri(uri: Uri) {
@@ -391,9 +504,22 @@ class AddEntryViewModel @Inject constructor(
                 driverName = currentState.driverInput,
                 vehicleId = vehicleId,
                 vehicle = currentState.vehicleInput,
+                odometer = currentState.odometer.toIntOrNull(),
                 uberEarnings = currentState.uberEarnings.toDoubleOrNull() ?: 0.0,
+                uberHoursOnline = currentState.uberBreakdown.hoursOnline.toDoubleOrNull() ?: 0.0,
+                uberCashEarnings = currentState.uberBreakdown.cashEarnings.toDoubleOrNull() ?: 0.0,
+                uberCardEarnings = currentState.uberBreakdown.cardEarnings.toDoubleOrNull() ?: 0.0,
+                uberTips = currentState.uberBreakdown.tips.toDoubleOrNull() ?: 0.0,
                 yangoEarnings = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0,
+                yangoHoursOnline = currentState.yangoBreakdown.hoursOnline.toDoubleOrNull() ?: 0.0,
+                yangoCashEarnings = currentState.yangoBreakdown.cashEarnings.toDoubleOrNull() ?: 0.0,
+                yangoCardEarnings = currentState.yangoBreakdown.cardEarnings.toDoubleOrNull() ?: 0.0,
+                yangoTips = currentState.yangoBreakdown.tips.toDoubleOrNull() ?: 0.0,
                 privateJobsEarnings = currentState.privateJobsEarnings.toDoubleOrNull() ?: 0.0,
+                privateJobsHoursOnline = currentState.privateJobsBreakdown.hoursOnline.toDoubleOrNull() ?: 0.0,
+                privateJobsCashEarnings = currentState.privateJobsBreakdown.cashEarnings.toDoubleOrNull() ?: 0.0,
+                privateJobsCardEarnings = currentState.privateJobsBreakdown.cardEarnings.toDoubleOrNull() ?: 0.0,
+                privateJobsTips = currentState.privateJobsBreakdown.tips.toDoubleOrNull() ?: 0.0,
                 notes = currentState.notes,
                 photoUrls = currentState.existingPhotoUrls,
                 createdAt = createdAt,
@@ -438,9 +564,29 @@ class AddEntryViewModel @Inject constructor(
                             date = entry.date,
                             driverInput = entry.driverName,
                             vehicleInput = entry.vehicle,
+                            odometer = entry.odometer?.takeIf { it > 0 }?.toString() ?: "",
+                            odometerError = null,
                             uberEarnings = entry.uberEarnings.takeIf { it != 0.0 }?.toString() ?: "",
                             yangoEarnings = entry.yangoEarnings.takeIf { it != 0.0 }?.toString() ?: "",
                             privateJobsEarnings = entry.privateJobsEarnings.takeIf { it != 0.0 }?.toString() ?: "",
+                            uberBreakdown = buildProviderBreakdown(
+                                entry.uberHoursOnline,
+                                entry.uberCashEarnings,
+                                entry.uberCardEarnings,
+                                entry.uberTips
+                            ),
+                            yangoBreakdown = buildProviderBreakdown(
+                                entry.yangoHoursOnline,
+                                entry.yangoCashEarnings,
+                                entry.yangoCardEarnings,
+                                entry.yangoTips
+                            ),
+                            privateJobsBreakdown = buildProviderBreakdown(
+                                entry.privateJobsHoursOnline,
+                                entry.privateJobsCashEarnings,
+                                entry.privateJobsCardEarnings,
+                                entry.privateJobsTips
+                            ),
                             notes = entry.notes,
                             existingPhotoUrls = entry.photoUrls,
                             createdAt = entry.createdAt,

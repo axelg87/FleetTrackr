@@ -254,7 +254,57 @@ fun EntryDetailContent(
                 }
             }
         }
-        
+
+        val showTripMetrics = (entry.odometer != null && entry.odometer > 0) || hasProviderBreakdown(entry)
+        if (showTripMetrics) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.trip_metrics),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    entry.odometer?.takeIf { it > 0 }?.let { odometerReading ->
+                        MetricRow(
+                            label = stringResource(R.string.odometer),
+                            value = odometerReading.toString()
+                        )
+                    }
+
+                    ProviderBreakdownDetails(
+                        title = stringResource(R.string.uber),
+                        hours = entry.uberHoursOnline,
+                        cash = entry.uberCashEarnings,
+                        card = entry.uberCardEarnings,
+                        tips = entry.uberTips
+                    )
+
+                    ProviderBreakdownDetails(
+                        title = stringResource(R.string.yango),
+                        hours = entry.yangoHoursOnline,
+                        cash = entry.yangoCashEarnings,
+                        card = entry.yangoCardEarnings,
+                        tips = entry.yangoTips
+                    )
+
+                    ProviderBreakdownDetails(
+                        title = stringResource(R.string.private_jobs),
+                        hours = entry.privateJobsHoursOnline,
+                        cash = entry.privateJobsCashEarnings,
+                        card = entry.privateJobsCardEarnings,
+                        tips = entry.privateJobsTips
+                    )
+                }
+            }
+        }
+
         // Notes Card
         if (entry.notes.isNotEmpty()) {
             Card(
@@ -387,4 +437,84 @@ fun EarningsRow(
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+@Composable
+private fun MetricRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun ProviderBreakdownDetails(
+    title: String,
+    hours: Double,
+    cash: Double,
+    card: Double,
+    tips: Double
+) {
+    val hasData = hours > 0.0 || cash > 0.0 || card > 0.0 || tips > 0.0
+    if (!hasData) {
+        return
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        if (hours > 0.0) {
+            MetricRow(
+                label = stringResource(R.string.hours_online),
+                value = String.format(Locale.getDefault(), "%.2f h", hours)
+            )
+        }
+
+        if (cash > 0.0) {
+            EarningsRow(label = stringResource(R.string.cash_earnings), amount = cash)
+        }
+
+        if (card > 0.0) {
+            EarningsRow(label = stringResource(R.string.card_earnings), amount = card)
+        }
+
+        if (tips > 0.0) {
+            EarningsRow(label = stringResource(R.string.tips), amount = tips)
+        }
+    }
+}
+
+private fun hasProviderBreakdown(entry: DailyEntry): Boolean {
+    return listOf(
+        entry.uberHoursOnline,
+        entry.uberCashEarnings,
+        entry.uberCardEarnings,
+        entry.uberTips,
+        entry.yangoHoursOnline,
+        entry.yangoCashEarnings,
+        entry.yangoCardEarnings,
+        entry.yangoTips,
+        entry.privateJobsHoursOnline,
+        entry.privateJobsCashEarnings,
+        entry.privateJobsCardEarnings,
+        entry.privateJobsTips
+    ).any { it > 0.0 }
 }

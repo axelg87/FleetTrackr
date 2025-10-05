@@ -84,6 +84,72 @@ class InputValidator @Inject constructor() {
         return ValidationResult.Success
     }
 
+    fun validateOptionalAmount(amount: String?, fieldName: String): ValidationResult {
+        if (amount.isNullOrBlank()) {
+            return ValidationResult.Success
+        }
+
+        if (amount.contains('-')) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        val sanitized = sanitizeNumericInput(amount)
+        val value = sanitized.toDoubleOrNull()
+            ?: return ValidationResult.Error("$fieldName must be a valid number")
+
+        if (value < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        if (value > 999999.99) {
+            return ValidationResult.Error("$fieldName is too large")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateOptionalNonNegativeInt(input: String?, fieldName: String): ValidationResult {
+        if (input.isNullOrBlank()) {
+            return ValidationResult.Success
+        }
+
+        if (input.contains('-')) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        val sanitized = sanitizeNumericInput(input)
+        val value = sanitized.toDoubleOrNull()
+            ?: return ValidationResult.Error("$fieldName must be a whole number")
+
+        if (value % 1.0 != 0.0) {
+            return ValidationResult.Error("$fieldName must be a whole number")
+        }
+
+        if (value < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        if (value > 9_999_999) {
+            return ValidationResult.Error("$fieldName is too large")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateOptionalNonNegativeIntValue(value: Int?, fieldName: String): ValidationResult {
+        val actualValue = value ?: return ValidationResult.Success
+
+        if (actualValue < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        if (actualValue > 9_999_999) {
+            return ValidationResult.Error("$fieldName is too large")
+        }
+
+        return ValidationResult.Success
+    }
+
     /**
      * Validates that a numeric value is not negative and optionally required.
      */
