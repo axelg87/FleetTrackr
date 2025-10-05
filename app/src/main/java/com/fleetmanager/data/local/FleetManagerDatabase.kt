@@ -66,7 +66,7 @@ private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
     override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
         // Migration from flat earnings to provider-based model
         
-        // 1. Add the new providersJson column
+        // 1. Add the new providers column (temporary name: providersJson for migration)
         database.execSQL("ALTER TABLE daily_entries ADD COLUMN providersJson TEXT NOT NULL DEFAULT '[]'")
         
         // 2. Migrate existing data: Convert flat earnings to JSON providers format
@@ -101,10 +101,11 @@ private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
                     WHERE inner_table.id = daily_entries.id AND privateJobsEarnings > 0
                 ) AS providers_table
             )
-            WHERE providersJson = '[]'
+            WHERE uberEarnings > 0 OR careemEarnings > 0 OR yangoEarnings > 0 OR privateJobsEarnings > 0
         """.trimIndent())
         
         // 3. Create a new table with the updated schema (without flat earnings columns)
+        // Schema matches DailyEntryDto exactly - TypeConverter handles List<ProviderEarning> as TEXT
         database.execSQL("""
             CREATE TABLE IF NOT EXISTS daily_entries_new (
                 id TEXT PRIMARY KEY NOT NULL,
@@ -112,7 +113,7 @@ private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
                 date INTEGER NOT NULL,
                 driverId TEXT NOT NULL DEFAULT '',
                 vehicleId TEXT NOT NULL DEFAULT '',
-                providersJson TEXT NOT NULL,
+                providers TEXT NOT NULL,
                 notes TEXT NOT NULL,
                 photoUrl TEXT,
                 localPhotoPath TEXT,
@@ -125,9 +126,10 @@ private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
         """.trimIndent())
         
         // 4. Copy data from old table to new table
+        // Column name is "providers" not "providersJson" to match DailyEntryDto field name
         database.execSQL("""
             INSERT INTO daily_entries_new (
-                id, userId, date, driverId, vehicleId, providersJson, 
+                id, userId, date, driverId, vehicleId, providers, 
                 notes, photoUrl, localPhotoPath, photoUrls, localPhotoPaths, 
                 isSynced, createdAt, updatedAt
             )
