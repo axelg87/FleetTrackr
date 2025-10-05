@@ -12,19 +12,42 @@ enum class ProviderType {
     CAREEM,
     YANGO,
     PRIVATE,
-    OTHER
+    OTHER;
+    
+    companion object {
+        fun fromString(value: String?): ProviderType {
+            return try {
+                valueOf(value?.uppercase() ?: "OTHER")
+            } catch (e: Exception) {
+                OTHER
+            }
+        }
+    }
 }
 
 /**
  * Represents earnings from a single provider
+ * Firestore-compatible data class
  */
 data class ProviderEarning(
-    val type: ProviderType,
-    val amount: Double,
+    @get:PropertyName("type")
+    val type: ProviderType = ProviderType.OTHER,
+    
+    @get:PropertyName("amount")
+    val amount: Double = 0.0,
+    
+    @get:PropertyName("currency")
     val currency: String = "AED",
+    
+    @get:PropertyName("tripsCount")
     val tripsCount: Int? = null,
+    
+    @get:PropertyName("meta")
     val meta: Map<String, Any?>? = null
-)
+) {
+    // No-arg constructor for Firestore
+    constructor() : this(ProviderType.OTHER, 0.0, "AED", null, null)
+}
 
 /**
  * Domain model for daily entry.
