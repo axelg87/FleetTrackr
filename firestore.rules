@@ -5,9 +5,11 @@ rules_version = '2';
 // ============================================
 // Deploy these rules to Firebase Console BEFORE deploying app update
 // 
-// Collection: entriesNEW (new provider-based format)
-// - Full CRUD with validation for providers array
-// - Validates ProviderType enum values
+// Collection: entriesNEW (earnings-based format)
+// - Uses "earnings" array with provider-specific objects
+// - Each earning has: provider, card, cash, tips, trips, hoursOnline
+// - Provider names: "Uber", "Careem", "Yango", "Private", "Other"
+// - Full CRUD with validation for earnings array structure
 // - Enforces amount limits and data integrity
 // 
 // Collection: entries (legacy, read-only for backward compatibility)
@@ -42,46 +44,52 @@ service cloud.firestore {
       return isSignedIn() && (getUserRole() == 'MANAGER' || getUserRole() == 'ADMIN');
     }
     
-    // Validate provider type enum
-    function isValidProviderType(type) {
-      return type in ['UBER', 'CAREEM', 'YANGO', 'PRIVATE', 'OTHER'];
+    // Validate provider name (actual Firestore format uses string names, not enum)
+    function isValidProviderName(providerName) {
+      return providerName in ['Uber', 'Careem', 'Yango', 'Private', 'Other'];
     }
     
-    // Validate provider object structure
-    function isValidProvider(provider) {
-      return provider.keys().hasAll(['type', 'amount', 'currency'])
-        && isValidProviderType(provider.type)
-        && provider.amount is number
-        && provider.amount >= 0
-        && provider.amount <= 999999.99
-        && provider.currency is string
-        && provider.currency.size() <= 10
-        && (!('tripsCount' in provider) || provider.tripsCount is int)
-        && (!('meta' in provider) || provider.meta is map);
+    // Validate earning object structure (actual Firestore format)
+    function isValidEarning(earning) {
+      return earning.keys().hasAll(['provider', 'card', 'cash', 'tips', 'trips', 'hoursOnline'])
+        && isValidProviderName(earning.provider)
+        && earning.card is number
+        && earning.card >= 0
+        && earning.card <= 999999.99
+        && earning.cash is number
+        && earning.cash >= 0
+        && earning.tips is number
+        && earning.tips >= 0
+        && earning.trips is int
+        && earning.trips >= 0
+        && earning.hoursOnline is number
+        && earning.hoursOnline >= 0;
     }
     
-    // Validate providers array
-    function hasValidProviders(data) {
-      return data.providers is list
-        && data.providers.size() >= 0
-        && data.providers.size() <= 20  // Max 20 providers per entry
-        && (data.providers.size() == 0 || data.providers.hasAll([isValidProvider]));
+    // Validate earnings array (actual Firestore format uses "earnings" not "providers")
+    function hasValidEarnings(data) {
+      return data.earnings is list
+        && data.earnings.size() >= 0
+        && data.earnings.size() <= 20  // Max 20 earnings per entry
+        && (data.earnings.size() == 0 || data.earnings.hasAll([isValidEarning]));
     }
     
-    // Validate complete daily entry structure
+    // Validate complete daily entry structure (actual Firestore format)
     function isValidDailyEntry(data) {
-      return data.keys().hasAll(['id', 'userId', 'driverId', 'vehicleId', 'date', 'providers', 'notes', 'photos', 'isSynced'])
+      return data.keys().hasAll(['id', 'userId', 'driverId', 'vehicleId', 'date', 'earnings', 'notes', 'photos', 'isSynced'])
         && data.id is string
         && data.userId is string
         && data.driverId is string
         && data.vehicleId is string
         && data.date is timestamp
-        && hasValidProviders(data)
+        && hasValidEarnings(data)
         && data.notes is string
         && data.notes.size() <= 5000
         && data.photos is list
         && data.photos.size() <= 20
-        && data.isSynced is bool;
+        && data.isSynced is bool
+        && data.valid is bool
+        && data.validationErrors is list;
     }
     
     // ============================================

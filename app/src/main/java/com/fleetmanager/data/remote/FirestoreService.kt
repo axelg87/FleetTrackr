@@ -146,27 +146,41 @@ class FirestoreService @Inject constructor(
         val targetUserId = entry.userId.takeIf { it.isNotBlank() } ?: currentUserId
         Log.d(TAG, "Saving daily entry to Firestore for user $targetUserId: ${entry.id}")
         try {
-            // Convert to map with providers
+            // Convert to map with "earnings" array (matches migrated Firestore format)
             val data = hashMapOf<String, Any?>(
                 "id" to entry.id,
                 "userId" to targetUserId,
                 "driverId" to entry.driverId,
                 "vehicleId" to entry.vehicleId,
                 "date" to entry.date,
-                "providers" to entry.providers.map { provider ->
+                // Write to "earnings" array (not "providers")
+                "earnings" to entry.providers.map { provider ->
+                    // Map ProviderType enum to provider name string
+                    val providerName = when (provider.type) {
+                        com.fleetmanager.domain.model.ProviderType.UBER -> "Uber"
+                        com.fleetmanager.domain.model.ProviderType.CAREEM -> "Careem"
+                        com.fleetmanager.domain.model.ProviderType.YANGO -> "Yango"
+                        com.fleetmanager.domain.model.ProviderType.PRIVATE -> "Private"
+                        com.fleetmanager.domain.model.ProviderType.OTHER -> "Other"
+                    }
+                    
                     hashMapOf<String, Any?>(
-                        "type" to provider.type.name,
-                        "amount" to provider.amount,
-                        "currency" to provider.currency,
-                        "tripsCount" to provider.tripsCount,
-                        "meta" to provider.meta
+                        "provider" to providerName,      // Use "provider" not "type"
+                        "card" to provider.amount,        // Use "card" not "amount"
+                        "cash" to 0.0,                    // Include cash (even if zero)
+                        "tips" to 0.0,                    // Include tips (even if zero)
+                        "trips" to (provider.tripsCount ?: 0),  // Include trips
+                        "hoursOnline" to 0.0              // Include hoursOnline (even if zero)
                     )
                 },
                 "notes" to entry.notes,
                 "photos" to entry.photoUrls,
                 "isSynced" to entry.isSynced,
                 "createdAt" to entry.createdAt,
-                "updatedAt" to entry.updatedAt
+                "updatedAt" to entry.updatedAt,
+                "valid" to true,                          // Add validation fields
+                "validationErrors" to emptyList<String>(),
+                "odometer" to null                        // Add odometer field (null)
             )
             
             getCollection(FirestoreCollections.ENTRIES)
@@ -999,42 +1013,54 @@ private fun parseDailyEntryFromDocument(document: com.google.firebase.firestore.
 private fun parseProvidersFromFirestore(document: com.google.firebase.firestore.DocumentSnapshot): List<com.fleetmanager.domain.model.ProviderEarning> {
     val providers = mutableListOf<com.fleetmanager.domain.model.ProviderEarning>()
     
-    // Try to read new format (providers array)
-    val providersData = document.get("providers") as? List<Map<String, Any?>>
+    // Read from "earnings" array (actual Firestore format after migration)
+    val earningsData = document.get("earnings") as? List<Map<String, Any?>>
     
-    if (providersData != null && providersData.isNotEmpty()) {
-        // New format - parse providers array
-        providersData.forEach { providerMap ->
+    if (earningsData != null && earningsData.isNotEmpty()) {
+        // Parse earnings array format
+        earningsData.forEach { earningMap ->
             try {
-                val typeString = (providerMap["type"] as? String)?.uppercase() ?: "OTHER"
-                val type = try {
-                    com.fleetmanager.domain.model.ProviderType.valueOf(typeString)
-                } catch (e: Exception) {
-                    com.fleetmanager.domain.model.ProviderType.OTHER
+                // Provider name is in "provider" field (e.g., "Uber", "Careem", "Yango", "Private")
+                val providerName = (earningMap["provider"] as? String) ?: ""
+                
+                // Map provider name to ProviderType enum
+                val type = when (providerName.uppercase()) {
+                    "UBER" -> com.fleetmanager.domain.model.ProviderType.UBER
+                    "CAREEM" -> com.fleetmanager.domain.model.ProviderType.CAREEM
+                    "YANGO" -> com.fleetmanager.domain.model.ProviderType.YANGO
+                    "PRIVATE" -> com.fleetmanager.domain.model.ProviderType.PRIVATE
+                    else -> com.fleetmanager.domain.model.ProviderType.OTHER
                 }
                 
-                val amount = (providerMap["amount"] as? Number)?.toDouble() ?: 0.0
-                val currency = (providerMap["currency"] as? String) ?: "AED"
-                val tripsCount = (providerMap["tripsCount"] as? Number)?.toInt()
-                val meta = providerMap["meta"] as? Map<String, Any?>
+                // Amount is in "card" field (not "amount")
+                val cardAmount = (earningMap["card"] as? Number)?.toDouble() ?: 0.0
+                val cashAmount = (earningMap["cash"] as? Number)?.toDouble() ?: 0.0
+                val tips = (earningMap["tips"] as? Number)?.toDouble() ?: 0.0
                 
-                if (amount > 0) {
+                // Total amount = card + cash + tips
+                val totalAmount = cardAmount + cashAmount + tips
+                
+                // Get trips count
+                val tripsCount = (earningMap["trips"] as? Number)?.toInt()
+                
+                if (totalAmount > 0) {
                     providers.add(
                         com.fleetmanager.domain.model.ProviderEarning(
                             type = type,
-                            amount = amount,
-                            currency = currency,
+                            amount = totalAmount,
+                            currency = "AED",
                             tripsCount = tripsCount,
-                            meta = meta
+                            meta = null
                         )
                     )
                 }
             } catch (e: Exception) {
-                Log.w("FirestoreService", "Failed to parse provider: ${e.message}")
+                Log.w("FirestoreService", "Failed to parse earning: ${e.message}")
             }
         }
     } else {
         // Legacy format - parse flat earnings fields for backward compatibility
+        // This handles very old data that might still have flat fields
         val uberEarnings = (document.get("uberEarnings") as? Number)?.toDouble() ?: 0.0
         val careemEarnings = (document.get("careemEarnings") as? Number)?.toDouble() ?: 0.0
         val yangoEarnings = (document.get("yangoEarnings") as? Number)?.toDouble() ?: 0.0
