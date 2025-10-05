@@ -327,7 +327,7 @@ fun AddEntryScreen(
             }
             
             // Error message
-            uiState.errorMessage?.let { error ->
+            uiState.error?.let { error ->
                 if (error.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -349,11 +349,11 @@ fun AddEntryScreen(
             val saveButtonLabel = if (uiState.isEditing) R.string.update_entry else R.string.save
             Button(
                 onClick = viewModel::saveEntry,
-                enabled = uiState.canSave && !uiState.isSaving,
+                enabled = uiState.canSave && !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                if (uiState.isSaving) {
+                if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,

@@ -37,9 +37,9 @@ data class AddEntryUiState(
     val driverDropdownExpanded: Boolean = false,
     val vehicleDropdownExpanded: Boolean = false,
     val showDatePicker: Boolean = false,
-    val isSaving: Boolean = false,
+    val isLoading: Boolean = false,
     val isSaved: Boolean = false,
-    val errorMessage: String? = null,
+    val error: String? = null,
     val uberEarningsError: String? = null,
     val yangoEarningsError: String? = null,
     val privateJobsEarningsError: String? = null,
@@ -120,7 +120,7 @@ class AddEntryViewModel @Inject constructor(
     private fun loadFirestoreData() {
         executeAsync(
             onError = { error ->
-                updateState { it.copy(errorMessage = "Failed to load data: $error") }
+                updateState { it.copy(error = "Failed to load data: $error") }
             }
         ) {
             combine(
@@ -366,17 +366,17 @@ class AddEntryViewModel @Inject constructor(
 
         if (driverId.isBlank() || vehicleId.isBlank()) {
             updateState {
-                it.copy(errorMessage = "Please select a valid driver and vehicle")
+                it.copy(error = "Please select a valid driver and vehicle")
             }
             return
         }
 
         executeAsync(
-            onLoading = { isLoading ->
-                updateState { it.copy(isSaving = isLoading, errorMessage = null) }
+            onLoading = { loading ->
+                updateState { it.copy(isLoading = loading, error = null) }
             },
-            onError = { error ->
-                updateState { it.copy(isSaving = false, errorMessage = error) }
+            onError = { errorMsg ->
+                updateState { it.copy(isLoading = false, error = errorMsg) }
             }
         ) {
             val now = Date()
@@ -437,13 +437,13 @@ class AddEntryViewModel @Inject constructor(
             val result = saveDailyEntryUseCase(entry, currentState.photoUri, currentState.photoUris)
             result.fold(
                 onSuccess = {
-                    updateState { it.copy(isSaving = false, isSaved = true) }
+                    updateState { it.copy(isLoading = false, isSaved = true) }
                 },
-                onFailure = { error ->
+                onFailure = { errorThrown ->
                     updateState {
                         it.copy(
-                            isSaving = false,
-                            errorMessage = error.message ?: "Failed to save entry"
+                            isLoading = false,
+                            error = errorThrown.message ?: "Failed to save entry"
                         )
                     }
                 }
@@ -453,11 +453,11 @@ class AddEntryViewModel @Inject constructor(
 
     fun loadEntryForEdit(entryId: String) {
         executeAsync(
-            onLoading = { isLoading ->
-                updateState { it.copy(isSaving = false, errorMessage = null) }
+            onLoading = { loading ->
+                updateState { it.copy(isLoading = false, error = null) }
             },
-            onError = { error ->
-                updateState { it.copy(errorMessage = error) }
+            onError = { errorMsg ->
+                updateState { it.copy(error = errorMsg) }
             }
         ) {
             getEntryByIdUseCase(entryId)
@@ -478,12 +478,12 @@ class AddEntryViewModel @Inject constructor(
                             notes = entry.notes,
                             existingPhotoUrls = entry.photoUrls,
                             createdAt = entry.createdAt,
-                            errorMessage = null,
+                            error = null,
                             isSaved = false
                         )
                     }
                 } ?: updateState {
-                it.copy(errorMessage = "Entry not found")
+                it.copy(error = "Entry not found")
             }
         }
     }
