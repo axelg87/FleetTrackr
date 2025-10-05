@@ -1,5 +1,6 @@
 package com.fleetmanager.ui.screens.entry
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,14 +86,29 @@ fun EntryDetailScreen(
             }
             
             uiState.entry != null -> {
-                EntryDetailContent(
-                    entry = uiState.entry!!,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState())
-                )
+                // Safe null check - only render content when entry is definitely loaded
+                val entry = uiState.entry
+                if (entry != null) {
+                    Log.d("EntryDetailScreen", "Rendering entry detail for ID: ${entry.id}")
+                    EntryDetailContent(
+                        entry = entry,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState())
+                    )
+                } else {
+                    // Fallback to loading state if entry is somehow null
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
             
             uiState.errorMessage != null -> {
@@ -276,7 +292,12 @@ fun EntryDetailContent(
         }
         
         // Photos Card
+        // Safely extract and filter photo URLs, removing any null or blank entries
         val allPhotos = entry.photoUrls
+            .filter { it.isNotBlank() }
+        
+        // Debug logging for photo gallery state
+        Log.d("EntryDetailScreen", "Photo gallery - Entry ID: ${entry.id}, Photo count: ${allPhotos.size}")
         
         if (allPhotos.isNotEmpty()) {
             Card(
@@ -294,10 +315,14 @@ fun EntryDetailContent(
                     )
                     
                     // Display photos in a grid with fullscreen viewer
-                    PhotoGalleryGrid(
-                        photoUrls = allPhotos,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Double-check before rendering to prevent crashes
+                    if (allPhotos.isNotEmpty()) {
+                        Log.d("EntryDetailScreen", "Rendering PhotoGalleryGrid with ${allPhotos.size} photos")
+                        PhotoGalleryGrid(
+                            photoUrls = allPhotos,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }

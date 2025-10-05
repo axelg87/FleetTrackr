@@ -91,7 +91,8 @@ fun PhotoThumbnail(
             model = photoUrl,
             contentDescription = "Photo thumbnail",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            onError = { /* Gracefully handle failed image loads */ }
         )
     }
 }
@@ -142,7 +143,8 @@ fun FullscreenPhotoViewer(
                         model = photoUrls[page],
                         contentDescription = "Photo ${page + 1} of ${photoUrls.size}",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        onError = { /* Gracefully handle failed image loads */ }
                     )
                 }
             }
