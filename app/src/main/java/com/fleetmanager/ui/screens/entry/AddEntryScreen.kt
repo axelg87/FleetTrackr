@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -211,6 +212,7 @@ fun AddEntryScreen(
                 title = stringResource(R.string.provider_section, stringResource(R.string.uber)),
                 providerState = uiState.uberInput,
                 onHoursChange = { viewModel.updateProviderHours(ProviderType.UBER, it) },
+                onTripsChange = { viewModel.updateProviderTrips(ProviderType.UBER, it) },
                 onCashChange = { viewModel.updateProviderCash(ProviderType.UBER, it) },
                 onCardChange = { viewModel.updateProviderCard(ProviderType.UBER, it) },
                 onTipsChange = { viewModel.updateProviderTips(ProviderType.UBER, it) }
@@ -220,6 +222,7 @@ fun AddEntryScreen(
                 title = stringResource(R.string.provider_section, stringResource(R.string.yango)),
                 providerState = uiState.yangoInput,
                 onHoursChange = { viewModel.updateProviderHours(ProviderType.YANGO, it) },
+                onTripsChange = { viewModel.updateProviderTrips(ProviderType.YANGO, it) },
                 onCashChange = { viewModel.updateProviderCash(ProviderType.YANGO, it) },
                 onCardChange = { viewModel.updateProviderCard(ProviderType.YANGO, it) },
                 onTipsChange = { viewModel.updateProviderTips(ProviderType.YANGO, it) }
@@ -229,6 +232,7 @@ fun AddEntryScreen(
                 title = stringResource(R.string.provider_section, stringResource(R.string.private_jobs)),
                 providerState = uiState.privateInput,
                 onHoursChange = { viewModel.updateProviderHours(ProviderType.PRIVATE, it) },
+                onTripsChange = { viewModel.updateProviderTrips(ProviderType.PRIVATE, it) },
                 onCashChange = { viewModel.updateProviderCash(ProviderType.PRIVATE, it) },
                 onCardChange = { viewModel.updateProviderCard(ProviderType.PRIVATE, it) },
                 onTipsChange = { viewModel.updateProviderTips(ProviderType.PRIVATE, it) }
@@ -433,42 +437,72 @@ private fun ProviderEarningsCard(
     title: String,
     providerState: ProviderInputState,
     onHoursChange: (String) -> Unit,
+    onTripsChange: (String) -> Unit,
     onCashChange: (String) -> Unit,
     onCardChange: (String) -> Unit,
     onTipsChange: (String) -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(16.dp)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, shape = shape, clip = false)
+            .clip(shape),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = shape
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleMedium
             )
 
-            OutlinedTextField(
-                value = providerState.hoursOnline,
-                onValueChange = onHoursChange,
-                label = { Text(stringResource(R.string.hours_online)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                isError = providerState.hoursOnlineError != null,
-                supportingText = {
-                    providerState.hoursOnlineError?.let { error ->
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = providerState.hoursOnline,
+                    onValueChange = onHoursChange,
+                    label = { Text(stringResource(R.string.hours_online)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    isError = providerState.hoursOnlineError != null,
+                    supportingText = {
+                        providerState.hoursOnlineError?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
-                }
-            )
+                )
+
+                OutlinedTextField(
+                    value = providerState.trips,
+                    onValueChange = onTripsChange,
+                    label = { Text(stringResource(R.string.trips)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    isError = providerState.tripsError != null,
+                    supportingText = {
+                        providerState.tripsError?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+            }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -511,30 +545,23 @@ private fun ProviderEarningsCard(
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = providerState.tips,
-                    onValueChange = onTipsChange,
-                    label = { Text(stringResource(R.string.tips)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                    isError = providerState.tipsError != null,
-                    supportingText = {
-                        providerState.tipsError?.let { error ->
-                            Text(
-                                text = error,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
+            OutlinedTextField(
+                value = providerState.tips,
+                onValueChange = onTipsChange,
+                label = { Text(stringResource(R.string.tips)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                isError = providerState.tipsError != null,
+                supportingText = {
+                    providerState.tipsError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-            }
+                }
+            )
         }
     }
 }

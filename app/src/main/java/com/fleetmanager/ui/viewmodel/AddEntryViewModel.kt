@@ -40,10 +40,12 @@ data class ProviderInputState(
     val cashEarnings: String = "",
     val cardEarnings: String = "",
     val tips: String = "",
+    val trips: String = "",
     val hoursOnlineError: String? = null,
     val cashEarningsError: String? = null,
     val cardEarningsError: String? = null,
-    val tipsError: String? = null
+    val tipsError: String? = null,
+    val tripsError: String? = null
 ) {
     fun totalAmount(): Double {
         val cash = cashEarnings.toDoubleOrNull() ?: 0.0
@@ -53,7 +55,7 @@ data class ProviderInputState(
     }
 
     fun hasErrors(): Boolean {
-        return listOf(hoursOnlineError, cashEarningsError, cardEarningsError, tipsError).any { it != null }
+        return listOf(hoursOnlineError, cashEarningsError, cardEarningsError, tipsError, tripsError).any { it != null }
     }
 }
 
@@ -297,6 +299,17 @@ class AddEntryViewModel @Inject constructor(
             providerState.copy(
                 tips = sanitized,
                 tipsError = error
+            )
+        }
+    }
+
+    fun updateProviderTrips(providerType: ProviderType, value: String) {
+        val sanitized = validator.sanitizeIntegerInput(value)
+        val error = validator.validateOptionalTrips(sanitized, "${providerType.displayName()} trips").getErrorMessage()
+        updateProviderState(providerType) { providerState ->
+            providerState.copy(
+                trips = sanitized,
+                tripsError = error
             )
         }
     }
@@ -546,6 +559,7 @@ class AddEntryViewModel @Inject constructor(
         }
 
         val hours = hoursOnline.toDoubleOrNull()
+        val tripsCount = trips.toIntOrNull()?.takeIf { it >= 0 }
 
         return ProviderEarning(
             type = type,
@@ -554,7 +568,8 @@ class AddEntryViewModel @Inject constructor(
             cashAmount = cash,
             tipsAmount = tipsValue,
             hoursOnline = hours,
-            currency = "AED"
+            currency = "AED",
+            tripsCount = tripsCount
         )
     }
 
@@ -567,7 +582,8 @@ class AddEntryViewModel @Inject constructor(
             hoursOnline = hoursOnline?.takeIf { it > 0 }?.toInputString() ?: "",
             cashEarnings = computedCash.takeIf { it > 0 }?.toInputString() ?: "",
             cardEarnings = computedCard.takeIf { it > 0 }?.toInputString() ?: "",
-            tips = computedTips.takeIf { it > 0 }?.toInputString() ?: ""
+            tips = computedTips.takeIf { it > 0 }?.toInputString() ?: "",
+            trips = tripsCount?.takeIf { it >= 0 }?.toString() ?: ""
         )
     }
 }

@@ -181,7 +181,8 @@ data class DailyEntry(
                     provider.cashAmount >= 0 &&
                     provider.cardAmount >= 0 &&
                     provider.tipsAmount >= 0 &&
-                    (provider.hoursOnline == null || provider.hoursOnline >= 0)
+                    (provider.hoursOnline == null || provider.hoursOnline >= 0) &&
+                    (provider.tripsCount == null || (provider.tripsCount >= 0 && provider.tripsCount <= 500))
         }
 
         val odometerValid = odometer == null || odometer >= 0
@@ -227,6 +228,15 @@ data class DailyEntry(
             provider.hoursOnline?.let { hours ->
                 if (hours < 0) {
                     errors.add("${provider.type.name} hours online cannot be negative")
+                }
+            }
+
+            provider.tripsCount?.let { trips ->
+                if (trips < 0) {
+                    errors.add("${provider.type.name} trips cannot be negative")
+                }
+                if (trips > 500) {
+                    errors.add("${provider.type.name} trips seems too high")
                 }
             }
         }

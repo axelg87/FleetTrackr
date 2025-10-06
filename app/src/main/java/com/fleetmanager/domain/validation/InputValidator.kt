@@ -150,6 +150,29 @@ class InputValidator @Inject constructor() {
         return ValidationResult.Success
     }
 
+    fun validateOptionalTrips(trips: String?, fieldName: String = "Trips"): ValidationResult {
+        if (trips.isNullOrBlank()) {
+            return ValidationResult.Success
+        }
+
+        val sanitized = sanitizeIntegerInput(trips)
+        val value = sanitized.toIntOrNull()
+
+        if (value == null) {
+            return ValidationResult.Error("$fieldName must be a whole number")
+        }
+
+        if (value < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        if (value > 500) {
+            return ValidationResult.Error("$fieldName seems too high")
+        }
+
+        return ValidationResult.Success
+    }
+
     fun validateOdometer(value: Double?): ValidationResult {
         val odometer = value ?: return ValidationResult.Success
 
@@ -189,6 +212,15 @@ class InputValidator @Inject constructor() {
                 }
                 if (hours > 48) {
                     return ValidationResult.Error("${provider.type.name} hours online seems too high")
+                }
+            }
+
+            provider.tripsCount?.let { trips ->
+                if (trips < 0) {
+                    return ValidationResult.Error("${provider.type.name} trips cannot be negative")
+                }
+                if (trips > 500) {
+                    return ValidationResult.Error("${provider.type.name} trips seems too high")
                 }
             }
         }
@@ -339,7 +371,14 @@ class InputValidator @Inject constructor() {
                 }
             }
     }
-    
+
+    fun sanitizeIntegerInput(input: String?): String {
+        if (input.isNullOrBlank()) return ""
+
+        return input.trim()
+    }
+
+
     /**
      * Validates multiple fields and returns the first error found.
      */
