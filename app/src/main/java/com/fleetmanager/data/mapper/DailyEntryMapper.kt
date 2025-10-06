@@ -19,6 +19,7 @@ object DailyEntryMapper {
             providers = dto.providers,
             notes = dto.notes,
             photoUrls = dto.photoUrls,
+            odometer = dto.odometer,
             isSynced = dto.isSynced,
             createdAt = dto.createdAt,
             updatedAt = dto.updatedAt
@@ -35,6 +36,7 @@ object DailyEntryMapper {
             providers = domain.providers,
             notes = domain.notes,
             photoUrls = domain.photoUrls,
+            odometer = domain.odometer,
             isSynced = domain.isSynced,
             createdAt = domain.createdAt,
             updatedAt = domain.updatedAt

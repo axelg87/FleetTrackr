@@ -24,6 +24,7 @@ data class DailyEntryDto(
     val localPhotoPath: String? = null,
     val photoUrls: List<String> = emptyList(),
     val localPhotoPaths: List<String> = emptyList(),
+    val odometer: Double? = null,
     val isSynced: Boolean = false,
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()

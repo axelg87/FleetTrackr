@@ -43,9 +43,8 @@ class SaveDailyEntryUseCase @Inject constructor(
             { validator.validateText(entry.id, "Entry ID") },
             { validator.validateText(entry.driverId, "Driver ID") },
             { validator.validateText(entry.vehicleId, "Vehicle ID") },
-            { validator.validateEarnings(entry.uberEarnings.toString(), "Uber earnings") },
-            { validator.validateEarnings(entry.yangoEarnings.toString(), "Yango earnings") },
-            { validator.validateEarnings(entry.privateJobsEarnings.toString(), "Private jobs earnings") },
+            { validator.validateProviderEarnings(entry.providers) },
+            { validator.validateOdometer(entry.odometer) },
             { validator.validateNotes(entry.notes) },
             { validator.validateDate(entry.date) }
         )

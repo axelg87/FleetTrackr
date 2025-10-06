@@ -1,5 +1,6 @@
 package com.fleetmanager.domain.validation
 
+import com.fleetmanager.domain.model.ProviderEarning
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -79,6 +80,149 @@ class InputValidator @Inject constructor() {
 
         if (value > 999999.99) {
             return ValidationResult.Error("$fieldName is too large")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateOptionalEarnings(amount: String?, fieldName: String): ValidationResult {
+        if (amount.isNullOrBlank()) {
+            return ValidationResult.Success
+        }
+
+        val sanitized = sanitizeNumericInput(amount)
+        val value = sanitized.toDoubleOrNull()
+
+        if (value == null) {
+            return ValidationResult.Error("$fieldName must be a valid number")
+        }
+
+        if (value < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        if (value > 999999.99) {
+            return ValidationResult.Error("$fieldName is too large")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateOptionalDecimal(amount: String?, fieldName: String): ValidationResult {
+        if (amount.isNullOrBlank()) {
+            return ValidationResult.Success
+        }
+
+        val sanitized = sanitizeNumericInput(amount)
+        val value = sanitized.toDoubleOrNull()
+
+        if (value == null) {
+            return ValidationResult.Error("$fieldName must be a valid number")
+        }
+
+        if (value < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateOptionalHours(hours: String?, fieldName: String = "Hours online"): ValidationResult {
+        if (hours.isNullOrBlank()) {
+            return ValidationResult.Success
+        }
+
+        val sanitized = sanitizeNumericInput(hours)
+        val value = sanitized.toDoubleOrNull()
+
+        if (value == null) {
+            return ValidationResult.Error("$fieldName must be a valid number")
+        }
+
+        if (value < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        if (value > 48) {
+            return ValidationResult.Error("$fieldName seems too high")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateOptionalTrips(trips: String?, fieldName: String = "Trips"): ValidationResult {
+        if (trips.isNullOrBlank()) {
+            return ValidationResult.Success
+        }
+
+        val sanitized = sanitizeIntegerInput(trips)
+        val value = sanitized.toIntOrNull()
+
+        if (value == null) {
+            return ValidationResult.Error("$fieldName must be a whole number")
+        }
+
+        if (value < 0) {
+            return ValidationResult.Error("$fieldName cannot be negative")
+        }
+
+        if (value > 500) {
+            return ValidationResult.Error("$fieldName seems too high")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateOdometer(value: Double?): ValidationResult {
+        val odometer = value ?: return ValidationResult.Success
+
+        if (odometer < 0) {
+            return ValidationResult.Error("Odometer cannot be negative")
+        }
+
+        if (odometer > 9_999_999) {
+            return ValidationResult.Error("Odometer value is too large")
+        }
+
+        return ValidationResult.Success
+    }
+
+    fun validateProviderEarnings(providers: List<ProviderEarning>): ValidationResult {
+        if (providers.isEmpty()) {
+            return ValidationResult.Error("At least one provider must have earnings")
+        }
+
+        providers.forEach { provider ->
+            val total = provider.totalAmount
+            if (total <= 0) {
+                return ValidationResult.Error("${provider.type.name} earnings must be greater than 0")
+            }
+
+            if (total > 999999.99) {
+                return ValidationResult.Error("${provider.type.name} earnings is too large")
+            }
+
+            if (provider.cashAmount < 0 || provider.cardAmount < 0 || provider.tipsAmount < 0) {
+                return ValidationResult.Error("${provider.type.name} earnings cannot be negative")
+            }
+
+            provider.hoursOnline?.let { hours ->
+                if (hours < 0) {
+                    return ValidationResult.Error("${provider.type.name} hours online cannot be negative")
+                }
+                if (hours > 48) {
+                    return ValidationResult.Error("${provider.type.name} hours online seems too high")
+                }
+            }
+
+            provider.tripsCount?.let { trips ->
+                if (trips < 0) {
+                    return ValidationResult.Error("${provider.type.name} trips cannot be negative")
+                }
+                if (trips > 500) {
+                    return ValidationResult.Error("${provider.type.name} trips seems too high")
+                }
+            }
         }
 
         return ValidationResult.Success
@@ -227,7 +371,14 @@ class InputValidator @Inject constructor() {
                 }
             }
     }
-    
+
+    fun sanitizeIntegerInput(input: String?): String {
+        if (input.isNullOrBlank()) return ""
+
+        return input.trim()
+    }
+
+
     /**
      * Validates multiple fields and returns the first error found.
      */

@@ -1,23 +1,63 @@
 package com.fleetmanager.ui.viewmodel
 
 import android.net.Uri
-import com.fleetmanager.domain.model.DailyEntry
-import com.fleetmanager.domain.model.Driver
-import com.fleetmanager.domain.model.Vehicle
+import com.fleetmanager.data.dto.UserDto
 import com.fleetmanager.data.remote.FirestoreService
 import com.fleetmanager.data.remote.UserFirestoreService
 import com.fleetmanager.data.remote.VehicleFirestoreService
-import com.fleetmanager.data.dto.UserDto
+import com.fleetmanager.domain.model.DailyEntry
+import com.fleetmanager.domain.model.Driver
+import com.fleetmanager.domain.model.ProviderEarning
+import com.fleetmanager.domain.model.ProviderType
 import com.fleetmanager.domain.model.UserRole
+import com.fleetmanager.domain.model.Vehicle
 import com.fleetmanager.domain.usecase.GetAllEntriesRealtimeUseCase
 import com.fleetmanager.domain.usecase.SaveDailyEntryUseCase
 import com.fleetmanager.domain.validation.InputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.collect
 import java.text.SimpleDateFormat
-import java.util.*
-import javax.inject.Inject
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import java.util.UUID
+import javax.inject.Inject
+
+private fun Double.toInputString(): String {
+    return if (this % 1.0 == 0.0) {
+        String.format(Locale.US, "%.0f", this)
+    } else {
+        String.format(Locale.US, "%.2f", this)
+    }
+}
+
+data class ProviderInputState(
+    val hoursOnline: String = "",
+    val cashEarnings: String = "",
+    val cardEarnings: String = "",
+    val tips: String = "",
+    val trips: String = "",
+    val hoursOnlineError: String? = null,
+    val cashEarningsError: String? = null,
+    val cardEarningsError: String? = null,
+    val tipsError: String? = null,
+    val tripsError: String? = null
+) {
+    fun totalAmount(): Double {
+        val cash = cashEarnings.toDoubleOrNull() ?: 0.0
+        val card = cardEarnings.toDoubleOrNull() ?: 0.0
+        val tipsValue = tips.toDoubleOrNull() ?: 0.0
+        return cash + card + tipsValue
+    }
+
+    fun hasErrors(): Boolean {
+        return listOf(hoursOnlineError, cashEarningsError, cardEarningsError, tipsError, tripsError).any { it != null }
+    }
+}
 
 data class AddEntryUiState(
     val drivers: List<Driver> = emptyList(),
@@ -27,9 +67,6 @@ data class AddEntryUiState(
     val driverInput: String = "",
     val vehicleInput: String = "",
     val date: Date,
-    val uberEarnings: String = "",
-    val yangoEarnings: String = "",
-    val privateJobsEarnings: String = "",
     val notes: String = "",
     val photoUri: Uri? = null,
     val photoUris: List<Uri> = emptyList(),
@@ -37,12 +74,14 @@ data class AddEntryUiState(
     val driverDropdownExpanded: Boolean = false,
     val vehicleDropdownExpanded: Boolean = false,
     val showDatePicker: Boolean = false,
+    val odometer: String = "",
+    val odometerError: String? = null,
+    val uberInput: ProviderInputState = ProviderInputState(),
+    val yangoInput: ProviderInputState = ProviderInputState(),
+    val privateInput: ProviderInputState = ProviderInputState(),
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
     val error: String? = null,
-    val uberEarningsError: String? = null,
-    val yangoEarningsError: String? = null,
-    val privateJobsEarningsError: String? = null,
     val notesError: String? = null,
     val userRole: UserRole? = null,
     val currentUserProfile: UserDto? = null,
@@ -51,26 +90,25 @@ data class AddEntryUiState(
     val createdAt: Date? = null,
     val isEditing: Boolean = false
 ) {
+    private fun providerInputs(): List<ProviderInputState> = listOf(uberInput, yangoInput, privateInput)
+
+    val hasProviderTotals: Boolean
+        get() = providerInputs().any { it.totalAmount() > 0.0 }
+
     val canSave: Boolean
         get() = driverInput.isNotBlank() &&
-                vehicleInput.isNotBlank() &&
-                uberEarningsError == null &&
-                yangoEarningsError == null &&
-                privateJobsEarningsError == null &&
-                notesError == null &&
-                (uberEarnings.isNotBlank() || yangoEarnings.isNotBlank() || privateJobsEarnings.isNotBlank())
-    
+            vehicleInput.isNotBlank() &&
+            !hasValidationErrors &&
+            hasProviderTotals
+
     val hasValidationErrors: Boolean
-        get() = uberEarningsError != null || 
-                yangoEarningsError != null || 
-                privateJobsEarningsError != null || 
-                notesError != null
-    
-    // Driver names from Firestore only
+        get() = notesError != null ||
+            odometerError != null ||
+            providerInputs().any { it.hasErrors() }
+
     val allDriverNames: List<String>
         get() = drivers.map { it.name }.sorted()
-    
-    // Vehicle names from Firestore only
+
     val allVehicleNames: List<String>
         get() = vehicles.map { it.displayName }.sorted()
 }
@@ -91,32 +129,24 @@ class AddEntryViewModel @Inject constructor(
     )
 
     private var notificationPrefillHandled = false
-    
-    /**
-     * Calculate the default date based on the 2PM rule:
-     * - If current time is before 2:00 PM, use yesterday's date
-     * - Otherwise, use today's date
-     */
+
     private fun getDefaultDate(): Date {
         val now = Calendar.getInstance()
         val currentHour = now.get(Calendar.HOUR_OF_DAY)
-        
-        return if (currentHour < 14) { // Before 2:00 PM (14:00)
-            // Use yesterday's date
+
+        return if (currentHour < 14) {
             now.add(Calendar.DAY_OF_MONTH, -1)
             now.time
         } else {
-            // Use today's date
             now.time
         }
     }
-    
+
     init {
         loadFirestoreData()
         loadUserProfile()
     }
-    
-    
+
     private fun loadFirestoreData() {
         executeAsync(
             onError = { error ->
@@ -159,9 +189,7 @@ class AddEntryViewModel @Inject constructor(
 
     private fun loadUserProfile() {
         executeAsync(
-            onError = { error ->
-                // Don't show error for user profile loading, just continue
-            }
+            onError = { }
         ) {
             userFirestoreService.getCurrentUserProfile().collect { userProfile ->
                 updateState { currentState ->
@@ -193,81 +221,114 @@ class AddEntryViewModel @Inject constructor(
         }
         return role == UserRole.DRIVER || role == UserRole.MANAGER
     }
-    
+
     fun selectDriver(driver: Driver) {
         updateState { it.copy(selectedDriver = driver, driverInput = driver.name) }
     }
-    
+
     fun selectVehicle(vehicle: Vehicle) {
         updateState { it.copy(selectedVehicle = vehicle, vehicleInput = vehicle.displayName) }
     }
-    
+
     fun updateDriverInput(input: String) {
-        updateState { 
+        updateState {
             it.copy(
                 driverInput = input,
-                selectedDriver = null // We no longer maintain selectedDriver state
-            ) 
+                selectedDriver = null
+            )
         }
     }
-    
+
     fun updateVehicleInput(input: String) {
-        updateState { 
+        updateState {
             it.copy(
                 vehicleInput = input,
                 selectedVehicle = it.vehicles.find { vehicle -> vehicle.displayName == input }
-            ) 
+            )
         }
     }
-    
-    fun updateUberEarnings(value: String) {
+
+    fun updateOdometer(value: String) {
         val sanitized = validator.sanitizeNumericInput(value)
-        val error = validator.validateEarnings(sanitized, "Uber earnings").getErrorMessage()
-        updateState { 
+        val error = validator.validateOptionalDecimal(sanitized, "Odometer").getErrorMessage()
+        updateState {
             it.copy(
-                uberEarnings = sanitized,
-                uberEarningsError = error
-            ) 
+                odometer = sanitized,
+                odometerError = error
+            )
         }
     }
-    
-    fun updateYangoEarnings(value: String) {
+
+    fun updateProviderHours(providerType: ProviderType, value: String) {
         val sanitized = validator.sanitizeNumericInput(value)
-        val error = validator.validateEarnings(sanitized, "Yango earnings").getErrorMessage()
-        updateState { 
-            it.copy(
-                yangoEarnings = sanitized,
-                yangoEarningsError = error
-            ) 
+        val error = validator.validateOptionalHours(sanitized, "${providerType.displayName()} hours online").getErrorMessage()
+        updateProviderState(providerType) { providerState ->
+            providerState.copy(
+                hoursOnline = sanitized,
+                hoursOnlineError = error
+            )
         }
     }
-    
-    fun updatePrivateJobsEarnings(value: String) {
+
+    fun updateProviderCash(providerType: ProviderType, value: String) {
         val sanitized = validator.sanitizeNumericInput(value)
-        val error = validator.validateEarnings(sanitized, "Private jobs earnings").getErrorMessage()
-        updateState { 
-            it.copy(
-                privateJobsEarnings = sanitized,
-                privateJobsEarningsError = error
-            ) 
+        val error = validator.validateOptionalEarnings(sanitized, "${providerType.displayName()} cash").getErrorMessage()
+        updateProviderState(providerType) { providerState ->
+            providerState.copy(
+                cashEarnings = sanitized,
+                cashEarningsError = error
+            )
         }
     }
-    
+
+    fun updateProviderCard(providerType: ProviderType, value: String) {
+        val sanitized = validator.sanitizeNumericInput(value)
+        val error = validator.validateOptionalEarnings(sanitized, "${providerType.displayName()} card").getErrorMessage()
+        updateProviderState(providerType) { providerState ->
+            providerState.copy(
+                cardEarnings = sanitized,
+                cardEarningsError = error
+            )
+        }
+    }
+
+    fun updateProviderTips(providerType: ProviderType, value: String) {
+        val sanitized = validator.sanitizeNumericInput(value)
+        val error = validator.validateOptionalEarnings(sanitized, "${providerType.displayName()} tips").getErrorMessage()
+        updateProviderState(providerType) { providerState ->
+            providerState.copy(
+                tips = sanitized,
+                tipsError = error
+            )
+        }
+    }
+
+    fun updateProviderTrips(providerType: ProviderType, value: String) {
+        val sanitized = validator.sanitizeIntegerInput(value)
+        val error = validator.validateOptionalTrips(sanitized, "${providerType.displayName()} trips").getErrorMessage()
+        updateProviderState(providerType) { providerState ->
+            providerState.copy(
+                trips = sanitized,
+                tripsError = error
+            )
+        }
+    }
+
     fun updateNotes(value: String) {
         val sanitized = validator.sanitizeText(value)
         val error = validator.validateNotes(sanitized).getErrorMessage()
-        updateState { 
+        updateState {
             it.copy(
                 notes = sanitized,
                 notesError = error
-            ) 
+            )
         }
     }
-    
+
     fun updatePhotoUri(uri: Uri?) {
         updateState { it.copy(photoUri = uri) }
     }
-    
+
     fun addPhotoUris(uris: List<Uri>) {
         updateState { currentState ->
             val currentUris = currentState.photoUris.toMutableList()
@@ -304,11 +365,11 @@ class AddEntryViewModel @Inject constructor(
             return
         }
 
-        executeAsync { 
+        executeAsync {
             val entries = getAllEntriesRealtimeUseCase().firstOrNull().orEmpty()
             val matchingEntry = entries.firstOrNull { entry ->
                 entry.driverId.equals(driverId, ignoreCase = true) &&
-                        isSameDay(entry.date, parsedDate)
+                    isSameDay(entry.date, parsedDate)
             }
 
             matchingEntry?.let { entry ->
@@ -333,25 +394,25 @@ class AddEntryViewModel @Inject constructor(
         val calendarTwo = Calendar.getInstance().apply { time = second }
 
         return calendarOne.get(Calendar.YEAR) == calendarTwo.get(Calendar.YEAR) &&
-                calendarOne.get(Calendar.DAY_OF_YEAR) == calendarTwo.get(Calendar.DAY_OF_YEAR)
+            calendarOne.get(Calendar.DAY_OF_YEAR) == calendarTwo.get(Calendar.DAY_OF_YEAR)
     }
 
     fun updateDate(date: Date) {
         updateState { it.copy(date = date) }
     }
-    
+
     fun toggleDriverDropdown(expanded: Boolean) {
         updateState { it.copy(driverDropdownExpanded = expanded) }
     }
-    
+
     fun toggleVehicleDropdown(expanded: Boolean) {
         updateState { it.copy(vehicleDropdownExpanded = expanded) }
     }
-    
+
     fun toggleDatePicker(show: Boolean) {
         updateState { it.copy(showDatePicker = show) }
     }
-    
+
     fun saveEntry() {
         val currentState = uiState.value
         if (!currentState.canSave) return
@@ -383,42 +444,17 @@ class AddEntryViewModel @Inject constructor(
             val entryIdToUse = currentState.entryId ?: UUID.randomUUID().toString()
             val createdAt = currentState.createdAt ?: now
 
-            // Build providers list from UI state
             val providers = buildList {
-                val uberAmount = currentState.uberEarnings.toDoubleOrNull() ?: 0.0
-                if (uberAmount > 0) {
-                    add(
-                        com.fleetmanager.domain.model.ProviderEarning(
-                            type = com.fleetmanager.domain.model.ProviderType.UBER,
-                            amount = uberAmount,
-                            currency = "AED"
-                        )
-                    )
-                }
-                
-                val yangoAmount = currentState.yangoEarnings.toDoubleOrNull() ?: 0.0
-                if (yangoAmount > 0) {
-                    add(
-                        com.fleetmanager.domain.model.ProviderEarning(
-                            type = com.fleetmanager.domain.model.ProviderType.YANGO,
-                            amount = yangoAmount,
-                            currency = "AED"
-                        )
-                    )
-                }
-                
-                val privateAmount = currentState.privateJobsEarnings.toDoubleOrNull() ?: 0.0
-                if (privateAmount > 0) {
-                    add(
-                        com.fleetmanager.domain.model.ProviderEarning(
-                            type = com.fleetmanager.domain.model.ProviderType.PRIVATE,
-                            amount = privateAmount,
-                            currency = "AED"
-                        )
-                    )
-                }
+                currentState.uberInput.toProviderEarning(ProviderType.UBER)?.let { add(it) }
+                currentState.yangoInput.toProviderEarning(ProviderType.YANGO)?.let { add(it) }
+                currentState.privateInput.toProviderEarning(ProviderType.PRIVATE)?.let { add(it) }
             }
-            
+
+            if (providers.isEmpty()) {
+                updateState { it.copy(isLoading = false, error = "Please add earnings for at least one provider") }
+                return@executeAsync
+            }
+
             val entry = DailyEntry(
                 id = entryIdToUse,
                 userId = currentState.userId,
@@ -430,6 +466,7 @@ class AddEntryViewModel @Inject constructor(
                 providers = providers,
                 notes = currentState.notes,
                 photoUrls = currentState.existingPhotoUrls,
+                odometer = currentState.odometer.toDoubleOrNull(),
                 createdAt = createdAt,
                 updatedAt = now
             )
@@ -472,12 +509,15 @@ class AddEntryViewModel @Inject constructor(
                             date = entry.date,
                             driverInput = entry.driverName,
                             vehicleInput = entry.vehicle,
-                            uberEarnings = entry.uberEarnings.takeIf { it != 0.0 }?.toString() ?: "",
-                            yangoEarnings = entry.yangoEarnings.takeIf { it != 0.0 }?.toString() ?: "",
-                            privateJobsEarnings = entry.privateJobsEarnings.takeIf { it != 0.0 }?.toString() ?: "",
+                            uberInput = entry.providerFor(ProviderType.UBER)?.toInputState() ?: ProviderInputState(),
+                            yangoInput = entry.providerFor(ProviderType.YANGO)?.toInputState() ?: ProviderInputState(),
+                            privateInput = entry.providerFor(ProviderType.PRIVATE)?.toInputState() ?: ProviderInputState(),
+                            odometer = entry.odometer?.let { value -> value.toInputString() } ?: "",
                             notes = entry.notes,
                             existingPhotoUrls = entry.photoUrls,
                             createdAt = entry.createdAt,
+                            odometerError = null,
+                            notesError = null,
                             error = null,
                             isSaved = false
                         )
@@ -486,5 +526,64 @@ class AddEntryViewModel @Inject constructor(
                 it.copy(error = "Entry not found")
             }
         }
+    }
+
+    private fun updateProviderState(providerType: ProviderType, transform: (ProviderInputState) -> ProviderInputState) {
+        updateState { currentState ->
+            when (providerType) {
+                ProviderType.UBER -> currentState.copy(uberInput = transform(currentState.uberInput))
+                ProviderType.YANGO -> currentState.copy(yangoInput = transform(currentState.yangoInput))
+                ProviderType.PRIVATE -> currentState.copy(privateInput = transform(currentState.privateInput))
+                else -> currentState
+            }
+        }
+    }
+
+    private fun ProviderType.displayName(): String {
+        return when (this) {
+            ProviderType.UBER -> "Uber"
+            ProviderType.YANGO -> "Yango"
+            ProviderType.PRIVATE -> "Private"
+            ProviderType.CAREEM -> "Careem"
+            ProviderType.OTHER -> "Other"
+        }
+    }
+
+    private fun ProviderInputState.toProviderEarning(type: ProviderType): ProviderEarning? {
+        val cash = cashEarnings.toDoubleOrNull() ?: 0.0
+        val card = cardEarnings.toDoubleOrNull() ?: 0.0
+        val tipsValue = tips.toDoubleOrNull() ?: 0.0
+        val total = cash + card + tipsValue
+        if (total <= 0.0) {
+            return null
+        }
+
+        val hours = hoursOnline.toDoubleOrNull()
+        val tripsCount = trips.toIntOrNull()?.takeIf { it >= 0 }
+
+        return ProviderEarning(
+            type = type,
+            amount = total,
+            cardAmount = card,
+            cashAmount = cash,
+            tipsAmount = tipsValue,
+            hoursOnline = hours,
+            currency = "AED",
+            tripsCount = tripsCount
+        )
+    }
+
+    private fun ProviderEarning.toInputState(): ProviderInputState {
+        val computedCard = if (cardAmount > 0) cardAmount else if (!hasBreakdown && amount > 0) amount else 0.0
+        val computedCash = if (cashAmount > 0) cashAmount else 0.0
+        val computedTips = if (tipsAmount > 0) tipsAmount else 0.0
+
+        return ProviderInputState(
+            hoursOnline = hoursOnline?.takeIf { it > 0 }?.toInputString() ?: "",
+            cashEarnings = computedCash.takeIf { it > 0 }?.toInputString() ?: "",
+            cardEarnings = computedCard.takeIf { it > 0 }?.toInputString() ?: "",
+            tips = computedTips.takeIf { it > 0 }?.toInputString() ?: "",
+            trips = tripsCount?.takeIf { it >= 0 }?.toString() ?: ""
+        )
     }
 }

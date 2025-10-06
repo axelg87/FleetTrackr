@@ -4,29 +4,31 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.fleetmanager.domain.model.ProviderType
 import com.fleetmanager.ui.viewmodel.AddEntryViewModel
+import com.fleetmanager.ui.viewmodel.ProviderInputState
 import com.fleetmanager.ui.components.DriverInputComponent
 import com.fleetmanager.ui.components.PhotoGalleryGrid
 import coil.compose.AsyncImage
@@ -44,8 +46,6 @@ fun AddEntryScreen(
     viewModel: AddEntryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-    
     val multiplePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
     ) { uris ->
@@ -189,38 +189,80 @@ fun AddEntryScreen(
                 }
             }
             
-            // Earnings fields
+            // Odometer field
             OutlinedTextField(
-                value = uiState.uberEarnings,
-                onValueChange = viewModel::updateUberEarnings,
-                label = { Text(stringResource(R.string.uber_earnings)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
+                value = uiState.odometer,
+                onValueChange = viewModel::updateOdometer,
+                label = { Text(stringResource(R.string.odometer)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                isError = uiState.odometerError != null,
+                supportingText = {
+                    uiState.odometerError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             )
-            
-            OutlinedTextField(
-                value = uiState.yangoEarnings,
-                onValueChange = viewModel::updateYangoEarnings,
-                label = { Text(stringResource(R.string.yango_earnings)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
+
+            ProviderEarningsCard(
+                title = stringResource(R.string.provider_section, stringResource(R.string.uber)),
+                providerState = uiState.uberInput,
+                onHoursChange = { viewModel.updateProviderHours(ProviderType.UBER, it) },
+                onTripsChange = { viewModel.updateProviderTrips(ProviderType.UBER, it) },
+                onCashChange = { viewModel.updateProviderCash(ProviderType.UBER, it) },
+                onCardChange = { viewModel.updateProviderCard(ProviderType.UBER, it) },
+                onTipsChange = { viewModel.updateProviderTips(ProviderType.UBER, it) }
             )
-            
-            OutlinedTextField(
-                value = uiState.privateJobsEarnings,
-                onValueChange = viewModel::updatePrivateJobsEarnings,
-                label = { Text(stringResource(R.string.private_jobs)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
+
+            ProviderEarningsCard(
+                title = stringResource(R.string.provider_section, stringResource(R.string.yango)),
+                providerState = uiState.yangoInput,
+                onHoursChange = { viewModel.updateProviderHours(ProviderType.YANGO, it) },
+                onTripsChange = { viewModel.updateProviderTrips(ProviderType.YANGO, it) },
+                onCashChange = { viewModel.updateProviderCash(ProviderType.YANGO, it) },
+                onCardChange = { viewModel.updateProviderCard(ProviderType.YANGO, it) },
+                onTipsChange = { viewModel.updateProviderTips(ProviderType.YANGO, it) }
             )
-            
+
+            ProviderEarningsCard(
+                title = stringResource(R.string.provider_section, stringResource(R.string.private_jobs)),
+                providerState = uiState.privateInput,
+                onHoursChange = { viewModel.updateProviderHours(ProviderType.PRIVATE, it) },
+                onTripsChange = { viewModel.updateProviderTrips(ProviderType.PRIVATE, it) },
+                onCashChange = { viewModel.updateProviderCash(ProviderType.PRIVATE, it) },
+                onCardChange = { viewModel.updateProviderCard(ProviderType.PRIVATE, it) },
+                onTipsChange = { viewModel.updateProviderTips(ProviderType.PRIVATE, it) }
+            )
+
+            if (!uiState.hasProviderTotals) {
+                Text(
+                    text = stringResource(R.string.add_provider_earnings_hint),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
             // Notes field
             OutlinedTextField(
                 value = uiState.notes,
                 onValueChange = viewModel::updateNotes,
                 label = { Text(stringResource(R.string.notes)) },
                 maxLines = 3,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = uiState.notesError != null,
+                supportingText = {
+                    uiState.notesError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             )
             
             // Photo section
@@ -387,5 +429,139 @@ fun DatePickerDialog(
         }
     ) {
         DatePicker(state = datePickerState)
+    }
+}
+
+@Composable
+private fun ProviderEarningsCard(
+    title: String,
+    providerState: ProviderInputState,
+    onHoursChange: (String) -> Unit,
+    onTripsChange: (String) -> Unit,
+    onCashChange: (String) -> Unit,
+    onCardChange: (String) -> Unit,
+    onTipsChange: (String) -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, shape = shape, clip = false)
+            .clip(shape),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = shape
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = providerState.hoursOnline,
+                    onValueChange = onHoursChange,
+                    label = { Text(stringResource(R.string.hours_online)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    isError = providerState.hoursOnlineError != null,
+                    supportingText = {
+                        providerState.hoursOnlineError?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+
+                OutlinedTextField(
+                    value = providerState.trips,
+                    onValueChange = onTripsChange,
+                    label = { Text(stringResource(R.string.trips)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    isError = providerState.tripsError != null,
+                    supportingText = {
+                        providerState.tripsError?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = providerState.cashEarnings,
+                    onValueChange = onCashChange,
+                    label = { Text(stringResource(R.string.cash_earnings)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    isError = providerState.cashEarningsError != null,
+                    supportingText = {
+                        providerState.cashEarningsError?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+
+                OutlinedTextField(
+                    value = providerState.cardEarnings,
+                    onValueChange = onCardChange,
+                    label = { Text(stringResource(R.string.card_earnings)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    isError = providerState.cardEarningsError != null,
+                    supportingText = {
+                        providerState.cardEarningsError?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+            }
+
+            OutlinedTextField(
+                value = providerState.tips,
+                onValueChange = onTipsChange,
+                label = { Text(stringResource(R.string.tips)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                isError = providerState.tipsError != null,
+                supportingText = {
+                    providerState.tipsError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            )
+        }
     }
 }

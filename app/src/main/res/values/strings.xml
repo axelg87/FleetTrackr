@@ -10,6 +10,8 @@
     <string name="entries">Entries</string>
     <string name="driver_name">Driver Name</string>
     <string name="vehicle">Vehicle</string>
+    <string name="uber">Uber</string>
+    <string name="yango">Yango</string>
     <string name="uber_earnings">Uber Earnings</string>
     <string name="yango_earnings">Yango Earnings</string>
     <string name="private_jobs">Private Jobs</string>
@@ -25,4 +27,12 @@
     <string name="total_earnings">Total Earnings</string>
     <string name="camera_permission_required">Camera permission is required to take photos</string>
     <string name="storage_permission_required">Storage permission is required to select photos</string>
+    <string name="odometer">Odometer</string>
+    <string name="hours_online">Hours Online</string>
+    <string name="cash_earnings">Cash</string>
+    <string name="card_earnings">Card</string>
+    <string name="tips">Tips</string>
+    <string name="trips">Trips</string>
+    <string name="provider_section">%1$s Earnings</string>
+    <string name="add_provider_earnings_hint">Add earnings for at least one provider to save this entry.</string>
 </resources>

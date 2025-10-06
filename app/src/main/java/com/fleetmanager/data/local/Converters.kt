@@ -51,7 +51,14 @@ class Converters {
                 providers.add(
                     ProviderEarning(
                         type = type,
-                        amount = obj.optDouble("amount", 0.0),
+                        amount = obj.optDouble("amount", 0.0).takeIf { it > 0 }
+                            ?: (obj.optDouble("cardAmount", obj.optDouble("card", 0.0))
+                            + obj.optDouble("cashAmount", obj.optDouble("cash", 0.0))
+                            + obj.optDouble("tipsAmount", obj.optDouble("tips", 0.0))),
+                        cardAmount = obj.optDouble("cardAmount", obj.optDouble("card", 0.0)),
+                        cashAmount = obj.optDouble("cashAmount", obj.optDouble("cash", 0.0)),
+                        tipsAmount = obj.optDouble("tipsAmount", obj.optDouble("tips", 0.0)),
+                        hoursOnline = obj.optDouble("hoursOnline", Double.NaN).takeUnless { it.isNaN() },
                         currency = obj.optString("currency", "AED"),
                         tripsCount = if (obj.has("tripsCount")) obj.optInt("tripsCount") else null,
                         meta = null // Keep simple
@@ -78,8 +85,15 @@ class Converters {
                 try {
                     val obj = JSONObject()
                     obj.put("type", provider.type.name)
-                    obj.put("amount", provider.amount)
+                    obj.put("amount", provider.totalAmount)
                     obj.put("currency", provider.currency)
+                    obj.put("cardAmount", provider.cardAmount)
+                    obj.put("card", provider.cardAmount)
+                    obj.put("cashAmount", provider.cashAmount)
+                    obj.put("cash", provider.cashAmount)
+                    obj.put("tipsAmount", provider.tipsAmount)
+                    obj.put("tips", provider.tipsAmount)
+                    provider.hoursOnline?.let { obj.put("hoursOnline", it) }
                     provider.tripsCount?.let { obj.put("tripsCount", it) }
                     jsonArray.put(obj)
                     successCount++
