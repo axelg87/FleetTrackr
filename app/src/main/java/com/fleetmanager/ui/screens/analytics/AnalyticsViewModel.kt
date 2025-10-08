@@ -355,7 +355,13 @@ class AnalyticsViewModel @Inject constructor(
                                 MockDataProvider.generateMockAnalyticsData()
                             }
                         } else {
-                            calculateAnalyticsData(filteredEntries, filteredExpenses, startDate, endDate)
+                            calculateAnalyticsData(
+                                entries = filteredEntries,
+                                expenses = filteredExpenses,
+                                startDate = startDate,
+                                endDate = endDate,
+                                allEntriesForContext = entriesByDriver
+                            )
                         }
 
                         _analyticsData.value = analyticsData.copy(
@@ -415,7 +421,8 @@ class AnalyticsViewModel @Inject constructor(
         entries: List<DailyEntry>,
         expenses: List<Expense>,
         startDate: LocalDate,
-        endDate: LocalDate
+        endDate: LocalDate,
+        allEntriesForContext: List<DailyEntry>
     ): AnalyticsData {
         // Calculate trends
         val trendData = AnalyticsCalculator.calculateTrendData(entries, expenses, startDate, endDate)
@@ -464,8 +471,8 @@ class AnalyticsViewModel @Inject constructor(
         } else null
         
         // Calculate projection using d-1 logic
-        val projection = if (currentMonthEntries.isNotEmpty()) {
-            AnalyticsCalculator.calculateProjection(currentMonthEntries, dayOfWeekAnalysis, yesterday)
+        val projection = if (allEntriesForContext.isNotEmpty()) {
+            AnalyticsCalculator.calculateProjection(allEntriesForContext, dayOfWeekAnalysis, yesterday)
         } else null
         
         return AnalyticsData(

@@ -86,10 +86,7 @@ object MockDataProvider {
             anomalies = AnalyticsCalculator.detectAnomalies(entries, expenses),
             monthlyComparison = generateMockMonthlyComparison(),
             projection = AnalyticsCalculator.calculateProjection(
-                entries.filter {
-                    val entryDate = AnalyticsUtils.dateToLocalDate(it.date)
-                    AnalyticsUtils.isCurrentMonth(entryDate)
-                },
+                entries,
                 dayOfWeekAnalysis,
                 endDate // Use yesterday instead of today
             )
