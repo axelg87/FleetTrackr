@@ -8,6 +8,7 @@ import com.fleetmanager.ui.screens.analytics.IncomeLevel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
@@ -286,28 +287,28 @@ object AnalyticsCalculator {
      * Calculate projection for end of month
      */
     fun calculateProjection(
-        currentMonthEntries: List<DailyEntry>,
+        entries: List<DailyEntry>,
         weeklyPattern: List<DayOfWeekAnalysis>,
         currentDate: LocalDate
     ): ProjectionData {
-        val incomeByDate = currentMonthEntries.groupBy {
+        val incomeByDate = entries.groupBy {
             AnalyticsUtils.dateToLocalDate(it.date)
         }.mapValues { (_, entries) ->
             entries.sumOf { it.totalEarnings }
-        }
+        }.filterKeys { !it.isAfter(currentDate) }
 
+        val currentMonth = YearMonth.from(currentDate)
         val monthToDateIncome = incomeByDate
-            .filterKeys { !it.isAfter(currentDate) }
+            .filterKeys { YearMonth.from(it) == currentMonth }
         val currentTotal = monthToDateIncome.values.sum()
         val daysElapsed = currentDate.dayOfMonth
         val totalDaysInMonth = currentDate.lengthOfMonth()
 
         val monthStart = currentDate.withDayOfMonth(1)
         val lookbackStart = currentDate.minusDays((PROJECTION_LOOKBACK_DAYS - 1).toLong())
-        val effectiveLookbackStart = if (lookbackStart.isBefore(monthStart)) monthStart else lookbackStart
 
-        val recentIncomeByDate = monthToDateIncome
-            .filterKeys { !it.isBefore(effectiveLookbackStart) }
+        val recentIncomeByDate = incomeByDate
+            .filterKeys { !it.isBefore(lookbackStart) }
         val projectionIncomeByDate = if (recentIncomeByDate.isNotEmpty()) {
             recentIncomeByDate
         } else {
@@ -315,7 +316,7 @@ object AnalyticsCalculator {
         }
 
         val projectionWindowStart = if (recentIncomeByDate.isNotEmpty()) {
-            effectiveLookbackStart
+            lookbackStart
         } else {
             monthStart
         }

@@ -111,10 +111,10 @@ class GetDashboardDataUseCase @Inject constructor(
         val thisWeekYangoEarnings = thisWeekEntries.sumOf { it.yangoEarnings }
         val thisWeekPrivateEarnings = thisWeekEntries.sumOf { it.privateJobsEarnings }
         
-        // Last 24 hours
-        val last24Hours = Date(now.time - TimeUnit.HOURS.toMillis(24))
+        // Last 40 hours (buffer to include whole previous day while label stays 24h)
+        val last24HoursCutoff = Date(now.time - TimeUnit.HOURS.toMillis(40))
         val last24hEarnings = enrichedEntries
-            .filter { it.date >= last24Hours }
+            .filter { it.date >= last24HoursCutoff }
             .sumOf { it.totalEarnings }
 
         // Active drivers count
