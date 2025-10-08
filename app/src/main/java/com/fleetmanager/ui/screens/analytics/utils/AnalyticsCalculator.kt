@@ -21,6 +21,7 @@ object AnalyticsCalculator {
     private const val HIGH_INCOME_THRESHOLD = 250.0
     private const val MEDIUM_INCOME_THRESHOLD = 100.0
     private const val ANOMALY_THRESHOLD_PERCENTAGE = 0.5 // 50%
+    private const val PROJECTION_LOOKBACK_DAYS = 15
 
     /**
      * Calculate trend data for a given period
@@ -295,19 +296,43 @@ object AnalyticsCalculator {
             entries.sumOf { it.totalEarnings }
         }
 
-        val currentTotal = incomeByDate.values.sum()
+        val monthToDateIncome = incomeByDate
+            .filterKeys { !it.isAfter(currentDate) }
+        val currentTotal = monthToDateIncome.values.sum()
         val daysElapsed = currentDate.dayOfMonth
         val totalDaysInMonth = currentDate.lengthOfMonth()
-        val recordedDays = incomeByDate.size
 
-        val activeDayAverage = if (recordedDays > 0) currentTotal / recordedDays else 0.0
-        val dailyAverage = if (daysElapsed > 0) currentTotal / daysElapsed else 0.0
+        val monthStart = currentDate.withDayOfMonth(1)
+        val lookbackStart = currentDate.minusDays((PROJECTION_LOOKBACK_DAYS - 1).toLong())
+        val effectiveLookbackStart = if (lookbackStart.isBefore(monthStart)) monthStart else lookbackStart
+
+        val recentIncomeByDate = monthToDateIncome
+            .filterKeys { !it.isBefore(effectiveLookbackStart) }
+        val projectionIncomeByDate = if (recentIncomeByDate.isNotEmpty()) {
+            recentIncomeByDate
+        } else {
+            monthToDateIncome
+        }
+
+        val projectionWindowStart = if (recentIncomeByDate.isNotEmpty()) {
+            effectiveLookbackStart
+        } else {
+            monthStart
+        }
+
+        val projectionTotal = projectionIncomeByDate.values.sum()
+        val activeRevenueDays = projectionIncomeByDate.size
+
+        val calendarDaysConsidered = ChronoUnit.DAYS.between(projectionWindowStart, currentDate).toInt() + 1
+        val normalizedCalendarDays = calendarDaysConsidered.coerceAtLeast(0)
+        val dailyAverage = if (normalizedCalendarDays > 0) projectionTotal / normalizedCalendarDays else 0.0
+        val activeDayAverage = if (activeRevenueDays > 0) projectionTotal / activeRevenueDays else 0.0
 
         val weeklyAverages = weeklyPattern
             .filter { it.totalDays > 0 && it.averageIncome > 0.0 }
             .associate { it.dayOfWeek to it.averageIncome }
 
-        val currentMonthDayAverages = incomeByDate.entries
+        val projectionDayOfWeekAverages = projectionIncomeByDate.entries
             .groupBy { it.key.dayOfWeek }
             .mapValues { (_, dayEntries) ->
                 val totalForDay = dayEntries.sumOf { it.value }
@@ -316,19 +341,19 @@ object AnalyticsCalculator {
             }
 
         val fallbackAverage = when {
+            activeDayAverage > 0.0 -> activeDayAverage
             weeklyAverages.isNotEmpty() -> weeklyAverages.values.average()
-            activeDayAverage > 0 -> activeDayAverage
             else -> 0.0
         }
 
         val projectedFutureTotal = generateSequence(currentDate.plusDays(1)) { it.plusDays(1) }
             .takeWhile { it.month == currentDate.month }
             .sumOf { futureDate ->
+                val recentAverage = projectionDayOfWeekAverages[futureDate.dayOfWeek]
                 val weeklyAverage = weeklyAverages[futureDate.dayOfWeek]
-                val currentAverage = currentMonthDayAverages[futureDate.dayOfWeek]
                 when {
+                    recentAverage != null && recentAverage > 0.0 -> recentAverage
                     weeklyAverage != null && weeklyAverage > 0.0 -> weeklyAverage
-                    currentAverage != null && currentAverage > 0.0 -> currentAverage
                     else -> fallbackAverage
                 }
             }
@@ -342,7 +367,7 @@ object AnalyticsCalculator {
             totalDaysInMonth = totalDaysInMonth,
             dailyAverage = dailyAverage,
             comparisonToPrevious = 0.0, // Will be calculated when previous month data is available
-            activeRevenueDays = recordedDays,
+            activeRevenueDays = activeRevenueDays,
             activeDayAverage = activeDayAverage
         )
     }
